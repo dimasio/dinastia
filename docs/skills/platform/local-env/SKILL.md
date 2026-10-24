@@ -91,6 +91,7 @@ curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' '
 | Симптом | Что делать |
 |---|---|
 | `Cannot connect to the Docker daemon` | запустить Docker Desktop |
+| `EADDRINUSE :3000` или API отвечает «по-старому» (404 на новые маршруты) | на порту висит прежний процесс node (убили обёртку `tsx`/`pnpm`, а не node): `lsof -tiTCP:3000 -sTCP:LISTEN \| xargs kill` (так же для 5173) |
 | `ECONNREFUSED 5432` / `8333` | `pnpm env:up`, `pnpm env:ps` |
 | порт занят | поменять в `.env` (`DB_PORT`, `S3_PORT`, `API_PORT`, `WEB_PORT`, …) и в URL там же |
 | `permission denied for schema public` | DDL под `app_user` — DDL только миграциями под `app_owner` |

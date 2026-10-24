@@ -104,11 +104,12 @@ docker/                        compose для локального окруже�
 ## 4. Запрос: путь и контекст
 
 ```
-HTTP → Hono → better-auth (сессия) → резолв школы по хосту → oRPC
-  → базовая процедура (pub | authed | school) → can('<perm>') → handler → service(ctx, input)
+HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/auth (better-auth)
+  → errorsMw → mw.host (школа по хосту) → mw.session → mw.school → mw.tenantTx (транзакция школы) → mw.member
+  → can('<perm>') (0.6) → handler → service(ctx, input)
 ```
 
-Контекст процедуры `school` (`apps/api/src/kernel/orpc.ts`):
+Контекст цепочки «участник школы» (`apps/api/src/kernel/orpc.ts`, `schoolCtx()`; цепочки — скилл `api-endpoints` §2):
 
 | Поле                                                                                        | Что                                                                                                   |
 | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |

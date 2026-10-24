@@ -13,9 +13,10 @@ description: Школа как тенант в Dinastia — модуль schools
 | Что                                                              | Где                                                                  |
 | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
 | таблица `schools` (корень тенанта) | `packages/db/src/schools.ts` |
-| таблицы `members`, `invitations` | `apps/api/src/modules/schools/schema.ts`; пользователи, сессии, согласия — `apps/api/src/kernel/auth/schema.ts` (better-auth, D-007) |
+| таблицы `members` (ядро — нужна каждому запросу) и `invitations` | `apps/api/src/kernel/members/schema.ts`, `apps/api/src/modules/schools/schema.ts`; пользователи, сессии, согласия — `apps/api/src/kernel/auth/schema.ts` (better-auth, D-007) |
 | регистрация школы, список своих школ, членство | `apps/api/src/modules/schools/service.ts` (`createSchool`, `listMySchools`, `findActiveMember`) |
 | приглашения сотрудников | `apps/api/src/modules/schools/invitations.service.ts` (`inviteStaff`, `getInvitation`, `acceptInvitation`) |
+| API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`), `apps/api/src/modules/schools/router.ts` |
 | схемы slug, ролей, приглашения | `packages/contracts/src/schools.ts` (`SchoolSlug`, `RESERVED_SLUGS`, `StaffInvite`) |
 | брендинг и общие настройки                                       | `apps/api/src/modules/schools/settings.ts` (скилл `settings`)        |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |

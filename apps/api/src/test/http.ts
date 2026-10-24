@@ -1,0 +1,31 @@
+// HTTP-хелперы тестов API: запросы «из браузера» на нужный хост с cookie сессии.
+import { createApp } from '#/app.ts'
+import { TEST_PASSWORD, uniqueEmail } from './users.ts'
+
+export const app = createApp()
+export const host = (slug?: string) => (slug ? `${slug}.dinastia.localhost:5173` : 'dinastia.localhost:5173')
+let ip = 0
+
+export function call(method: string, path: string, opts: { slug?: string; cookie?: string; body?: unknown } = {}) {
+	const h = host(opts.slug)
+	return app.request(path, {
+		method,
+		headers: {
+			host: h,
+			origin: `http://${h}`,
+			'x-forwarded-for': `10.77.${Math.floor(++ip / 250)}.${ip % 250}`,
+			...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
+			...(opts.cookie ? { cookie: opts.cookie } : {}),
+		},
+		...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
+	})
+}
+
+/** Зарегистрировать пользователя через better-auth и вернуть cookie сессии. */
+export async function signUp(prefix = 'u', name = 'Тест') {
+	const email = uniqueEmail(prefix)
+	const res = await call('POST', '/api/auth/sign-up/email', { body: { email, password: TEST_PASSWORD, name } })
+	if (res.status !== 200) throw new Error(`sign-up ${res.status}`)
+	const cookie = (res.headers.get('set-cookie') ?? '').split(';')[0] ?? ''
+	return { email, cookie, id: ((await res.json()) as { user: { id: string } }).user.id }
+}

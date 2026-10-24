@@ -4,11 +4,11 @@ import { type SchoolCreate, SchoolCreate as SchoolCreateSchema } from '@dinastia
 import { schools } from '@dinastia/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { consents } from '#/kernel/auth/schema.ts'
-import { db, type Tx } from '#/kernel/db/client.ts'
+import { db } from '#/kernel/db/client.ts'
 import { withUser } from '#/kernel/db/tenant.ts'
 import { fail } from '#/kernel/errors.ts'
 import { LEGAL_VERSIONS } from '#/kernel/legal.ts'
-import { members } from './schema.ts'
+import { members } from '#/kernel/members/schema.ts'
 
 /** Зарегистрировать школу: школа + владелец + согласия с офертой и политикой — одной транзакцией. */
 export async function createSchool(input: SchoolCreate, owner: { userId: string; ip?: string | null }) {
@@ -54,12 +54,4 @@ export async function findSchoolBySlug(slug: string) {
 	return (await db.select().from(schools).where(eq(schools.slug, slug)).limit(1))[0] ?? null
 }
 
-/** Активное членство пользователя в школе транзакции (контекст запроса, пункт 0.5). */
-export async function findActiveMember(tx: Tx, userId: string) {
-	const [m] = await tx
-		.select({ id: members.id, role: members.role })
-		.from(members)
-		.where(and(eq(members.userId, userId), eq(members.status, 'active')))
-		.limit(1)
-	return m ?? null
-}
+export { findActiveMember } from '#/kernel/members/members.ts'

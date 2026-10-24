@@ -1,41 +1,10 @@
-import { appUser, currentSchoolId, tenantRef, tenantTable } from '@dinastia/db'
+import { tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
-import { index, pgEnum, pgPolicy, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { pgEnum, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { users } from '#/kernel/auth/schema.ts'
+import { memberRole, members } from '#/kernel/members/schema.ts'
 
-export const memberRole = pgEnum('member_role', ['owner', 'admin', 'teacher', 'curator', 'student'])
-export const memberStatus = pgEnum('member_status', ['active', 'blocked'])
 export const invitationStatus = pgEnum('invitation_status', ['pending', 'accepted', 'revoked'])
-
-/** Текущий пользователь транзакции (`withTenant`/`withUser`). */
-const currentUserId = sql`nullif(current_setting('app.user_id', true), '')::uuid`
-
-/** Участник школы (D-006): одна роль на членство. Вне школы пользователь видит свои членства (список своих школ). */
-export const members = tenantTable(
-	'members',
-	{
-		userId: uuid('user_id')
-			.notNull()
-			.references(() => users.id, { onDelete: 'restrict' }),
-		role: memberRole('role').notNull(),
-		status: memberStatus('status').notNull().default('active'),
-		invitedBy: uuid('invited_by'),
-		joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
-	},
-	(t) => [
-		uniqueIndex().on(t.schoolId, t.userId),
-		index().on(t.userId),
-		tenantRef(t, t.invitedBy, t, 'no action'),
-		// Только вне школы (withUser): иначе политики сложились бы через OR и в школе A были бы видны членства
-		// пользователя в других школах — findActiveMember выдал бы чужую роль.
-		pgPolicy('members_own_memberships', {
-			as: 'permissive',
-			for: 'select',
-			to: appUser,
-			using: sql`${currentSchoolId} is null and ${t.userId} = ${currentUserId}`,
-		}),
-	],
-)
 
 /** Приглашение сотрудника: в БД — только хеш токена; повторное приглашение того же email обновляет срок. */
 export const invitations = tenantTable(

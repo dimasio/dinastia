@@ -7,7 +7,7 @@ import { users } from './kernel/auth/schema.ts'
 import { config } from './kernel/config.ts'
 import { db, pool } from './kernel/db/client.ts'
 import { withTenant } from './kernel/db/tenant.ts'
-import { members } from './modules/schools/schema.ts'
+import { members } from './kernel/members/schema.ts'
 import { createSchool, findSchoolBySlug } from './modules/schools/service.ts'
 
 const PASSWORD = 'demo12345'

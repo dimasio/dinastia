@@ -8,7 +8,8 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import type { Tx } from '#/kernel/db/client.ts'
 import { fail } from '#/kernel/errors.ts'
 import { sendMail } from '#/kernel/mail.ts'
-import { invitations, members } from './schema.ts'
+import { members } from '#/kernel/members/schema.ts'
+import { invitations } from './schema.ts'
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 

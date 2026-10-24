@@ -8,7 +8,7 @@ import { db, type Tx } from './client.ts'
 export async function withTenant<T>(
 	schoolId: string,
 	fn: (tx: Tx) => Promise<T>,
-	opts: { userId?: string } = {},
+	opts: { userId?: string | undefined } = {},
 ): Promise<T> {
 	return db.transaction(async (tx) => {
 		await tx.execute(

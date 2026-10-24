@@ -20,6 +20,10 @@
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@hono/node-server": "catalog:",
+		"@orpc/contract": "catalog:",
+		"@orpc/openapi": "catalog:",
+		"@orpc/server": "catalog:",
+		"@orpc/zod": "catalog:",
 		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",
 		"hono": "catalog:",
@@ -34,6 +38,7 @@
 		"drizzle-kit": "catalog:",
 		"tsx": "catalog:",
 		"typescript": "catalog:",
-		"vitest": "catalog:"
+		"vitest": "catalog:",
+		"@orpc/client": "catalog:"
 	}
 }

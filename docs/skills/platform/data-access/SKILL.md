@@ -18,7 +18,8 @@ description: Код доступа к данным и бизнес-логика 
 // apps/api/src/modules/courses/service.ts
 import { and, eq, sql } from 'drizzle-orm'
 import type { SchoolCtx } from '#/kernel/context'
-import { paginate, fail } from '#/kernel/db'
+import { fail } from '#/kernel/errors.ts'
+import { paginate } from '#/kernel/db/paginate.ts' // фаза 1.2
 import type { CourseCreate, CourseListInput } from '@dinastia/contracts/courses'
 import { courses, lessons } from './schema'
 import { coursePublished } from './events'
@@ -67,7 +68,8 @@ export async function getOrFail(ctx: SchoolCtx, id: string) {
   его таблицы напрямую не трогать.
 - **События** — `ctx.emit(event, data)`; доставляются после коммита. **Задачи** — `ctx.jobs.send(job, data)` в той же
   транзакции.
-- **Ошибки** — `fail.notFound(code)`, `fail.conflict(code)`, `fail.forbidden(code)`, `fail.invalid(code, issues)`;
+- **Ошибки** — `fail.notFound(code)`, `fail.conflict(code)`, `fail.forbidden(code)`, `fail.invalid(code, data)` из
+  `#/kernel/errors.ts` (как они превращаются в ответ API — скилл `api-endpoints` §3);
   `code` — `UPPER_SNAKE`, в i18n есть `errors:<code>`. Не бросать `Error` с текстом для пользователя.
 - **Время** — `ctx.now()` (в тестах подменяется), не `new Date()`.
 - **Права** проверяет процедура (`permissions`); ограничение «куратор видит только свои группы» — функция политики
