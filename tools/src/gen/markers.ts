@@ -13,6 +13,12 @@ export interface Change {
 /** kebab-case → camelCase (`question-bank` → `questionBank`). */
 export const camel = (kebab: string) => kebab.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
 
+/** Строка с маркером — точное совпадение имени (`gen:module:permissions` не совпадает с `…:permissions-import`). */
+function markerRe(marker: string): RegExp {
+	const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	return new RegExp(`gen:${escaped}(?![\\w:-])`)
+}
+
 export function create(file: string, content: string): Change {
 	return { file, kind: 'create', content }
 }
@@ -31,7 +37,7 @@ export function plan(changes: Change[]): string[] {
 			if (!existsSync(path)) problems.push(`нет файла: ${c.file}`)
 			else {
 				const text = readFileSync(path, 'utf8')
-				if (!text.includes(`gen:${c.marker}`)) problems.push(`нет маркера gen:${c.marker} в ${c.file}`)
+				if (!markerRe(c.marker ?? '').test(text)) problems.push(`нет маркера gen:${c.marker} в ${c.file}`)
 				if (text.includes(c.content.trim())) problems.push(`уже вставлено в ${c.file}: ${c.content.trim()}`)
 			}
 		}
@@ -49,7 +55,8 @@ export function apply(changes: Change[]): string[] {
 			writeFileSync(path, c.content)
 		} else {
 			const lines = readFileSync(path, 'utf8').split('\n')
-			const at = lines.findIndex((l) => l.includes(`gen:${c.marker}`))
+			const re = markerRe(c.marker ?? '')
+			const at = lines.findIndex((l) => re.test(l))
 			const indent = lines[at]?.match(/^\s*/)?.[0] ?? ''
 			lines.splice(at, 0, ...c.content.split('\n').map((l) => indent + l))
 			writeFileSync(path, lines.join('\n'))

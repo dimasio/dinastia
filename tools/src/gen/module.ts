@@ -88,10 +88,16 @@ if (dryRun) {
 }
 
 const touched = apply(changes)
-execFileSync('pnpm', ['exec', 'biome', 'check', '--write', ...touched.filter((f) => !f.endsWith('.md'))], {
-	cwd: root,
-	stdio: 'ignore',
-})
+try {
+	// check (не format): ещё и сортирует импорты; маркеры остаются в конце блока
+	execFileSync('pnpm', ['exec', 'biome', 'check', '--write', ...touched], { cwd: root, stdio: 'pipe' })
+} catch (e) {
+	console.error(
+		'✗ biome check не прошёл — проверь вставки (pnpm lint):',
+		String((e as { stdout?: Buffer }).stdout ?? e),
+	)
+	process.exit(1)
+}
 for (const f of touched) console.log(`  ${f}`)
 console.log(`
 Модуль «${name}» создан. Дальше (скилл module):
