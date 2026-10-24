@@ -5,18 +5,23 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 
 # CI, релизы, деплой
 
-> Статус: целевой — CI — фаза 0 (пункт 0.8); инфраструктура и релизы — фаза 5. Агент **не деплоит в prod**
+> Статус: CI — сверено с кодом в фазе 0 (пункт 0.8); инфраструктура и релизы — фаза 5. Агент **не деплоит в prod**
 > и не трогает прод-инфраструктуру без прямой просьбы человека в этой задаче.
 
 ## CI (каждый PR и main)
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm check` (typecheck, lint, unit + интеграционные на сервисном Postgres, `check:registries`, `docs:check`)
-3. `pnpm db:reset` на чистой БД — все миграции применяются
-4. `pnpm e2e` на compose
-5. сборка образов, отчёт размера бандла (порог — `performance`), `pnpm audit --prod`
+`.github/workflows/ci.yml` — то же окружение, что локально (`docker/compose.yml`, `.env` из `.env.example`):
 
-Красный CI — не мержить. Флейки — чинить (скилл `testing`).
+1. `pnpm install --frozen-lockfile`
+2. `pnpm env:up` (Postgres 18, SeaweedFS, Mailpit)
+3. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`)
+4. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + демо-данные для e2e
+5. `pnpm audit --prod --audit-level high`
+6. `pnpm exec playwright install --with-deps chromium` → `pnpm e2e`
+7. при падении — артефакты Playwright (trace, скриншоты) и логи compose
+
+Красный CI — не мержить. Флейки — чинить (скилл `testing`). Локально та же последовательность — команды выше по
+порядку. Отчёт размера бандла — добавить, когда появятся тяжёлые экраны (фаза 2, скилл `performance`).
 
 ## Окружения
 
