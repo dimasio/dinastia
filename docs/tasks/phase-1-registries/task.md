@@ -22,14 +22,14 @@ closed:
 | # | Пункт | Статус |
 |---|---|---|
 | 1.1 | `defineModule`, реестр модулей, меню из фич (`nav.ts`), `pnpm gen:module`, lint-запрет глобального клиента БД в модулях | done |
-| 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `paginate`/`applyFilters`, `pnpm gen:resource`; экран «Сотрудники школы» | backlog |
+| 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `paginate`/`applyFilters`, `pnpm gen:resource`; экран «Сотрудники школы» | active |
 | 1.3 | `@dinastia/db` `blockTable`; реестр блоков, публикация строками, `pnpm gen:block`; демо-блок `callout` | backlog |
 | 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | backlog |
 | 1.5 | `check:registries` | backlog |
 | 1.6 | События (outbox) и задачи (pg-boss), воркер | backlog |
 | 1.7 | Файлы: S3, presigned upload, `files` | backlog |
 | 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | backlog |
-| 1.9 | Тест-фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix`, e2e-фикстуры | active |
+| 1.9 | Тест-фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix`, e2e-фикстуры | done |
 | 1.11 | `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний | backlog |
 | 1.12 | Rich text: `RichText`, профили, редактор/просмотр | backlog |
 | 1.13 | Сверка скиллов фазы 1 | backlog |

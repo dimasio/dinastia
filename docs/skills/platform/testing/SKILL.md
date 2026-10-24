@@ -5,8 +5,7 @@ description: Тесты Dinastia — unit на Vitest рядом с кодом (
 
 # Тесты
 
-> Статус: сверено с кодом в фазе 0 (0.3–0.7); общие фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix` и
-> e2e-фикстуры `school`/`loginAs` — пункт 1.9 (сейчас — `apps/api/src/test/{users,http}.ts`).
+> Статус: сверено с кодом в фазе 0 и пункте 1.9 (фикстуры API и e2e).
 
 Интеграционные тесты — на настоящей БД (D-015): RLS и SQL моками не проверяются.
 
@@ -38,36 +37,49 @@ describe('multiple_choice', () => {
 
 ## Интеграционные
 
+Реальная БД `dinastia_test` (пересоздаётся перед прогоном). Основной способ — **через API от имени ролей**
+(`apps/api/src/test/school.ts`, образец — `school.test.ts`):
+
 ```ts
-// apps/api/src/modules/courses/courses.test.ts
-import { withTestSchool, callAs, expectPermissionMatrix } from '#/test'
+import { afterAll, describe, expect, it } from 'vitest'
+import { pool } from '#/kernel/db/client.ts'
+import { cleanupTestSchools, expectPermissionMatrix, withTestSchool } from '#/test/school.ts'
 
-describe('courses', () => {
-	const t = withTestSchool() // школа + участники всех ролей, транзакция откатывается после теста
+afterAll(async () => {
+	await cleanupTestSchools()
+	await pool.end()
+})
 
-	it('публикация курса эмитит событие', async () => {
-		const c = await callAs(t.teacher, 'courses.create', { title: 'Курс' })
-		await callAs(t.teacher, 'courses.publish', { id: c.id })
-		expect(t.events).toContainEqual(expect.objectContaining({ name: 'course.published' }))
+it('приглашать сотрудников могут owner и admin', async () => {
+	const t = await withTestSchool()                     // школа + участники всех 5 ролей
+	expect((await t.as('teacher').schools.me()).member.role).toBe('teacher')   // типизированный клиент от имени роли
+	await expect(t.as('guest').schools.me()).rejects.toMatchObject({ status: 401 })
+
+	await expectPermissionMatrix(t, (c) => c.invitations.create({ email: `m-${Date.now()}@test.local`, role: 'curator' }), {
+		allow: ['owner', 'admin'],
+		deny: ['teacher', 'curator', 'student'],         // каждая роль — в allow или deny, иначе тест упадёт
 	})
-
-	it('права', () =>
-		expectPermissionMatrix(
-			t,
-			'courses.publish',
-			{ id: t.fixtures.courseId },
-			{
-				allow: ['owner', 'admin', 'teacher'],
-				deny: ['curator', 'student'],
-			},
-		))
 })
 ```
 
-Хелперы (`apps/api/src/test`): `withTestSchool()`, `t.other` (вторая школа), `callAs`, `t.clock.set(date)`,
-`t.events`, `t.jobs.drain()` (выполнить поставленные задачи), `t.mail.sent`, фабрики `make.course(t, {...})`.
+| Хелпер | Что |
+|---|---|
+| `withTestSchool(name?)` | школа, `people[role]` (`id`, `email`, `cookie`), `as(role \| 'guest' \| person)` → клиент, `cleanup()` |
+| `clientFor(cookie, slug?)` | клиент API от имени сессии на хосте школы или корня |
+| `expectPermissionMatrix(t, вызов, { allow, deny })` | deny — 403 `NO_PERMISSION`; allow — не 401/403 (бизнес-ошибки допустимы) |
+| `call(method, path, { slug, cookie, body })`, `signUp()` (`test/http.ts`) | сырой HTTP (REST `/api/v1`, better-auth) |
+| `createUser()`, `uniqueEmail()`, `uniqueSlug()` (`test/users.ts`) | данные с уникальными значениями |
+| `memoryOutbox` (`kernel/mail.ts`) | письма в тестах (`MAIL_TRANSPORT=memory`) |
+| `withTenant(schoolId, fn, { userId })` | прямой доступ к БД школы — для подготовки данных и проверки сервисов без HTTP |
+
+Сервис без HTTP (правила, гонки) — вызов функции с `SchoolCtx`, собранным внутри `withTenant` (образец — `inSchool` в
+`apps/api/src/modules/schools/schools.test.ts`). Подмена времени — через `now` в `SchoolCtx` (для HTTP — фаза 2, когда
+понадобится).
 
 ## E2E (Playwright)
+
+Фикстуры — `tests/e2e/fixtures.ts`: `import { expect, schoolUrl, test } from './fixtures.ts'`; `loginAs('teacher')`
+(демо-роли `DEMO` из `pnpm db:seed`) или `loginAs({ email, password }, slug)` — вход через API из браузера, без формы.
 
 Конфиг — `playwright.config.ts` (корень), сценарии — `tests/e2e/*.spec.ts`, демо фазы — `tests/e2e/phase-<N>.spec.ts`
 (образец — `phase-0.spec.ts`). Playwright сам поднимает API и веб (`webServer`) или берёт уже запущенные; нужны

@@ -99,7 +99,8 @@ export function reviewScope(ctx: SchoolCtx) {
 
 - Матрица «роль → разрешения» модуля — `it.each` по ролям через `rolePermissions(role)` (образец в
   `permissions.test.ts`): изменение прав роли видно в diff теста.
-- HTTP: роль без права получает 403 `NO_PERMISSION` (образец — «учитель не может приглашать» в `router.test.ts`).
+- Матрица процедуры — `expectPermissionMatrix(t, (c) => c.<m>.<proc>(…), { allow, deny })` из `#/test/school.ts`
+  (скилл `testing`): каждая роль обязана быть в `allow` или `deny`.
 - Политики: куратор не видит чужую группу (`notFound`).
 
 ## Готово, когда
