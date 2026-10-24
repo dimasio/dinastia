@@ -16,7 +16,8 @@ describe('матрица прав (domain.md §2)', () => {
 		['curator', ['schools.access']],
 		['student', ['schools.access']],
 	] as const)('%s', (role, expected) => {
-		expect(rolePermissions(role)).toEqual([...expected])
+		// матрица модуля schools: новые модули не ломают её (у каждого — своя)
+		expect(rolePermissions(role).filter((p) => p.startsWith('schools.'))).toEqual([...expected])
 	})
 
 	it('owner неявно имеет любое разрешение', () => {

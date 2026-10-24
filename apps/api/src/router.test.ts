@@ -102,7 +102,11 @@ describe('приглашения через API', () => {
 		})
 		expect(await json(accept)).toMatchObject({ role: 'teacher' })
 		const me = await json(await call('GET', '/api/v1/school/me', { slug: school.slug, cookie: invitee.cookie }))
-		expect(me).toMatchObject({ member: { role: 'teacher' }, permissions: ['schools.access', 'schools.members.read'] })
+		expect(me).toMatchObject({ member: { role: 'teacher' } })
+		expect((me.permissions as string[]).filter((p) => p.startsWith('schools.'))).toEqual([
+			'schools.access',
+			'schools.members.read',
+		])
 
 		// учитель не может приглашать: сервер запрещает, даже если UI кнопку не спрятал
 		const denied = await call('POST', '/api/v1/school/invitations', {

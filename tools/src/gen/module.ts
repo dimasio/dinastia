@@ -88,7 +88,7 @@ if (dryRun) {
 }
 
 const touched = apply(changes)
-execFileSync('pnpm', ['exec', 'biome', 'format', '--write', ...touched.filter((f) => !f.endsWith('.md'))], {
+execFileSync('pnpm', ['exec', 'biome', 'check', '--write', ...touched.filter((f) => !f.endsWith('.md'))], {
 	cwd: root,
 	stdio: 'ignore',
 })

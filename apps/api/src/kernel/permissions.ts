@@ -21,9 +21,10 @@ export function definePermissions<M extends string, A extends string>(
 
 export type PermissionMap<K extends string> = Readonly<Record<K, Roles>>
 
-export function mergePermissions<T extends ModulePermissions<string>[]>(
-	...mods: T
-): PermissionMap<T[number] extends ModulePermissions<infer K> ? K : never> {
+/** Ключи разрешений модуля; распределяется по объединению модулей (иначе при двух модулях получался never). */
+type KeysOf<M> = M extends ModulePermissions<infer K> ? K : never
+
+export function mergePermissions<T extends ModulePermissions<string>[]>(...mods: T): PermissionMap<KeysOf<T[number]>> {
 	const all: Record<string, Roles> = {}
 	for (const m of mods) {
 		for (const [k, roles] of Object.entries(m.entries) as [string, Roles][]) {
