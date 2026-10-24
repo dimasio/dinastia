@@ -41,5 +41,25 @@
 		"parser": {
 			"tailwindDirectives": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["apps/api/src/modules/**", "!**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"#/kernel/db/client.ts": "Модулям — только ctx.db (транзакция школы с RLS), скилл data-access. Исключение — с комментарием biome-ignore и причиной.",
+									"drizzle-orm/node-postgres": "Модулям — только ctx.db, скилл data-access."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }

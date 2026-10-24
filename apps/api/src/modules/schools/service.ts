@@ -4,6 +4,7 @@ import { type SchoolCreate, SchoolCreate as SchoolCreateSchema } from '@dinastia
 import { schools } from '@dinastia/db'
 import { and, eq, sql } from 'drizzle-orm'
 import { consents } from '#/kernel/auth/schema.ts'
+// biome-ignore lint/style/noRestrictedImports: регистрация школы и поиск школы по slug идут до появления тенанта (D-006)
 import { db } from '#/kernel/db/client.ts'
 import { withUser } from '#/kernel/db/tenant.ts'
 import { fail } from '#/kernel/errors.ts'

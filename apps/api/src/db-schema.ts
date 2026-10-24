@@ -3,3 +3,4 @@ export { appUser, schoolStatus, schools } from '@dinastia/db'
 export * from './kernel/auth/schema.ts'
 export * from './kernel/members/schema.ts'
 export * from './modules/schools/schema.ts'
+// gen:module:schema

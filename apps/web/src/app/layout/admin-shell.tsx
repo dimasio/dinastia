@@ -1,25 +1,15 @@
 import type { Me } from '@dinastia/contracts/schools'
 import { Button, Sheet, SheetContent, SheetTitle, SheetTrigger } from '@dinastia/ui'
-import { Link } from '@tanstack/react-router'
-import { House, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SideNav } from './side-nav.tsx'
 import { UserMenu } from './user-menu.tsx'
 
-/** Кабинет школы: сайдбар (на мобиле — выдвижная панель) + верхняя панель. Пункты меню — из фич (фаза 1.1, nav.ts). */
+/** Кабинет школы: сайдбар (на мобиле — выдвижная панель) + верхняя панель. Пункты меню — из фич (features/<m>/nav.ts). */
 export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 	const { t } = useTranslation('nav')
-	const nav = (
-		<nav className="grid gap-1 p-2" aria-label={t('admin.title')}>
-			<Link
-				to="/admin"
-				activeOptions={{ exact: true }}
-				className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent [&.active]:bg-sidebar-accent [&.active]:font-medium"
-			>
-				<House className="size-4" aria-hidden /> {t('admin.home')}
-			</Link>
-		</nav>
-	)
+	const nav = <SideNav area="admin" permissions={me.permissions} label={t('admin.title')} />
 	return (
 		<div className="flex min-h-svh">
 			<aside className="hidden w-60 shrink-0 border-r bg-sidebar text-sidebar-foreground md:block">

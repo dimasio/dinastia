@@ -2,6 +2,8 @@ import type { Me } from '@dinastia/contracts/schools'
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { navItems } from '#/features/index.ts'
+import { visibleNav } from '../nav.ts'
 import { UserMenu } from './user-menu.tsx'
 
 /** Кабинет ученика: верхняя панель и контент; от 360px. */
@@ -14,9 +16,18 @@ export function LearnShell({ me, children }: { me: Me; children: ReactNode }) {
 					{me.school.name}
 				</span>
 				<nav className="ml-auto flex items-center gap-4 text-sm" aria-label={t('learn.title')}>
-					<Link to="/learn" className="[&.active]:font-medium">
-						{t('learn.home')}
-					</Link>
+					{visibleNav(navItems, 'learn', me.permissions).flatMap(({ items }) =>
+						items.map((item) => (
+							<Link
+								key={item.to}
+								to={item.to}
+								activeOptions={{ exact: item.exact ?? false }}
+								className="[&.active]:font-medium"
+							>
+								{t(item.label as never)}
+							</Link>
+						)),
+					)}
 					<UserMenu name={me.user.name} email={me.user.email} role={me.member.role} />
 				</nav>
 			</header>

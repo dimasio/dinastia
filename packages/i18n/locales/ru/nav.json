@@ -1,6 +1,20 @@
 {
-	"admin": { "home": "Главная", "title": "Кабинет школы" },
-	"learn": { "home": "Мои курсы", "title": "Обучение" },
+	"admin": {
+		"home": "Главная",
+		"title": "Кабинет школы"
+	},
+	"learn": {
+		"home": "Мои курсы",
+		"title": "Обучение"
+	},
 	"profile": "Профиль",
-	"switchSchool": "Другие школы"
+	"switchSchool": "Другие школы",
+	"groups": {
+		"main": "",
+		"content": "Контент",
+		"learning": "Обучение",
+		"people": "Люди",
+		"analytics": "Аналитика",
+		"settings": "Настройки"
+	}
 }

@@ -1,6 +1,9 @@
 import type { MemberRole } from '@dinastia/contracts/schools'
 import type { Permission } from '../permissions.ts'
 import type { Tx } from './db/client.ts'
+
+export type { Tx }
+
 import type { Logger } from './log.ts'
 
 /** Контекст запроса школы (architecture §4). Фаза 1 добавит emit, jobs. */

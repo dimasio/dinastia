@@ -5,7 +5,8 @@
 	"scripts": {
 		"docs:check": "tsx src/docs-check.ts",
 		"skills:link": "tsx src/skills-link.ts",
-		"typecheck": "tsc -p ."
+		"typecheck": "tsc -p .",
+		"gen:module": "tsx src/gen/module.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

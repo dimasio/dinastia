@@ -5,8 +5,18 @@ import common from '../locales/ru/common.json' with { type: 'json' }
 import errors from '../locales/ru/errors.json' with { type: 'json' }
 import home from '../locales/ru/home.json' with { type: 'json' }
 import nav from '../locales/ru/nav.json' with { type: 'json' }
+// gen:module:import
 
-export const resources = { ru: { common, errors, auth, nav, home } } as const
+export const resources = {
+	ru: {
+		common,
+		errors,
+		auth,
+		nav,
+		home,
+		// gen:module:entry
+	},
+} as const
 export const defaultNS = 'common'
 export type Resources = (typeof resources)['ru']
 
