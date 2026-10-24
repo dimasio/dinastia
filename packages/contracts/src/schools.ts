@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { DateTime, Email, Id } from './common/index.ts'
+import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 
 /** Поддомены, которые не может занять школа (скилл lms-school). */
 export const RESERVED_SLUGS = [
@@ -103,4 +103,45 @@ export const invitationsContract = {
 		.route({ method: 'POST', path: '/invitations/{token}/accept' })
 		.input(InvitationToken)
 		.output(z.object({ role: MemberRole, school: SchoolPublic })),
+}
+
+// --- Сотрудники школы (ресурс, скилл admin-resource) ---
+
+export const MEMBER_STATUSES = ['active', 'blocked'] as const
+export const MemberStatus = z.enum(MEMBER_STATUSES)
+export const STAFF_ROLES = ['owner', 'admin', 'teacher', 'curator'] as const
+export const StaffRole = z.enum(STAFF_ROLES)
+
+export const StaffMember = z.object({
+	id: Id,
+	userId: Id,
+	name: z.string(),
+	email: z.string(),
+	role: MemberRole,
+	status: MemberStatus,
+	joinedAt: DateTime,
+})
+export type StaffMember = z.infer<typeof StaffMember>
+
+export const StaffListInput = pageInput({
+	sorts: ['name', 'role', 'joinedAt'] as const,
+	defaultSort: 'name',
+	filters: { role: StaffRole, status: MemberStatus },
+})
+export type StaffListInput = z.input<typeof StaffListInput>
+export type StaffListQuery = z.output<typeof StaffListInput>
+
+export const membersContract = {
+	/** Сотрудники школы (без учеников): поиск по имени и email, фильтры по роли и статусу. */
+	list: oc.route({ method: 'GET', path: '/school/members' }).input(StaffListInput).output(page(StaffMember)),
+	/** Сменить роль сотрудника (владельцем стать нельзя — только передача владения). */
+	changeRole: oc
+		.route({ method: 'POST', path: '/school/members/{id}/role' })
+		.input(z.object({ id: Id, role: StaffInviteRole }))
+		.output(StaffMember),
+	/** Заблокировать или вернуть доступ. */
+	setStatus: oc
+		.route({ method: 'POST', path: '/school/members/{id}/status' })
+		.input(z.object({ id: Id, status: MemberStatus }))
+		.output(StaffMember),
 }

@@ -1,9 +1,9 @@
 import { defineModule } from '#/kernel/module.ts'
 import { permissions } from './permissions.ts'
-import { invitationsRouter, schoolsRouter } from './router.ts'
+import { invitationsRouter, membersRouter, schoolsRouter } from './router.ts'
 
 export default defineModule({
 	name: 'schools',
-	router: { schools: schoolsRouter, invitations: invitationsRouter },
+	router: { schools: schoolsRouter, invitations: invitationsRouter, members: membersRouter },
 	permissions,
 })

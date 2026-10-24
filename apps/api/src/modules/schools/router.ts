@@ -3,6 +3,7 @@ import { fail } from '#/kernel/errors.ts'
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
+import { changeStaffRole, listStaff, setStaffStatus } from './members.service.ts'
 import { createSchool, listMySchools } from './service.ts'
 
 export const schoolsRouter = {
@@ -80,4 +81,34 @@ export const invitationsRouter = {
 			if (!res.role) throw new Error('приглашение принято без роли')
 			return { role: res.role, school: context.school }
 		}),
+}
+
+const member = () => impl.members
+export const membersRouter = {
+	list: member()
+		.list.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.members.read'))
+		.handler(({ input, context }) => listStaff(schoolCtx(context), input)),
+
+	changeRole: member()
+		.changeRole.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.members.manage'))
+		.handler(({ input, context }) => changeStaffRole(schoolCtx(context), input)),
+
+	setStatus: member()
+		.setStatus.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.members.manage'))
+		.handler(({ input, context }) => setStaffStatus(schoolCtx(context), input)),
 }

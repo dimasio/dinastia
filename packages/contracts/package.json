@@ -4,6 +4,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./common": "./src/common/index.ts",
 		"./*": "./src/*.ts"
 	},
 	"scripts": {
