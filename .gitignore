@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+*.dump
+*.sql.gz
