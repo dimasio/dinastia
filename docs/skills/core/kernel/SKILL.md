@@ -5,7 +5,7 @@ description: Устройство и доработка ядра Dinastia (то�
 
 # Ядро
 
-> Статус: целевой — сверить с кодом в фазах 0–1; после этого скилл описывает фактическое устройство.
+> Статус: карта сверена с кодом в конце фазы 0 (пункт 0.10); строки «фаза N» — ещё не реализованы.
 
 Ядро меняется **только** с явного разрешения человека в задаче или в задаче фаз 0–1 (`AGENTS.md`). Архитектура —
 `docs/specs/architecture.md`; изменение, которое меняет поведение для модулей, — правка этой спеки и затронутых
@@ -13,27 +13,29 @@ description: Устройство и доработка ядра Dinastia (то�
 
 ## Карта
 
-| Часть                   | Файл                                                                                                                                              | Отвечает за                                                                                                             | Скилл использования                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| хелперы схемы           | `packages/db` (`@dinastia/db`)                                                                                                                    | `schools`, `tenantTable`, `tenantRef`, `blockTable`, `blockChildTable`, `settingsTable`, `richText`, `opaqueJson`, `pii`, `fk` | `db-schema`, `lesson-blocks`, `settings` |
-| БД                      | `kernel/db/{client,tenant,paginate,errors}.ts`                                                                                                    | пул, роли, `paginate`, `applyFilters`, `fail`                                                                           | `data-access`                            |
-| Тенант                  | `kernel/tenant.ts`                                                                                                                                | `withTenant(schoolId, fn)` — транзакция + `set_config`, `forEachSchool`                                                 | `data-access`                            |
-| Auth | `kernel/auth/{auth,schema}.ts`, `kernel/host.ts` | better-auth (пользователи, сессии, пароль, magic link, rate limit в БД, origin-check явно — D-040), согласия, резолв школы по хосту; школы, участники, приглашения — модуль `schools` (D-007) | `lms-school`, `security-baseline` |
-| Членство | `kernel/members/{schema,members}.ts` | таблица `members` (RLS + «свои членства» вне школы), `findActiveMember` — нужно контексту каждого запроса | `lms-school`, `permissions` |
-| oRPC | `kernel/orpc.ts`, `kernel/context.ts`, `src/router.ts`, `src/app.ts` | `impl` (implementer контракта + `errorsMw`), `mw.host/session/school/tenantTx/member`, `schoolCtx`, `toORPCError`; входы `/api/rpc`, `/api/v1`, `/api/openapi.json` | `api-endpoints` |
-| Права | `kernel/permissions.ts`, `kernel/router-guard.ts`, реестр `src/permissions.ts` | `definePermissions`, `mergePermissions`, `createCan`, `hasPermission`, `permissionsOf`; страж «у процедуры участника есть can()» | `permissions` |
-| Логи, health, IP | `kernel/log.ts`, `kernel/client-ip.ts`, `app.ts` (`requestId`, лог запроса, `readiness`) | pino с маскированием ПДн, `ctx.log`, `x-request-id`, `/health/live|ready`, доверенный IP клиента | `observability`, `security-baseline` |
-| Модули                  | `kernel/module.ts`                                                                                                                                | `defineModule`, сборка роутера, подписчиков, задач, настроек                                                            | `module`                                 |
-| События                 | `kernel/events/*`                                                                                                                                 | `defineEvent`, `on`, outbox-таблица, диспетчер после коммита                                                            | `events-automations`                     |
-| Задачи                  | `kernel/jobs/*`                                                                                                                                   | pg-boss, `defineJob`, расписания, `scope: all-schools`, воркер                                                          | `background-jobs`                        |
-| Файлы, видео            | `kernel/storage/*`, `kernel/video/*`                                                                                                              | presigned upload, `defineFilePurpose`, signed URL, провайдеры видео                                                     | `files-media`                            |
-| Почта                   | `kernel/mail/*`                                                                                                                                   | `defineEmail`, транспорт провайдера, фейк для тестов                                                                    | `notifications`                          |
-| Документы               | `kernel/documents/*`                                                                                                                              | `defineDocument`, `defineExport`, Chromium-рендер                                                                       | `documents`                              |
-| Настройки, конфиг       | `kernel/settings.ts`, `kernel/config.ts`                                                                                                          | `defineSettings`, env-схема                                                                                             | `settings`                               |
-| Тест-хелперы            | `apps/api/src/test/*`                                                                                                                             | `withTestSchool`, `callAs`, матрица прав, часы, фейки                                                                   | `testing`                                |
-| Ресурсы UI              | `packages/ui/src/resource/*`                                                                                                                      | `defineResource`, `ResourcePage/Table/Form`, виджеты                                                                    | `admin-resource`                         |
-| Реестры блоков/вопросов | `packages/{blocks,questions}/src/{define,registry,registry.client,tables,host}.ts(x)`, `kernel/blocks/*` (load/save/copy по таблицам, публикация) | контракт, сопоставление схемы и колонок, хосты редактора/просмотра                                                      | `lesson-blocks`, `question-types`        |
-| Генераторы и проверки   | `tools/gen/*`, `tools/check/*`                                                                                                                    | `gen:*`, `check:registries`, `docs:check`, `skills:link`                                                                | —                                        |
+Пути — от `apps/api/src/`, если не указано иное. «Есть» — сверено с кодом; «фаза N» — ещё не реализовано.
+
+| Часть | Где | Что | Состояние | Скилл |
+|---|---|---|---|---|
+| хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `appUser` | есть; `blockTable`, `settingsTable` — 1.3/1.6, `pii` — 1.11 | `db-schema` |
+| БД | `kernel/db/{client,tenant,admin,cli,rls-coverage}.ts` | пул `app_user`, `withTenant`, `withUser`, миграции/reset под `app_owner`, проверка покрытия RLS | есть; `paginate`, `applyFilters`, `forEachSchool` — 1.2/1.6 | `data-access` |
+| конфиг | `kernel/config.ts` | zod-схема env, `.env` локально, `appOrigin()` | есть | `settings` |
+| ошибки | `kernel/errors.ts` | `AppError`, `fail.*` | есть | `data-access` |
+| auth | `kernel/auth/{auth,schema}.ts`, `kernel/host.ts`, `kernel/client-ip.ts` | better-auth (пароль, magic link, rate limit в БД, origin-check явно — D-040, IP — D-042), согласия, школа по хосту | есть | `lms-school`, `security-baseline` |
+| членство | `kernel/members/{schema,members}.ts` | `members` (RLS + «свои членства» только вне школы), `findActiveMember` | есть | `lms-school`, `permissions` |
+| oRPC | `kernel/orpc.ts`, `kernel/context.ts`, `router.ts`, `app.ts` | `impl` + `errorsMw`, `mw.host/session/school/tenantTx/member`, `schoolCtx`, входы `/api/rpc`, `/api/v1`, `/api/openapi.json` | есть | `api-endpoints` |
+| права | `kernel/permissions.ts`, `kernel/router-guard.ts`, `permissions.ts` | `definePermissions`, `mergePermissions`, `createCan`, страж «у процедуры участника есть can()» | есть | `permissions` |
+| логи, health | `kernel/log.ts`, `app.ts` | pino с маскированием ПДн, `ctx.log`, `x-request-id`, `/health/live|ready` | есть | `observability` |
+| почта | `kernel/mail.ts` | `sendMail` (SMTP / memory в тестах) | есть (временная); `defineEmail` + очередь — 1.8 | `notifications` |
+| модули | `kernel/module.ts` | `defineModule`, сборка роутера, меню, подписчиков, задач | фаза 1.1 (сейчас — ручной реестр в `router.ts`, `permissions.ts`, `db-schema.ts`) | `module` |
+| события, задачи | `kernel/events/*`, `kernel/jobs/*` | outbox, `defineEvent`/`on`, pg-boss, `defineJob`, воркер | фаза 1.6 | `events-automations`, `background-jobs` |
+| файлы, видео | `kernel/storage/*`, `kernel/video/*` | presigned upload, `defineFilePurpose`, signed URL | фаза 1.7 | `files-media` |
+| журнал, http, вебхуки | `kernel/{audit,http,webhooks}.ts` | `ctx.audit`, `ctx.http`, `defineWebhookHandler` | фаза 1.11 | `security-baseline`, `integrations` |
+| документы | `kernel/documents/*` | `defineDocument`, `defineExport` | фаза 4 | `documents` |
+| тест-хелперы | `test/{users,http,global-setup}.ts` | `createUser`, `uniqueEmail/Slug`, `call`, `signUp`, чистая `dinastia_test` | есть; `withTestSchool`, `callAs`, `expectPermissionMatrix` — 1.9 | `testing` |
+| UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState` | есть; ресурс-фреймворк — 1.2 | `ui-kit`, `admin-resource` |
+| реестры блоков/вопросов | `packages/{blocks,questions}` | `defineBlock`, `defineQuestion`, хосты | фаза 1.3–1.4 | `lesson-blocks`, `question-types` |
+| инструменты | `tools/src/{docs-check,skills-link}.ts` | `pnpm docs:check`, `pnpm skills:link` | есть; генераторы `gen:*`, `check:registries` — фаза 1 | `skill-authoring` |
 
 ## Инварианты (ломать нельзя)
 

@@ -50,7 +50,8 @@ tools/src/skills-link.ts → pnpm skills:link
 
 - lint-запрет импорта `#/kernel/db/client.ts` из `modules/**` — в 1.1, когда появятся модули (сейчас модулей нет).
 - `pii()` — 1.11; `blockTable`/`settingsTable` — 1.3 и 1.6/настройки.
-- `withTenant` из контекста процедуры (`ctx.db`) — 0.5.
+- `withTenant` из контекста процедуры (`ctx.db`) — 0.5 (сделано).
+- письмо приглашения уходит синхронно в запросе (`sendMail` в `inviteStaff`) — в 1.8 перевести на очередь и `defineEmail`.
 
 ## Ход
 
@@ -72,4 +73,5 @@ tools/src/skills-link.ts → pnpm skills:link
 | 2026-10-24 | 0.8 | `.github/workflows/ci.yml`: compose-окружение как локально, `pnpm check`, миграции с нуля + сид, `pnpm audit --audit-level high`, Playwright Chromium + e2e, артефакты и логи при падении. Последовательность прогнана локально — зелёная. **На GitHub не запускался** (нужен push). Аудит: 1 moderate — старый esbuild внутри drizzle-kit (dev-сервер esbuild не используется), не блокирует |
 | 2026-10-24 | 0.9 | pino (JSON в проде, pretty в dev, silent в тестах) с маскированием ПДн/секретов; `requestId` + `x-request-id`; лог запроса с `userId/schoolId/memberId`; неожиданные ошибки процедур — `error` со стеком; `/health/ready` (БД). Тесты 57/57, e2e 3/3 |
 | 2026-10-24 | 0.9 | находка на живом сервере: **better-auth не видел IP клиента и считал лимит входа одним счётчиком на всех** (5 ошибок у одного — вход закрыт всем на минуту). Ядро вычисляет IP с учётом `TRUST_PROXY_HOPS` и передаёт better-auth в служебном заголовке; подделка левой части `X-Forwarded-For` не помогает (D-042, тест); прокси Vite — `xfwd: true` |
+| 2026-10-24 | 0.10 | сверка скиллов с кодом: `db-schema` (связи и `set null` при составных FK, проверка RLS — `rls-coverage`, образцы), `data-access` (пример заменён реальным `inviteStaff`, будущее помечено), `settings` (конфигурация окружения по коду), `core-kernel` (карта со столбцом «состояние»), `module` (ручная регистрация до 1.1); `architecture.md` §1–4, §7 — по коду. Ранее сверены: `local-env`, `api-endpoints`, `permissions`, `web-screens`, `ui-kit`, `i18n`, `testing`, `observability`, `release-deploy`. **Демо фазы 0 — зелёное** (`tests/e2e/phase-0.spec.ts`). Фаза → `review` |
 

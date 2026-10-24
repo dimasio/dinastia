@@ -1,5 +1,5 @@
 ---
-status: active
+status: review
 area: core
 phase: 0
 created: 2026-10-24
@@ -27,7 +27,7 @@ closed:
 | 0.7  | web: области `admin`/`learn`/`_auth`, тема, i18n, oRPC + Query, guard по ролям                                                                                | done |
 | 0.8  | CI на GitHub Actions: check + e2e на compose                                                                                                                  | done |
 | 0.9  | Логи pino с контекстом, редактор ПДн, `/health/*`                                                                                                             | done |
-| 0.10 | Сверка скиллов фазы с кодом                                                                                                                                   | backlog |
+| 0.10 | Сверка скиллов фазы с кодом                                                                                                                                   | done |
 
 ## Решения
 

@@ -50,6 +50,22 @@ export default defineModule({ name: 'courses', router, permissions, subscribers,
 Модуль подключается строкой в `apps/api/src/modules/index.ts`, контракт — в `packages/contracts/src/index.ts`,
 фича — в `apps/web/src/features/index.ts` (генератор делает всё три).
 
+## Регистрация модуля сейчас (до пункта 1.1)
+
+`defineModule` и `pnpm gen:module` появятся в 1.1. До этого модуль подключается **вручную** — по образцу `schools`:
+
+| Что | Куда добавить строку |
+|---|---|
+| таблицы | `apps/api/src/db-schema.ts` → `export * from './modules/<m>/schema.ts'` (иначе drizzle-kit не увидит) |
+| контракт | `packages/contracts/src/index.ts` → `contract.<m> = <m>Contract` |
+| роутер | `apps/api/src/router.ts` → `impl.router({ …, <m>: <m>Router })` |
+| права | `apps/api/src/permissions.ts` → `mergePermissions(schools, <m>)` |
+| строки | `packages/i18n/src/index.ts` → namespace в `resources` |
+| экраны | `apps/web/src/routes/admin/<m>/…`, пункт меню — пока прямо в `apps/web/src/app/layout/admin-shell.tsx` |
+
+Пропуск любой строки ловится: контракт без роутера — ошибка типов `impl.router`, таблица без экспорта —
+`pnpm db:generate` не создаст миграцию, право без реестра — ошибка типов в `can('…')`.
+
 ## Правила зависимостей
 
 - Модуль читает и пишет **только свои таблицы**. Нужны данные другого модуля — функция из его `service.ts`

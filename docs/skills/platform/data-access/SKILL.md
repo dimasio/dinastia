@@ -5,54 +5,49 @@ description: Код доступа к данным и бизнес-логика 
 
 # Доступ к данным
 
-> Статус: целевой — сверить с кодом в фазе 0 (0.3, 0.5) и 1 (1.2).
+> Статус: сверено с кодом в фазе 0 (0.3–0.6); `paginate`/`applyFilters` — 1.2, `ctx.emit`/`ctx.jobs` — 1.6, lint-запрет
+> глобального клиента — 1.1.
 
 Контекст запроса — `docs/specs/architecture.md` §4.
 
 ## Сервисная функция
 
-Бизнес-логика — в `service.ts` модуля: функция `(ctx, input) → результат`. Роутер только вызывает её; так её
-переиспользуют задачи, подписчики и другие модули.
+Бизнес-логика — в `service.ts` модуля (или `<часть>.service.ts`): функция `(ctx, input) → результат`. Роутер только
+вызывает её; так её переиспользуют задачи, подписчики и другие модули. Реальный образец —
+`apps/api/src/modules/schools/invitations.service.ts`:
 
 ```ts
-// apps/api/src/modules/courses/service.ts
-import { and, eq, sql } from 'drizzle-orm'
-import type { SchoolCtx } from '#/kernel/context'
-import { fail } from '#/kernel/errors.ts'
-import { paginate } from '#/kernel/db/paginate.ts' // фаза 1.2
-import type { CourseCreate, CourseListInput } from '@dinastia/contracts/courses'
-import { courses, lessons } from './schema'
-import { coursePublished } from './events'
+export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
+	const { email, role } = StaffInviteSchema.parse(input)                        // вход — по схеме контракта
+	if (!ctx.can('schools.members.manage')) fail.forbidden('NO_PERMISSION')       // право (скилл permissions)
+	if (role === 'admin' && ctx.member.role !== 'owner') fail.forbidden('ONLY_OWNER_INVITES_ADMIN') // правило домена
 
-export async function list(ctx: SchoolCtx, input: CourseListInput) {
-	return paginate(ctx.db, courses, input, {
-		where: input.status ? eq(courses.status, input.status) : undefined,
-		search: [courses.title],
-		sort: { title: courses.title, createdAt: courses.createdAt },
-		defaultSort: { createdAt: 'desc' },
-	})
-}
+	const [existing] = await ctx.db                                               // ctx.db — транзакция школы (RLS)
+		.select({ id: members.id })
+		.from(members)
+		.innerJoin(users, eq(users.id, members.userId))
+		.where(eq(users.email, email))                                             // school_id не пишем — его ставит RLS
+		.limit(1)
+	if (existing) fail.conflict('ALREADY_MEMBER', { email })
 
-export async function create(ctx: SchoolCtx, input: CourseCreate) {
-	const [row] = await ctx.db
-		.insert(courses)
-		.values({ ...input, slug: await uniqueSlug(ctx, input.title) })
-		.returning()
-	return row
-}
-
-export async function publish(ctx: SchoolCtx, id: string) {
-	const course = await getOrFail(ctx, id)
-	if (course.status === 'archived') fail.conflict('COURSE_ARCHIVED')
-	const [row] = await ctx.db.update(courses).set({ status: 'published' }).where(eq(courses.id, id)).returning()
-	ctx.emit(coursePublished, { courseId: id })
-	return row
-}
-
-export async function getOrFail(ctx: SchoolCtx, id: string) {
-	return (await ctx.db.query.courses.findFirst({ where: eq(courses.id, id) })) ?? fail.notFound('COURSE')
+	const [invitation] = await ctx.db
+		.insert(invitations)                                                       // school_id подставит default
+		.values({ email, role, tokenHash, invitedBy: ctx.member.id, expiresAt: new Date(ctx.now().getTime() + TTL) })
+		.onConflictDoUpdate({                                                      // повторное приглашение — продлить
+			target: [invitations.schoolId, invitations.email],
+			targetWhere: eq(invitations.status, 'pending'),
+			set: { role, tokenHash, invitedBy: ctx.member.id, expiresAt },
+		})
+		.returning({ id: invitations.id, expiresAt: invitations.expiresAt })
+	…
 }
 ```
+
+`SchoolCtx` (`apps/api/src/kernel/context.ts`): `db`, `school`, `user`, `member`, `can`, `now`, `log`; с фазы 1.6 —
+`emit`, `jobs`. В процедуре его собирает `schoolCtx(context)` (скилл `api-endpoints`); в интеграционном тесте — вручную
+внутри `withTenant` (образец — `inSchool` в `apps/api/src/modules/schools/schools.test.ts`).
+
+Списки с пагинацией, поиском и фильтрами — `paginate()` (пункт 1.2): до него — `select … limit/offset` руками.
 
 ## Правила
 
@@ -60,6 +55,8 @@ export async function getOrFail(ctx: SchoolCtx, id: string) {
   модулях запрещён (lint-правило). `school_id` в `where`/`values` не пишется — его ставят RLS и default.
 - **Один запрос — одна транзакция.** Вся процедура уже в транзакции; вложенная — `ctx.db.transaction()` (savepoint),
   только если нужна частичная откатываемость.
+- **Внешние вызовы** (почта, видео, платёжки) — в фоновой задаче, не в запросе. Временное исключение до 1.6–1.8: письмо
+  приглашения уходит синхронно (`sendMail` в `inviteStaff`) — перевести на `ctx.mail.send` в пункте 1.8.
 - **Конкуренция**: счётчики и лимиты (попытки теста, номер сертификата) — `select … for update` (`.for('update')`)
   или атомарный `update … set x = x + 1 returning`.
 - **N+1**: списки с вложенными данными — relational query (`with: {...}`) или один `inArray()`-запрос и группировка

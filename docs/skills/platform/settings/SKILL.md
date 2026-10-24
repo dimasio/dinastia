@@ -5,7 +5,7 @@ description: Настройки в Dinastia — настройки школы �
 
 # Настройки
 
-> Статус: целевой — сверить с кодом в фазе 0 (конфиг) и 1 (настройки школы).
+> Статус: конфигурация окружения — сверено с кодом в фазе 0; настройки школы (`settingsTable`, `defineSettings`) — фаза 1.
 
 Три вида — не путать:
 
@@ -54,19 +54,29 @@ export const settings = defineSettings('learning', learningSettings, {
 
 ## Конфигурация окружения
 
+`apps/api/src/kernel/config.ts` (ядро): zod-схема `Env` над `process.env`; локально значения берутся из корневого
+`.env` (`process.loadEnvFile`), в CI и проде — из окружения. Сервер не стартует с неверной конфигурацией.
+
 ```ts
-// apps/api/src/kernel/config.ts — ядро
-export const config = z
-	.object({
-		DATABASE_URL: z.string().url(),
-		S3_ENDPOINT: z.string().url(),
-		// …
-	})
-	.parse(process.env)
+const Env = z.object({
+	DATABASE_URL: z.url(),
+	APP_DOMAIN: z.string().min(1),
+	AUTH_SECRET: z.string().min(32),
+	TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+	// …
+})
+export const config: Config = Env.parse(process.env)
 ```
 
-- Новая переменная — ядро: добавить в схему, в `.env.example` с безопасным примером, в `docs/guide/` деплоя.
-- Секреты не коммитятся, не логируются, не попадают в клиент. Клиенту — только `VITE_*` без секретов.
+Новая переменная (ядро):
+1. поле в `Env` с типом и, если безопасно, `default`;
+2. строка в `.env.example` с безопасным локальным значением и комментарием (берётся и в CI — `cp .env.example .env`);
+3. в тестах, если нужно другое значение, — `test.env` в `apps/api/vitest.config.ts`;
+4. прод — описание в `docs/guide/` деплоя (фаза 5).
+
+- Секреты не коммитятся (`.env` в `.gitignore`), не логируются (маскирование — скилл `observability`), не попадают в
+  клиент. Клиенту — только то, что Vite кладёт через `define`/`VITE_*` (сейчас `VITE_APP_DOMAIN`), без секретов.
+- Хелпер `appOrigin(slug?)` — адрес корня или школы для писем и ссылок.
 
 ## Готово, когда
 

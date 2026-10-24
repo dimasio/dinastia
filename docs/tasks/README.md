@@ -5,7 +5,7 @@
 
 | Задача                                           | Фаза | Статус  |
 | ------------------------------------------------ | ---- | ------- |
-| [phase-0-foundation](phase-0-foundation/task.md) | 0    | active  |
+| [phase-0-foundation](phase-0-foundation/task.md) | 0    | review  |
 | `phase-1-registries` (не создана)                | 1    | backlog |
 | `phase-2-courses` (не создана)                   | 2    | backlog |
 | `phase-3-assessments` (не создана)               | 3    | backlog |
