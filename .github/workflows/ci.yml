@@ -50,6 +50,14 @@ jobs:
       - name: E2E
         run: pnpm e2e
 
+      # Последним: меняет рабочую копию (в CI она одноразовая). Генераторы не должны выдавать код, который не проходит проверки.
+      - name: Генераторы выдают рабочий код
+        run: |
+          pnpm gen:module ci-probe --title "Проверка генератора"
+          pnpm typecheck
+          pnpm lint
+          pnpm --filter @dinastia/api test
+
       - name: Артефакты упавших e2e
         if: failure()
         uses: actions/upload-artifact@v4

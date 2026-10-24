@@ -5,7 +5,7 @@ description: Доменный модуль Dinastia — из чего состо
 
 # Модуль
 
-> Статус: целевой — сверить с кодом в фазе 1 (пункт 1.1).
+> Статус: сверено с кодом в фазе 1 (пункт 1.1); события, задачи, настройки модуля в `defineModule` — 1.6.
 
 Архитектура — `docs/specs/architecture.md` §2. Модуль — вертикальный срез: БД + контракт + сервис + права + экраны
 одной части предметной области (`courses`, `learning`…). Список модулей — `docs/specs/domain.md` §1.
@@ -15,56 +15,48 @@ description: Доменный модуль Dinastia — из чего состо
 ```
 packages/contracts/src/<m>.ts           zod-схемы сущностей + контракт oRPC        → api-endpoints
 apps/api/src/modules/<m>/
+  index.ts                              defineModule({ name, router, permissions })
   schema.ts                             таблицы Drizzle                             → db-schema
   service.ts  (или <часть>.service.ts)  бизнес-логика, публичный API модуля         → data-access
   router.ts                             реализация контракта                        → api-endpoints
-  permissions.ts                        definePermissions                           → permissions
-  policies.ts                           ограничения на уровне записи                → permissions
-  events.ts                             defineEvent, подписчики on()                → events-automations
-  jobs.ts                               defineJob                                   → background-jobs
-  settings.ts                           defineSettings                              → settings
-  emails/*.tsx                          defineEmail                                 → notifications
-  index.ts                              defineModule({...})
+  permissions.ts                        definePermissions('<m>', …)                 → permissions
+  policies.ts                           ограничения на уровне записи (фаза 2+)      → permissions
+  events.ts, jobs.ts, settings.ts       события, задачи, настройки (фаза 1.6+)      → events-automations, background-jobs, settings
   *.test.ts                             тесты                                       → testing
 apps/web/src/features/<m>/
-  resources/*.ts                        defineResource (реестры и формы)            → admin-resource
-  components/, <экран>/                 продуктовые экраны                          → web-screens, ui-kit
-  nav.ts                                пункты меню областей                        → web-screens
+  nav.ts                                пункты меню областей (defineNav)            → web-screens
+  resources/*.ts                        defineResource (фаза 1.2)                   → admin-resource
+  <экран>/, components/                 продуктовые экраны                          → web-screens, ui-kit
 apps/web/src/routes/admin/<m>/…         маршруты                                    → web-screens
-packages/i18n/locales/ru/<m>.json       строки                                      → i18n
+packages/i18n/locales/ru/<m>.json       строки (namespace — camelCase имени)        → i18n
 ```
 
-`index.ts` модуля:
+`index.ts` модуля (образец — `apps/api/src/modules/schools/index.ts`):
 
 ```ts
-import { defineModule } from '#/kernel/module'
-import { router } from './router'
-import { permissions } from './permissions'
-import { subscribers } from './events'
-import { jobs } from './jobs'
-import { settings } from './settings'
+import { defineModule } from '#/kernel/module.ts'
+import { permissions } from './permissions.ts'
+import { invitationsRouter, schoolsRouter } from './router.ts'
 
-export default defineModule({ name: 'courses', router, permissions, subscribers, jobs, settings })
+export default defineModule({
+	name: 'schools',                                               // = папка и префикс разрешений (проверяется)
+	router: { schools: schoolsRouter, invitations: invitationsRouter }, // namespace контракта → процедуры
+	permissions,
+})
 ```
 
-Модуль подключается строкой в `apps/api/src/modules/index.ts`, контракт — в `packages/contracts/src/index.ts`,
-фича — в `apps/web/src/features/index.ts` (генератор делает всё три).
+Реестры, куда модуль подключается (генератор вписывает строки у маркеров `// gen:module:<место>`):
 
-## Регистрация модуля сейчас (до пункта 1.1)
-
-`defineModule` и `pnpm gen:module` появятся в 1.1. До этого модуль подключается **вручную** — по образцу `schools`:
-
-| Что | Куда добавить строку |
+| Реестр | Файл |
 |---|---|
-| таблицы | `apps/api/src/db-schema.ts` → `export * from './modules/<m>/schema.ts'` (иначе drizzle-kit не увидит) |
-| контракт | `packages/contracts/src/index.ts` → `contract.<m> = <m>Contract` |
-| роутер | `apps/api/src/router.ts` → `impl.router({ …, <m>: <m>Router })` |
-| права | `apps/api/src/permissions.ts` → `mergePermissions(schools, <m>)` |
-| строки | `packages/i18n/src/index.ts` → namespace в `resources` |
-| экраны | `apps/web/src/routes/admin/<m>/…`, пункт меню — пока прямо в `apps/web/src/app/layout/admin-shell.tsx` |
+| модули API → роутер (`collectRouters`) | `apps/api/src/modules/index.ts` |
+| разрешения → тип `Permission`, `can` | `apps/api/src/permissions.ts` |
+| таблицы → drizzle-kit | `apps/api/src/db-schema.ts` |
+| контракт | `packages/contracts/src/index.ts` |
+| строки | `packages/i18n/src/index.ts` |
+| меню | `apps/web/src/features/index.ts` |
 
-Пропуск любой строки ловится: контракт без роутера — ошибка типов `impl.router`, таблица без экспорта —
-`pnpm db:generate` не создаст миграцию, право без реестра — ошибка типов в `can('…')`.
+Один namespace контракта — только в одном модуле (`collectRouters` падает на старте).
 
 ## Правила зависимостей
 
@@ -76,10 +68,14 @@ export default defineModule({ name: 'courses', router, permissions, subscribers,
 
 ## Создать модуль
 
-1. Имя модуля даёт человек (латиница, единое слово или kebab-case).
-2. `pnpm gen:module <name>` — создаёт все файлы с пустыми заготовками и регистрирует модуль.
-3. Сущности: `db-schema` → `api-endpoints` → `permissions` → `admin-resource`/`web-screens`.
+1. Имя модуля даёт человек: kebab-case латиницей (`courses`, `question-bank`).
+2. `pnpm gen:module <имя> --title "Название"` (сначала можно `--dry-run` — покажет изменения). Создаёт заготовки и
+   вписывает модуль во все реестры; повторный запуск отказывается что-либо перезаписывать.
+3. Сущности: `db-schema` → `api-endpoints` → `permissions` → экраны (`admin-resource`/`web-screens`), пункт меню в
+   `features/<m>/nav.ts`.
 4. `pnpm check`.
+
+Генератор проверяется в CI: пробный модуль должен проходить typecheck, lint и тесты без правок.
 
 ## Куда класть
 

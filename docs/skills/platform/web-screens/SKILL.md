@@ -5,7 +5,7 @@ description: Экраны и навигация клиента Dinastia — фа
 
 # Экраны и навигация
 
-> Статус: сверено с кодом в фазе 0 (пункт 0.7); пункты меню из фич (`nav.ts`) — фаза 1.1.
+> Статус: сверено с кодом в фазе 0 (пункт 0.7) и 1 (1.1: меню из фич).
 
 Клиент — `docs/specs/architecture.md` §7. CRUD-экран сущности — скилл `admin-resource`; здесь — всё остальное.
 
@@ -76,34 +76,27 @@ export const Route = createFileRoute('/admin/assessments/review')({
 ## Меню
 
 ```ts
-// apps/web/src/features/assessments/nav.ts
-import { defineNav } from '#/app/nav'
-import { ClipboardCheck, ListChecks } from 'lucide-react'
+// apps/web/src/features/<m>/nav.ts
+import { ClipboardCheck } from 'lucide-react'
+import { defineNav } from '#/app/nav.ts'
 
 export const nav = defineNav([
-	{
-		area: 'admin',
-		to: '/admin/assessments/review',
-		label: 'assessments:nav.review',
-		icon: ClipboardCheck,
-		perm: 'assessments.review',
-		group: 'learning',
-		order: 30,
-		badge: 'assessments.reviewCount',
-	},
-	{
-		area: 'admin',
-		to: '/admin/assessments/bank',
-		label: 'assessments:nav.bank',
-		icon: ListChecks,
-		perm: 'assessments.bank.read',
-		group: 'content',
-		order: 20,
-	},
+	{ area: 'admin', to: '/admin/assessments/review', label: 'assessments:nav.review', icon: ClipboardCheck,
+	  perm: 'assessments.review', group: 'learning', order: 30 },
 ])
 ```
 
-Группы сайдбара — `content`, `learning`, `people`, `analytics`, `settings`; `badge` — ключ процедуры-счётчика.
+| Поле | Смысл |
+|---|---|
+| `area` | `admin` (сайдбар кабинета школы) или `learn` (верхняя панель ученика) |
+| `to` | путь существующего маршрута — тип из `routeTree.gen.ts`, опечатка не скомпилируется |
+| `label` | ключ `<ns>:<ключ>` (скилл `i18n`) |
+| `perm` | разрешение; без права пункт скрыт (по `me.permissions`), запрещает всё равно сервер |
+| `group` | `main`, `content`, `learning`, `people`, `analytics`, `settings` (порядок групп фиксирован, подписи — `nav:groups.*`) |
+| `order`, `exact` | порядок внутри группы; `exact` — активен только на точном пути |
+
+Реестр — `apps/web/src/features/index.ts` (генератор модуля добавляет строку), отрисовка — `app/layout/side-nav.tsx`
+(`visibleNav`). `data-testid` пункта — `nav-<путь через дефисы>` (`nav-admin`).
 
 ## Продуктовые экраны
 
