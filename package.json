@@ -1,0 +1,35 @@
+{
+	"name": "dinastia",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@10.17.0",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"dev": "turbo run dev --parallel",
+		"build": "turbo run build",
+		"typecheck": "turbo run typecheck",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"test": "turbo run test",
+		"check": "pnpm lint && turbo run typecheck test && pnpm docs:check",
+		"docs:check": "pnpm --filter @dinastia/tools run docs:check",
+		"skills:link": "pnpm --filter @dinastia/tools run skills:link",
+		"env:up": "docker compose -f docker/compose.yml --env-file .env up -d --wait && docker compose -f docker/compose.yml --env-file .env run --rm seaweedfs-init",
+		"env:down": "docker compose -f docker/compose.yml --env-file .env down",
+		"env:reset": "docker compose -f docker/compose.yml --env-file .env down -v && pnpm env:up",
+		"env:logs": "docker compose -f docker/compose.yml --env-file .env logs -f --tail=100",
+		"env:ps": "docker compose -f docker/compose.yml --env-file .env ps -a",
+		"db:generate": "pnpm --filter @dinastia/api db:generate",
+		"db:migrate": "pnpm --filter @dinastia/api db:migrate",
+		"db:reset": "pnpm --filter @dinastia/api db:reset",
+		"db:studio": "pnpm --filter @dinastia/api db:studio",
+		"db:seed": "pnpm --filter @dinastia/api db:seed"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "catalog:",
+		"turbo": "catalog:",
+		"typescript": "catalog:"
+	}
+}

@@ -1,0 +1,39 @@
+{
+	"name": "@dinastia/api",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"scripts": {
+		"dev": "tsx watch --clear-screen=false src/main.ts",
+		"start": "tsx src/main.ts",
+		"typecheck": "tsc -p .",
+		"test": "vitest run",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "tsx src/kernel/db/cli.ts migrate",
+		"db:reset": "tsx src/kernel/db/cli.ts reset",
+		"db:studio": "drizzle-kit studio",
+		"db:seed": "tsx src/seed.ts"
+	},
+	"dependencies": {
+		"@dinastia/contracts": "workspace:*",
+		"@dinastia/db": "workspace:*",
+		"@hono/node-server": "catalog:",
+		"better-auth": "catalog:",
+		"drizzle-orm": "catalog:",
+		"hono": "catalog:",
+		"nodemailer": "catalog:",
+		"pg": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/pg": "catalog:",
+		"drizzle-kit": "catalog:",
+		"tsx": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

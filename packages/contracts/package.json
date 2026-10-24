@@ -1,0 +1,19 @@
+{
+	"name": "@dinastia/contracts",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc -p ."
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"typescript": "catalog:"
+	},
+	"dependencies": {
+		"zod": "catalog:"
+	}
+}

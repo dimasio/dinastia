@@ -1,0 +1,8 @@
+{
+	"name": "@dinastia/config",
+	"private": true,
+	"type": "module",
+	"files": [
+		"tsconfig.*.json"
+	]
+}

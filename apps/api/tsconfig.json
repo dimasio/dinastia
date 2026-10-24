@@ -1,0 +1,4 @@
+{
+	"extends": "@dinastia/config/tsconfig.node.json",
+	"include": ["src", "drizzle.config.ts", "vitest.config.ts"]
+}

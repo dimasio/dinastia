@@ -1,0 +1,9 @@
+{
+	"identities": [
+		{
+			"name": "dinastia-dev",
+			"credentials": [{ "accessKey": "dinastia", "secretKey": "dinastia-secret" }],
+			"actions": ["Admin", "Read", "Write", "List", "Tagging"]
+		}
+	]
+}

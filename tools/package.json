@@ -1,0 +1,19 @@
+{
+	"name": "@dinastia/tools",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"docs:check": "tsx src/docs-check.ts",
+		"skills:link": "tsx src/skills-link.ts",
+		"typecheck": "tsc -p ."
+	},
+	"dependencies": {
+		"gray-matter": "catalog:"
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"@types/node": "catalog:",
+		"tsx": "catalog:",
+		"typescript": "catalog:"
+	}
+}
