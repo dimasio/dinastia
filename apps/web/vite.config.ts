@@ -1,10 +1,15 @@
+import { existsSync } from 'node:fs'
+import tailwindcss from '@tailwindcss/vite'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+if (existsSync('../../.env')) process.loadEnvFile('../../.env')
 const appDomain = process.env.APP_DOMAIN ?? 'dinastia.localhost'
 
 export default defineConfig({
-	plugins: [react()],
+	plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
+	define: { 'import.meta.env.VITE_APP_DOMAIN': JSON.stringify(appDomain) },
 	server: {
 		port: Number(process.env.WEB_PORT ?? 5173),
 		host: true,

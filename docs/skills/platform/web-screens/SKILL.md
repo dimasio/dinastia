@@ -5,58 +5,73 @@ description: Экраны и навигация клиента Dinastia — фа
 
 # Экраны и навигация
 
-> Статус: целевой — сверить с кодом в фазе 0 (0.7) и 1 (1.1).
+> Статус: сверено с кодом в фазе 0 (пункт 0.7); пункты меню из фич (`nav.ts`) — фаза 1.1.
 
 Клиент — `docs/specs/architecture.md` §7. CRUD-экран сущности — скилл `admin-resource`; здесь — всё остальное.
 
 ## Маршруты
 
 ```
-apps/web/src/routes/
-  __root.tsx                    провайдеры, тема школы
-  _auth/login.tsx, _auth/magic.tsx, _auth/register-school.tsx
-  admin/route.tsx               лэйаут области admin: сайдбар из nav, requireArea('admin')
-  admin/courses/index.tsx       /admin/courses
-  admin/courses/$courseId/route.tsx      лэйаут курса (вкладки)
-  admin/courses/$courseId/lessons/$lessonId.tsx
-  learn/route.tsx               лэйаут области learn
-  learn/index.tsx               мои курсы
-  learn/courses/$courseId/lessons/$lessonId.tsx  плеер
+apps/web/src/
+  main.tsx                     провайдеры: i18n, ThemeProvider, QueryClient, RouterProvider, Toaster
+  app/                         ядро клиента: orpc.ts (клиент API), auth.ts (better-auth), queries.ts (sessionQuery,
+                               meQuery), guards.ts (requireMember), host.ts (корень/школа), errors.ts (errorText),
+                               layout/ (admin-shell, learn-shell, centered, user-menu)
+  features/<модуль>/           экраны и компоненты фич (auth, schools, invite, …)
+  routes/                      файловые маршруты (плагин генерирует routeTree.gen.ts — не править)
+    __root.tsx                 notFound и errorComponent (текст ошибки по data.code)
+    index.tsx                  корень: вход/«Ваши школы»; школа: редирект по роли (student → /learn, остальные → /admin)
+    register.tsx               регистрация школы (только корень)
+    login.tsx                  вход в школу (?redirect= — только относительный путь)
+    invite.$token.tsx          приглашение сотрудника
+    admin/route.tsx            лэйаут кабинета школы: requireMember({ staff: true }) → context.me
+    admin/index.tsx            /admin
+    learn/route.tsx            лэйаут кабинета ученика: requireMember()
+    learn/index.tsx            /learn
 ```
 
-Экран:
+Маршрут кабинета (образец — `routes/admin/route.tsx`):
 
 ```tsx
-// apps/web/src/routes/admin/assessments/review.tsx
-import { z } from 'zod'
-import { createFileRoute } from '@tanstack/react-router'
-import { requirePerm } from '#/app/guards'
-import { reviewQueueQuery } from '#/features/assessments/api'
-import { ReviewQueue } from '#/features/assessments/review/review-queue'
-
-const Search = z.object({
-	status: z.enum(['submitted', 'needs_revision']).default('submitted'),
-	groupId: z.string().uuid().optional(),
-	page: z.number().int().min(1).default(1),
+export const Route = createFileRoute('/admin')({
+	beforeLoad: async ({ context, location }) => ({
+		me: await requireMember(context.queryClient, { staff: true, href: location.href }),
+	}),
+	component: () => {
+		const { me } = Route.useRouteContext()
+		return <AdminShell me={me}><Outlet /></AdminShell>
+	},
 })
+```
+
+`requireMember` (`app/guards.ts`): не поддомен школы → `/`; 401 → `/login?redirect=…`; ученик в `staff`-области →
+`/learn`; 403 (не участник) → errorComponent «У вас нет доступа к этой школе». Дочерние маршруты берут `me`
+(роль, `permissions`) из `Route.useRouteContext()`.
+
+Экран с данными и параметрами:
+
+```tsx
+// apps/web/src/routes/admin/assessments/review.tsx (образец для фаз 2+)
+const Search = z.object({ status: z.enum(['submitted', 'needs_revision']).default('submitted'), page: z.number().int().min(1).default(1) })
 
 export const Route = createFileRoute('/admin/assessments/review')({
 	validateSearch: Search,
-	beforeLoad: requirePerm('assessments.review'),
 	loaderDeps: ({ search }) => search,
-	loader: ({ context, deps }) => context.queryClient.ensureQueryData(reviewQueueQuery(deps)),
+	loader: ({ context, deps }) => context.queryClient.ensureQueryData(orpc.assessments.review.queryOptions({ input: deps })),
 	component: () => <ReviewQueue search={Route.useSearch()} />,
 })
 ```
 
 Правила:
-- Компонент маршрута — тонкий; экран — в `features/<m>/<экран>/`.
-- Состояние фильтров и вкладок — в search-параметрах (ссылкой можно поделиться), не в `useState`.
-- Данные — `useSuspenseQuery(<query>(...))` теми же `queryOptions`, что в `loader`; загрузка — `pendingComponent`
-  области, ошибка — `errorComponent` области, пусто — `<EmptyState>` из `packages/ui`.
-- Мутации — `useMutation(orpc.<m>.<proc>.mutationOptions())`, после успеха `invalidateQueries` по `orpc.<m>.key()`,
-  уведомление `toast.success(t(...))`.
-- Область `learn` — только процедуры `learn*` контрактов.
+- Компонент маршрута — тонкий; экран — в `features/<m>/`.
+- Состояние фильтров и вкладок — в search-параметрах (ссылкой можно поделиться), не в `useState`; входящие
+  редиректы — только относительные пути (`z.string().regex(/^\/(?!\/)/)`), без открытого редиректа.
+- Данные — `useSuspenseQuery(orpc.<m>.<proc>.queryOptions(...))`, теми же `queryOptions`, что в `loader`; загрузка —
+  `<Suspense fallback={<Skeleton/>}>`, ошибка — errorComponent, пусто — `<EmptyState>`.
+- Мутации — `useMutation(orpc.<m>.<proc>.mutationOptions({ onSuccess }))`, после успеха `invalidateQueries`, тост
+  `toast.success(t(...))`; ошибка — `t(errorText(error), { ns: 'errors' })` (`app/errors.ts`).
+- Ссылки между корнем и школами — `hostUrl(slug?, path)` (`app/host.ts`), обычный `<a href>` (другой origin).
+- `data-testid` на ключевых элементах: `<модуль>-<элемент>` (`auth-signin-submit`, `invite-accept`).
 
 ## Меню
 

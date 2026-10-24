@@ -63,7 +63,7 @@ async function findPending(tx: Tx, token: string, now: Date) {
 		.from(invitations)
 		.where(eq(invitations.tokenHash, hashToken(token)))
 		.limit(1)
-	if (!inv || inv.status !== 'pending') return fail.notFound('INVITATION_NOT_FOUND')
+	if (inv?.status !== 'pending') return fail.notFound('INVITATION_NOT_FOUND')
 	if (inv.expiresAt <= now) return fail.conflict('INVITATION_EXPIRED')
 	return inv
 }

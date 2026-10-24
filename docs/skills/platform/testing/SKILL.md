@@ -5,7 +5,8 @@ description: Тесты Dinastia — unit на Vitest рядом с кодом (
 
 # Тесты
 
-> Статус: целевой — сверить с кодом в фазе 0 (0.3, 0.8) и 1 (1.9).
+> Статус: сверено с кодом в фазе 0 (0.3–0.7); общие фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix` и
+> e2e-фикстуры `school`/`loginAs` — пункт 1.9 (сейчас — `apps/api/src/test/{users,http}.ts`).
 
 Интеграционные тесты — на настоящей БД (D-015): RLS и SQL моками не проверяются.
 
@@ -68,31 +69,46 @@ describe('courses', () => {
 
 ## E2E (Playwright)
 
-```ts
-// tests/e2e/assessments/review-flow.spec.ts
-import { test, expect } from '../fixtures'
+Конфиг — `playwright.config.ts` (корень), сценарии — `tests/e2e/*.spec.ts`, демо фазы — `tests/e2e/phase-<N>.spec.ts`
+(образец — `phase-0.spec.ts`). Playwright сам поднимает API и веб (`webServer`) или берёт уже запущенные; нужны
+`pnpm env:up` и `pnpm db:seed` (демо-пользователи).
 
-test('куратор возвращает ДЗ на доработку', async ({ school, loginAs, page }) => {
-	const { submissionId } = await school.seed.submittedAssignment()
-	await loginAs('curator')
-	await page.goto('/admin/assessments/review')
-	await page.getByTestId(`assessments-review-row-${submissionId}`).click()
-	await page.getByRole('textbox', { name: 'Комментарий' }).fill('Добавьте пример')
-	await page.getByRole('button', { name: 'Вернуть на доработку' }).click()
-	await expect(page.getByText('Отправлено на доработку')).toBeVisible()
+```ts
+test('ученик попадает в /learn', async ({ page }) => {
+	await page.goto('http://demo.dinastia.localhost:5173/')
+	await expect(page).toHaveURL(/\/login$/)
+	await page.getByTestId('auth-signin-email').fill('student1@demo.local')
+	await page.getByTestId('auth-signin-password').fill('demo12345')
+	await page.getByTestId('auth-signin-submit').click()
+	await expect(page.getByRole('heading', { name: 'Мои курсы' })).toBeVisible()
 })
 ```
 
-- Фикстуры: `school` (новая школа на тест, сиды через API ядра), `loginAs(role)` (сессия без UI-входа).
-- Локаторы: `getByRole` с доступным именем → `getByTestId` → никогда CSS-классы и XPath.
-- `data-testid`: `<модуль>-<элемент>[-<id>]` (`courses-lesson-publish`, `learn-block-<blockId>`).
-- Демо фазы — `tests/e2e/phase-<N>.spec.ts`.
-- Ученик в e2e проверяет и API: ответ `learn.*` не содержит секретов (D-020).
+- Локаторы: `getByRole`/`getByLabel` с доступным именем → `getByTestId` → никогда CSS-классы и XPath.
+- `data-testid`: `<модуль>-<элемент>[-<id>]`.
+- Письма (magic link, приглашения) — `waitForLink(email, /regex/)` из `tests/e2e/mailpit.ts` (API Mailpit).
+- Уникальные данные на прогон (`Date.now().toString(36)` в email и slug): e2e идут по dev-БД.
+- **Запросы к `*.dinastia.localhost` — только из браузера** (`page.goto`, `page.evaluate(fetch…)`): Node на macOS
+  не резолвит поддомены `localhost`, поэтому `page.request` к школе падает `ENOTFOUND`.
+- macOS 13: Playwright не ставит свой Chromium — конфиг берёт установленный Google Chrome (`channel: 'chrome'`);
+  в CI (Linux) — штатный Chromium (`npx playwright install --with-deps chromium`).
+- Скриншоты для просмотра — `page.screenshot({ path: 'test-results/screens/<имя>.png', fullPage: true })`;
+  проверяй глазами новые экраны, а не только зелёный тест.
+- Ученик в e2e проверяет и API: ответ `learn.*` не содержит секретов (D-020) — с фазы 2.
 
 ## Запуск
 
-`pnpm test` (все), `pnpm test -- courses` (фильтр), `pnpm e2e -- review-flow`, `pnpm e2e --ui` (отладка).
-Тестовая БД — отдельная (`DATABASE_URL_TEST`), поднимается compose (скилл `local-env`).
+| Команда | Что |
+|---|---|
+| `pnpm test` | все unit и интеграционные (Vitest, база `dinastia_test` пересоздаётся перед прогоном) |
+| `pnpm test -- <фильтр>` | по имени файла (`pnpm test -- router.test`) |
+| `pnpm e2e` | Playwright (поднимет API и веб сам) |
+| `pnpm e2e -- <файл> --headed` | один сценарий в видимом браузере |
+| `pnpm exec playwright show-trace test-results/<…>/trace.zip` | разбор упавшего e2e |
+
+Хелперы интеграционных тестов сейчас: `apps/api/src/test/users.ts` (`createUser`, `uniqueEmail`, `uniqueSlug`),
+`apps/api/src/test/http.ts` (`call(method, path, { slug, cookie, body })`, `signUp()`); письма в тестах —
+`memoryOutbox` (`MAIL_TRANSPORT=memory`).
 
 ## Правила
 

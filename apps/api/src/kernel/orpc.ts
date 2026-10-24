@@ -53,7 +53,7 @@ const sessionMw = os.$context<RequestCtx>().middleware(async ({ context, next })
 const schoolMw = os.$context<RequestCtx & { host: HostTarget }>().middleware(async ({ context, next }) => {
 	if (context.host.kind !== 'school') throw notFound('SCHOOL_NOT_FOUND')
 	const [row] = await db.select().from(schools).where(eq(schools.slug, context.host.slug)).limit(1)
-	if (!row || row.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
+	if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
 	const school: School = { id: row.id, slug: row.slug, name: row.name }
 	return next({ context: { school } })
 })

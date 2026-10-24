@@ -5,30 +5,36 @@ description: Дизайн-система Dinastia packages/ui — компоне
 
 # UI-kit
 
-> Статус: целевой — сверить с кодом в фазе 0 (пункт 0.7).
+> Статус: сверено с кодом в фазе 0 (пункт 0.7); брендинг школы (`--primary` из `school_branding`) — фаза 1+.
 
 `packages/ui` — ядро: продуктовые задачи компоненты **используют**; новый общий компонент — запрос к ядру
 (или правка с разрешения). Компонент только для одного модуля — `features/<m>/components/`.
 
 ## Что есть
 
-| Нужно                                         | Компонент (`@dinastia/ui`)                                                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| заголовок экрана с действиями, хлебные крошки | `PageHeader`                                                                                                  |
-| кнопка, группа, меню                          | `Button`, `ButtonGroup`, `DropdownMenu`                                                                       |
-| поля                                          | `Input`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `Switch`, `RadioGroup`, `DatePicker`, `RichTextEditor` |
-| форма                                         | `Form`, `FormField` (обёртки react-hook-form)                                                                 |
-| окна                                          | `Dialog`, `Sheet`, `AlertDialog` (`confirm()`-хелпер)                                                         |
-| вкладки, аккордеон                            | `Tabs`, `Accordion`                                                                                           |
-| таблица                                       | `DataTable` (TanStack Table) — в CRUD используется через ресурс                                               |
-| пусто / ошибка / загрузка                     | `EmptyState`, `ErrorState`, `Skeleton`, `Spinner`                                                             |
-| статусы                                       | `Badge` (`tone`: neutral, info, success, warning, danger)                                                     |
-| прогресс                                      | `Progress`, `ProgressRing`                                                                                    |
-| уведомления                                   | `toast` (sonner)                                                                                              |
-| dnd-список                                    | `SortableList` (dnd-kit)                                                                                      |
-| файлы                                         | `FileDropzone`, `ImageInput` (скилл `files-media`)                                                            |
+Сейчас в `@dinastia/ui` (`packages/ui/src/index.ts`): `Button`, `Input`, `Label`, `Field` (подпись + подсказка/ошибка
+с aria), `Card*`, `Alert*`, `Badge`, `Avatar*`, `Separator`, `Skeleton`, `Sheet*`, `DropdownMenu*`, `PageHeader`,
+`EmptyState`, `Toaster` + `toast`, `ThemeProvider`/`useTheme`, `cn`. Стили — `import '@dinastia/ui/styles.css'`
+(уже в `main.tsx`).
 
-Список — `packages/ui/src/index.ts`; пропсы — по типам. Не выдумывай пропсы.
+Дальше по фазам: `Dialog`/`AlertDialog`, `Tabs`, `Select`/`Combobox`, `Checkbox`/`Switch`/`RadioGroup`, `DatePicker`,
+`DataTable`, `RichTextEditor`, `SortableList`, `FileDropzone`/`ImageInput`, `Progress`.
+
+Новый компонент shadcn (ядро — с разрешения или в задаче фазы):
+
+```bash
+cd packages/ui && npx shadcn@4.22.1 add <компонент> --yes
+```
+
+После генерации **обязательно**:
+1. импорт `cn` — заменить `from "cn"` на `from "#/lib/utils.ts"` и убрать пакет `cn` из `package.json` (CLI ставит его
+   вместо нашего алиаса);
+2. `next-themes` не использовать — тема из `#/lib/theme.tsx`;
+3. `pnpm lint:fix && pnpm typecheck` — строгий `exactOptionalPropertyTypes` иногда требует поправить обёртку
+   (как в `sonner.tsx`);
+4. экспорт в `src/index.ts`.
+
+Пропсы — по типам компонента; не выдумывай.
 
 ## Стиль
 

@@ -5,40 +5,41 @@ description: Строки интерфейса и локализация Dinasti
 
 # Строки и локализация
 
-> Статус: целевой — сверить с кодом в фазе 0 (пункт 0.7).
+> Статус: сверено с кодом в фазе 0 (пункт 0.7); форматтеры денег/чисел и серверный `ctx.t` — по мере надобности (фаза 1+).
 
 Язык по умолчанию — `ru`; i18n с первого дня (D-014). Литералы в JSX запрещены (lint).
 
 ## Файлы и ключи
 
 ```
-packages/i18n/locales/ru/
-  common.json        общие: save, cancel, delete, search, empty…
-  errors.json        коды ошибок сервера: { "COURSE_ARCHIVED": "Курс в архиве" }
-  courses.json       модуль: { "nav": {…}, "fields": { "title": "Название" }, "actions": {…}, "list": {…} }
-  blocks.json        { "<type>": { "title": "…", "description": "…" } }
-  questions.json, emails.json, settings.json, …
+packages/i18n/
+  locales/ru/common.json   общие: save, cancel, roles.*, theme.*, notFound, error
+  locales/ru/errors.json   коды ошибок API: { "ALREADY_MEMBER": "Этот человек уже в школе." }
+  locales/ru/auth.json     вход, регистрация, «ваши школы», приглашение
+  locales/ru/nav.json      меню областей
+  locales/ru/home.json     главные экраны admin/learn
+  src/index.ts             resources, createI18n, errorKey, formatDate
+apps/web/src/app/i18n.ts   экземпляр + типизация ключей (CustomTypeOptions)
 ```
 
-- Ключ: `<ns>:<раздел>.<ключ>`, разделы — `nav`, `fields`, `actions`, `list`, `form`, `empty`, `confirm`, `toast`.
-- `fields.<поле>` — подпись поля и заголовок колонки (ресурс берёт их сам).
-- Новый namespace регистрируется в `packages/i18n/src/index.ts` (генераторы делают это).
+- Новый namespace: файл `locales/ru/<ns>.json` + импорт и строка в `resources` (`packages/i18n/src/index.ts`).
+- Ключи типизированы: опечатка в `t('…')` — ошибка `pnpm typecheck`.
+- Разделы внутри namespace: `nav`, `fields`, `actions`, `list`, `form`, `empty`, `confirm`, `toast`.
 
 ## Использование
 
 ```tsx
-const { t } = useTranslation('courses')
-t('list.title') // в своём namespace
-t('common:save') // общий
-t('courses:lessonsCount', { count: n }) // ключи lessonsCount_one / _few / _many / _other (русская плюрализация)
-t('learning:dueAt', { date }) // в строке: "до {{date, datetime}}"
+const { t } = useTranslation('auth')                   // свой namespace
+t('signIn.schoolTitle', { school: school.name })       // интерполяция
+t('roles.teacher', { ns: 'common' })                   // чужой namespace — через ns
+t(errorText(error), { ns: 'errors' })                  // ошибка API: errorText → ключ errors (UNKNOWN, если кода нет)
+t('lessonsCount', { count: n })                        // плюрализация: lessonsCount_one/_few/_many/_other
 ```
 
-- Даты, числа, деньги — форматтеры `formatDate`, `formatNumber`, `formatMoney` из `@dinastia/i18n` (часовой пояс
-  школы), не `toLocaleString` руками.
-- Сервер (письма, документы): `ctx.t` с языком получателя.
-- Ошибки: сервер отдаёт `data.code`, клиент — `t('errors:' + code)`; новый код ошибки → строка в `errors.json`.
-- Контент школы (названия курсов, тексты уроков) **не** переводится через i18n — это данные.
+- Код ошибки сервера (`data.code`) → строка в `errors.json`; нет строки — пользователь увидит общий текст
+  («Не удалось выполнить действие»), а `errorKey` подскажет, что строку надо добавить.
+- Даты — `formatDate(date, school.timezone)` из `@dinastia/i18n`, не `toLocaleString` руками.
+- Контент школы (названия курсов, тексты уроков) через i18n не переводится — это данные.
 
 ## Готово, когда
 

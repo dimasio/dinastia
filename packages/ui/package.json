@@ -1,0 +1,37 @@
+{
+	"name": "@dinastia/ui",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./styles.css": "./src/styles/globals.css"
+	},
+	"scripts": {
+		"typecheck": "tsc -p ."
+	},
+	"dependencies": {
+		"class-variance-authority": "catalog:",
+		"clsx": "catalog:",
+		"lucide-react": "catalog:",
+		"radix-ui": "catalog:",
+		"sonner": "catalog:",
+		"tailwind-merge": "catalog:",
+		"tw-animate-css": "catalog:"
+	},
+	"peerDependencies": {
+		"react": "catalog:",
+		"react-dom": "catalog:"
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"tailwindcss": "catalog:",
+		"typescript": "catalog:"
+	}
+}

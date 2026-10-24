@@ -25,10 +25,12 @@
 		"db:migrate": "pnpm --filter @dinastia/api db:migrate",
 		"db:reset": "pnpm --filter @dinastia/api db:reset",
 		"db:studio": "pnpm --filter @dinastia/api db:studio",
-		"db:seed": "pnpm --filter @dinastia/api db:seed"
+		"db:seed": "pnpm --filter @dinastia/api db:seed",
+		"e2e": "playwright test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
+		"@playwright/test": "catalog:",
 		"turbo": "catalog:",
 		"typescript": "catalog:"
 	}

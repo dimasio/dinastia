@@ -24,7 +24,7 @@ closed:
 | 0.4  | `kernel/auth`: better-auth, регистрация школы, приглашения, rate limit входа, `consents`                                                                      | done |
 | 0.5  | `kernel/orpc`: `pub`/`authed`/`school`, ошибки, OpenAPI, клиент web                                                                                           | done |
 | 0.6  | `kernel/permissions`: `definePermissions`, `can()`, роли                                                                                                      | done |
-| 0.7  | web: области `admin`/`learn`/`_auth`, тема, i18n, oRPC + Query, guard по ролям                                                                                | backlog |
+| 0.7  | web: области `admin`/`learn`/`_auth`, тема, i18n, oRPC + Query, guard по ролям                                                                                | done |
 | 0.8  | CI на GitHub Actions: check + e2e на compose                                                                                                                  | backlog |
 | 0.9  | Логи pino с контекстом, редактор ПДн, `/health/*`                                                                                                             | backlog |
 | 0.10 | Сверка скиллов фазы с кодом                                                                                                                                   | backlog |
