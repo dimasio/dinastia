@@ -39,13 +39,17 @@ assessments.expire-attempts. Карточка: docs/tasks/phase-3-assessments/ch
 
 ```markdown
 ## Что
+
 <1–3 предложения>
 ## Зачем
+
 Карточка/задача: <ссылка>
 ## Как проверить
+
 1. `pnpm db:reset && pnpm db:seed`
 2. войти teacher@demo.local, …
 ## Чек-лист
+
 - [ ] pnpm check
 - [ ] e2e <сценарий>
 - [ ] миграции: нет / есть (обратимы? данные?)

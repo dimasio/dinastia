@@ -17,45 +17,45 @@ description: Код доступа к данным и бизнес-логика 
 ```ts
 // apps/api/src/modules/courses/service.ts
 import { and, eq, sql } from 'drizzle-orm'
-import type { SchoolCtx } from '@/kernel/context'
-import { paginate, fail } from '@/kernel/db'
+import type { SchoolCtx } from '#/kernel/context'
+import { paginate, fail } from '#/kernel/db'
 import type { CourseCreate, CourseListInput } from '@dinastia/contracts/courses'
 import { courses, lessons } from './schema'
 import { coursePublished } from './events'
 
 export async function list(ctx: SchoolCtx, input: CourseListInput) {
-  return paginate(ctx.db, courses, input, {
-    where: input.status ? eq(courses.status, input.status) : undefined,
-    search: [courses.title],
-    sort: { title: courses.title, createdAt: courses.createdAt },
-    defaultSort: { createdAt: 'desc' },
-  })
+	return paginate(ctx.db, courses, input, {
+		where: input.status ? eq(courses.status, input.status) : undefined,
+		search: [courses.title],
+		sort: { title: courses.title, createdAt: courses.createdAt },
+		defaultSort: { createdAt: 'desc' },
+	})
 }
 
 export async function create(ctx: SchoolCtx, input: CourseCreate) {
-  const [row] = await ctx.db
-    .insert(courses)
-    .values({ ...input, slug: await uniqueSlug(ctx, input.title) })
-    .returning()
-  return row
+	const [row] = await ctx.db
+		.insert(courses)
+		.values({ ...input, slug: await uniqueSlug(ctx, input.title) })
+		.returning()
+	return row
 }
 
 export async function publish(ctx: SchoolCtx, id: string) {
-  const course = await getOrFail(ctx, id)
-  if (course.status === 'archived') fail.conflict('COURSE_ARCHIVED')
-  const [row] = await ctx.db.update(courses).set({ status: 'published' }).where(eq(courses.id, id)).returning()
-  ctx.emit(coursePublished, { courseId: id })
-  return row
+	const course = await getOrFail(ctx, id)
+	if (course.status === 'archived') fail.conflict('COURSE_ARCHIVED')
+	const [row] = await ctx.db.update(courses).set({ status: 'published' }).where(eq(courses.id, id)).returning()
+	ctx.emit(coursePublished, { courseId: id })
+	return row
 }
 
 export async function getOrFail(ctx: SchoolCtx, id: string) {
-  return (await ctx.db.query.courses.findFirst({ where: eq(courses.id, id) })) ?? fail.notFound('COURSE')
+	return (await ctx.db.query.courses.findFirst({ where: eq(courses.id, id) })) ?? fail.notFound('COURSE')
 }
 ```
 
 ## Правила
 
-- **Только `ctx.db`.** Это транзакция с установленным `app.school_id`; глобальный клиент `@/kernel/db/client` в
+- **Только `ctx.db`.** Это транзакция с установленным `app.school_id`; глобальный клиент `#/kernel/db/client` в
   модулях запрещён (lint-правило). `school_id` в `where`/`values` не пишется — его ставят RLS и default.
 - **Один запрос — одна транзакция.** Вся процедура уже в транзакции; вложенная — `ctx.db.transaction()` (savepoint),
   только если нужна частичная откатываемость.

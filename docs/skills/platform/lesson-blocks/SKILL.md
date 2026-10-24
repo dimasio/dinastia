@@ -1,28 +1,71 @@
 ---
 name: lesson-blocks
-description: Реестр блоков урока Dinastia (packages/blocks) — новый тип блока через pnpm gen:block <type>: definition.ts с defineBlock (type, версия v, zod-схема данных, defaults, категория, иконка, completion none/view/interaction/grade, secretKeys и toPublic для скрытия ответов, responseSchema и evaluate для интерактивных, migrations между версиями), editor.tsx (редактор в конструкторе урока), viewer.tsx (просмотр в плеере ученика, состояние блока, onInteract), регистрация в registry.ts и registry.client.ts, проверка check:registries. Использовать для «новый блок урока», «блок видео/опрос/карточки/код», «поменять данные блока», «миграция данных блока».
+description: Реестр блоков урока Dinastia (packages/blocks) — новый тип блока через pnpm gen:block <type> — таблица типа block_<type> в table.ts (blockTable, PK block_id → lesson_blocks, типизированные колонки, дочерние таблицы, миграция), definition.ts с defineBlock (type, zod-схема данных для API, defaults, категория, иконка, completion none/view/interaction/grade, secretKeys и toPublic, responseSchema/responseTable и evaluate для интерактивных, load/save/copy для сложных), editor.tsx в конструкторе, viewer.tsx в плеере, черновик/публикация строками с block_key, регистрация и check:registries. Использовать для «новый блок урока», «блок видео/опрос/карточки/код», «поле в блоке», «поменять данные блока».
 ---
 
 # Блоки урока
 
 > Статус: целевой — сверить с кодом в фазе 1 (пункт 1.3).
 
-Урок хранит массив блоков в `draft_blocks`/`published_blocks` (D-019): `{ id, type, v, data }`. Тип блока — запись
-реестра `packages/blocks`. Конструктор и плеер ничего не знают о конкретных блоках — только о контракте.
+Модель — реляционная (D-032, D-033, D-034), `docs/specs/domain.md` §1 «Курсы и контент»:
+
+```
+lessons ─< lesson_blocks (id, lesson_id, block_key, state draft|published, type, position, is_required)
+                 │ 1:1 по block_id
+                 ├── block_text (body)          ← таблица типа
+                 ├── block_video (source, provider, video_id, url, caption)
+                 └── block_flashcards ─< block_flashcards_cards (…)   ← дочерняя таблица типа
+```
+
+Конструктор и плеер не знают о конкретных блоках — только о контракте `defineBlock`. Публикация, копирование,
+загрузка урока делаются ядром по описанию таблиц типа.
 
 ## Файлы блока
 
 ```
 packages/blocks/src/<type>/
-  definition.ts     изоморфно: схема, мета, toPublic, evaluate, миграции  (импортирует сервер)
-  editor.tsx        редактор в конструкторе                                (только клиент)
-  viewer.tsx        просмотр в плеере                                      (только клиент)
-  <type>.test.ts    тест схемы, toPublic, evaluate, миграций
+  table.ts          Drizzle-таблицы типа            (импортирует только сервер: @dinastia/blocks/server)
+  definition.ts     изоморфно: схема API, мета, toPublic, evaluate
+  editor.tsx        редактор в конструкторе          (только клиент)
+  viewer.tsx        просмотр в плеере                (только клиент)
+  <type>.test.ts    тест: defaults, toPublic, evaluate, save/load/copy на БД
 packages/i18n/locales/ru/blocks.json   → "<type>": { "title", "description", … }
 ```
 
-`pnpm gen:block <type>` создаёт заготовки и регистрирует блок в `src/registry.ts` и `src/registry.client.ts`.
-`type` — `snake_case`, после релиза не меняется (это данные).
+`pnpm gen:block <type>` создаёт заготовки, регистрирует блок в `src/registry.ts`, `src/registry.client.ts`,
+`src/tables.ts` (схемы для drizzle-kit) и генерирует миграцию. `type` — `snake_case`, после релиза не меняется.
+
+## table.ts
+
+```ts
+import { boolean, pgEnum, text } from 'drizzle-orm/pg-core'
+import { blockTable, richText } from '@dinastia/db' // хелперы схемы (ядро)
+
+export const calloutTone = pgEnum('block_callout_tone', ['info', 'warning', 'success'])
+
+export const blockCallout = blockTable('callout', {
+	// → таблица block_callout: block_id PK/FK, school_id, RLS
+	tone: calloutTone('tone').notNull().default('info'),
+	body: richText('body').notNull(),
+})
+```
+
+Дочерняя таблица (список внутри блока):
+
+```ts
+export const blockFlashcards = blockTable('flashcards', {
+	shuffle: boolean('shuffle').notNull().default(false),
+})
+export const blockFlashcardsCards = blockChildTable('flashcards', 'cards', {
+	// block_flashcards_cards: id, block_id FK cascade, school_id, position
+	front: text('front').notNull(),
+	back: text('back').notNull(),
+	isCorrect: boolean('is_correct').notNull(),
+})
+```
+
+Правила таблиц — скилл `db-schema` (типы, enum, FK на `files`/`questions`, индексы). JSON внутри блока — нельзя,
+кроме тела форматированного текста `richText()`.
 
 ## definition.ts
 
@@ -34,52 +77,61 @@ import { defineBlock } from '../define'
 import { RichText, emptyDoc } from '@dinastia/contracts/common'
 
 export const callout = defineBlock({
-  type: 'callout',
-  v: 1,
-  category: 'content',            // content | media | interactive | layout
-  icon: 'Info',                   // имя иконки lucide
-  schema: z.object({
-    tone: z.enum(['info', 'warning', 'success']),
-    text: RichText,
-  }),
-  defaults: () => ({ tone: 'info', text: emptyDoc() }),
-  completion: 'none',
+	type: 'callout',
+	category: 'content', // content | media | interactive | layout
+	icon: 'Info',
+	schema: z.object({
+		// форма данных в API = колонки таблицы типа
+		tone: z.enum(['info', 'warning', 'success']),
+		body: RichText,
+	}),
+	defaults: () => ({ tone: 'info', body: emptyDoc() }),
+	completion: 'none',
 })
 ```
 
-Интерактивный блок (ответ ученика проверяется сервером):
+Ядро сопоставляет `schema` с колонками `table.ts` (имена полей = свойства таблицы) и само делает `load`/`save`/`copy`
+для однотабличного блока. `check:registries` проверяет, что поля схемы и колонки совпадают.
+
+Интерактивный блок с дочерней таблицей и ответом ученика:
 
 ```ts
 export const flashcards = defineBlock({
-  type: 'flashcards',
-  v: 2,
-  category: 'interactive',
-  icon: 'Layers',
-  schema: z.object({
-    cards: z.array(z.object({ id: z.string(), front: z.string(), back: z.string(), correct: z.boolean() })).min(1),
-  }),
-  defaults: () => ({ cards: [] }),
-  completion: 'interaction',             // блок выполнен после первого валидного ответа
-  secretKeys: ['cards.*.correct'],       // check:registries проверяет, что toPublic их убирает
-  toPublic: (data) => ({ cards: data.cards.map(({ correct, ...c }) => c) }),
-  responseSchema: z.object({ answers: z.record(z.string(), z.boolean()) }),
-  evaluate: (data, response) => {        // чистая функция, выполняется на сервере
-    const ok = data.cards.filter((c) => response.answers[c.id] === c.correct).length
-    return { score: ok, max: data.cards.length, done: true }
-  },
-  migrations: {
-    1: (old: { items: { front: string; back: string }[] }) =>
-      ({ cards: old.items.map((i, n) => ({ id: String(n), ...i, correct: true })) }),
-  },
+	type: 'flashcards',
+	category: 'interactive',
+	icon: 'Layers',
+	schema: z.object({
+		shuffle: z.boolean(),
+		cards: z
+			.array(
+				z.object({ id: Id.optional(), front: z.string().max(500), back: z.string().max(500), isCorrect: z.boolean() }),
+			)
+			.min(1)
+			.max(100),
+	}),
+	children: { cards: 'cards' }, // поле схемы → дочерняя таблица block_flashcards_cards (load/save/copy — ядро)
+	defaults: () => ({ shuffle: false, cards: [] }),
+	completion: 'interaction',
+	secretKeys: ['cards.*.isCorrect'], // check:registries: toPublic их убирает
+	toPublic: (d) => ({ shuffle: d.shuffle, cards: d.cards.map(({ isCorrect, ...c }) => c) }),
+	responseSchema: z.object({ answers: z.array(z.object({ cardId: Id, value: z.boolean() })).max(100) }),
+	responseTable: 'responses', // block_flashcards_responses (+ дочерняя _responses_answers) из table.ts
+	evaluate: (d, r) => {
+		// чистая функция, только на сервере
+		const ok = d.cards.filter((c) => r.answers.find((a) => a.cardId === c.id)?.value === c.isCorrect).length
+		return { score: ok, max: d.cards.length, done: true }
+	},
 })
 ```
 
-| Поле | Смысл |
-|---|---|
-| `completion` | `none` — не влияет на завершение урока; `view` — выполнен при показе; `interaction` — после `evaluate` с `done`; `grade` — по оценке внешнего процесса (тест, ДЗ — блоки `quiz`/`assignment` модуля `assessments`) |
-| `toPublic` | обязателен, если есть `secretKeys`; без секретов — по умолчанию identity |
-| `evaluate` | только для `interactive`; результат пишется в `lesson_progress.blocks[<blockId>]` сервисом `learning` |
-| `migrations[n]` | преобразует данные версии `n` в `n+1`; `v` = последняя версия |
+| Поле                                          | Смысл                                                                                                                                                       |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema`                                      | данные блока в API; совпадает с колонками таблицы типа (+ `children`)                                                                                       |
+| `children`                                    | поле-массив → дочерняя таблица; порядок — `position`                                                                                                        |
+| `completion`                                  | `none`; `view` — выполнен при показе; `interaction` — после `evaluate` с `done`; `grade` — по внешнему процессу (`quiz`, `assignment` модуля `assessments`) |
+| `toPublic`                                    | обязателен при `secretKeys`; иначе — identity                                                                                                               |
+| `responseSchema`, `responseTable`, `evaluate` | только `interactive`: ответ валидируется, сохраняется в таблицу ответов, результат — в `block_progress` (сервис `learning`)                                 |
+| `load`, `save`, `copy`                        | (необязательно) свои функции для нестандартного хранения — например, `quiz` ссылается на `questions`                                                        |
 
 ## editor.tsx и viewer.tsx
 
@@ -91,26 +143,35 @@ export function Editor({ value, onChange, readOnly }: BlockEditorProps<typeof ca
 export function Viewer({ data, state, onInteract }: BlockViewerProps<typeof callout>) { … }
 ```
 
-- Editor получает **полные** данные, вызывает `onChange(next)` — хост валидирует схемой и автосохраняет.
-- Viewer получает **публичные** данные (`toPublic`) и `state` (сохранённый результат ученика);
-  `onInteract(response)` отправляет ответ на сервер (`learn.block.interact`), возвращает результат `evaluate`.
-- Компоненты — из `packages/ui`; строки — `t('blocks:<type>.…')`; тяжёлые зависимости — `lazy()`.
-- Viewer адаптивен от 360px и доступен с клавиатуры.
+- Editor получает **полные** данные черновика, `onChange(next)` → хост валидирует схемой и автосохраняет
+  (процедура `courses.blocks.update` → `save` ядра в строки `draft`).
+- Viewer получает **публичные** данные (`toPublic` от `published`-строк) и `state` (`block_progress` + ответ);
+  `onInteract(response)` → `learn.block.interact` → `evaluate` → результат.
+- Компоненты — из `packages/ui`; строки — `t('blocks:<type>.…')`; тяжёлые зависимости — `lazy()`; viewer — от 360px,
+  с клавиатуры.
+
+## Черновик и публикация (ядро делает само)
+
+- Правка — только строк `state = draft`. Публикация урока: удалить `published`-строки (каскад по таблицам типов),
+  скопировать `draft` → `published` (через `copy` каждого типа) с тем же `block_key`.
+- Ответы и прогресс ссылаются на `block_key` — новая публикация их не ломает.
 
 ## Изменить существующий блок
 
-- Добавить необязательное поле с default — без новой версии (`schema` с `.default()`).
-- Переименовать/изменить структуру — **новая версия**: `v: n+1`, миграция `migrations[n]`, тест на пример старых
-  данных. Данные в БД мигрируются лениво при чтении (`parseBlock`) и при сохранении урока.
+Данные блока — колонки, поэтому изменение = миграция БД (скилл `db-schema`):
+- новое поле — колонка с default (или nullable) + поле в `schema` с `.default()`; миграция `pnpm db:generate`;
+- переименование/изменение структуры — expand/contract: новая колонка → заполнение миграцией данных (и для `draft`,
+  и для `published`) → переключение кода → удаление старой отдельной задачей.
 
 ## Готово, когда
 
-`pnpm check` зелёный (включая `check:registries`: уникальный `type`, `defaults()` проходит схему, `toPublic`
-убирает `secretKeys`, миграции покрыты тестом, i18n-ключи есть); блок добавляется из палитры конструктора, виден в
-плеере, интерактив засчитывается (e2e).
+`pnpm check` зелёный (`check:registries`: уникальный `type`, `defaults()` проходит схему, поля схемы = колонки,
+`toPublic` убирает `secretKeys`, RLS у таблиц типа, i18n-ключи есть); тест `save → load → copy` на БД; блок
+добавляется из палитры, виден в плеере после публикации, интерактив засчитывается (e2e).
 
 ## Остановись и спроси, если
 
-- блоку нужна серверная логика сложнее чистого `evaluate` (внешний сервис, хранение файлов, ручная проверка) —
-  это блок модуля, как `quiz`/`assignment`; согласуй архитектуру;
+- блоку нужна серверная логика сложнее чистого `evaluate` (внешний сервис, ручная проверка) — это блок модуля, как
+  `quiz`/`assignment`; согласуй архитектуру;
+- хочется хранить данные блока в JSON — нельзя (D-032), кроме `richText()`;
 - нужно удалить тип блока, который уже есть в уроках.

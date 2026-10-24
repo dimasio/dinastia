@@ -15,25 +15,25 @@ description: Фоновые и периодические задачи Dinastia 
 ```ts
 // apps/api/src/modules/learning/jobs.ts
 import { z } from 'zod'
-import { defineJob } from '@/kernel/jobs'
+import { defineJob } from '#/kernel/jobs'
 import { recalcProgress } from './progress.service'
 import { expireDue } from './enrollment.service'
 
 export const recalcProgressJob = defineJob({
-  name: 'learning.recalc-progress',
-  schema: z.object({ enrollmentId: z.string().uuid() }),
-  singletonKey: (d) => d.enrollmentId,          // не ставить дубль, пока предыдущая в очереди
-  retry: { limit: 5, backoff: true },
-  handler: (ctx, d) => recalcProgress(ctx, d.enrollmentId),   // ctx — тенантный, как в процедуре
+	name: 'learning.recalc-progress',
+	schema: z.object({ enrollmentId: z.string().uuid() }),
+	singletonKey: (d) => d.enrollmentId, // не ставить дубль, пока предыдущая в очереди
+	retry: { limit: 5, backoff: true },
+	handler: (ctx, d) => recalcProgress(ctx, d.enrollmentId), // ctx — тенантный, как в процедуре
 })
 
 export const expireEnrollmentsJob = defineJob({
-  name: 'learning.expire-enrollments',
-  schema: z.object({}),
-  schedule: '*/15 * * * *',                     // cron, Europe/Moscow
-  scope: 'all-schools',                         // ядро вызывает handler в forEachSchool, транзакция на школу
-  timeout: '10m',
-  handler: (ctx) => expireDue(ctx),
+	name: 'learning.expire-enrollments',
+	schema: z.object({}),
+	schedule: '*/15 * * * *', // cron, Europe/Moscow
+	scope: 'all-schools', // ядро вызывает handler в forEachSchool, транзакция на школу
+	timeout: '10m',
+	handler: (ctx) => expireDue(ctx),
 })
 
 export const jobs = [recalcProgressJob, expireEnrollmentsJob]
@@ -42,8 +42,8 @@ export const jobs = [recalcProgressJob, expireEnrollmentsJob]
 Постановка:
 
 ```ts
-await ctx.jobs.send(recalcProgressJob, { enrollmentId })              // в транзакции запроса
-await ctx.jobs.send(deadlineReminderJob, { deadlineId }, { startAfter: dueAt })  // отложенно
+await ctx.jobs.send(recalcProgressJob, { enrollmentId }) // в транзакции запроса
+await ctx.jobs.send(deadlineReminderJob, { deadlineId }, { startAfter: dueAt }) // отложенно
 ```
 
 `schoolId` добавляется к данным автоматически; в `handler` контекст уже тенантный.

@@ -1,6 +1,6 @@
 ---
 name: events-automations
-description: Доменные события Dinastia — defineEvent в modules/<m>/events.ts (имя <сущность>.<прошедшее время>, zod-схема), ctx.emit с доставкой после коммита через outbox, подписчики on(event, handler) в других модулях (асинхронно через задачи, идемпотентно), список событий MVP; после MVP — автоматизации школы: каталог триггеров defineTrigger (из событий), условий и действий defineAction (письмо, Telegram, зачислить, назначить тег). Использовать для «когда X — сделать Y», «при завершении урока», «реагировать на событие», «автоматизация», «автоворонка».
+description: Доменные события Dinastia — defineEvent в modules/<m>/events.ts (имя <сущность>.<прошедшее время>, zod-схема), ctx.emit с доставкой после коммита через outbox, подписчики on(event, handler) в других модулях (асинхронно через задачи, идемпотентно), список событий MVP; после MVP — автоматизации школы — каталог триггеров defineTrigger (из событий), условий и действий defineAction (письмо, Telegram, зачислить, назначить тег). Использовать для «когда X — сделать Y», «при завершении урока», «реагировать на событие», «автоматизация», «автоворонка».
 ---
 
 # События и автоматизации
@@ -14,20 +14,24 @@ description: Доменные события Dinastia — defineEvent в modules
 ```ts
 // apps/api/src/modules/learning/events.ts
 import { z } from 'zod'
-import { defineEvent, on } from '@/kernel/events'
+import { defineEvent, on } from '#/kernel/events'
 import { quizGraded } from '../assessments/events'
 import { submissionReviewed } from '../assessments/events'
 import { markBlockGraded } from './progress.service'
 
-export const lessonCompleted = defineEvent('lesson.completed', z.object({
-  enrollmentId: z.string().uuid(),
-  lessonId: z.string().uuid(),
-}))
+export const lessonCompleted = defineEvent(
+	'lesson.completed',
+	z.object({
+		enrollmentId: z.string().uuid(),
+		lessonId: z.string().uuid(),
+	}),
+)
 
 export const subscribers = [
-  on(quizGraded, (ctx, e) => markBlockGraded(ctx, { attemptId: e.attemptId })),
-  on(submissionReviewed, (ctx, e) => e.status === 'accepted'
-    ? markBlockGraded(ctx, { submissionId: e.submissionId }) : undefined),
+	on(quizGraded, (ctx, e) => markBlockGraded(ctx, { attemptId: e.attemptId })),
+	on(submissionReviewed, (ctx, e) =>
+		e.status === 'accepted' ? markBlockGraded(ctx, { submissionId: e.submissionId }) : undefined,
+	),
 ]
 ```
 
@@ -41,17 +45,17 @@ export const subscribers = [
 
 ## Когда событие, а когда вызов
 
-| Ситуация | Как |
-|---|---|
-| модулю A нужен результат модуля B сейчас | вызов `B/service.ts` |
-| модулю B надо отреагировать на факт в A, A о B не знает | событие A, подписчик в B |
-| письмо/уведомление по факту | подписчик → `ctx.mail.send` (скилл `notifications`) |
-| пересчёт после факта | подписчик → функция пересчёта или задача |
+| Ситуация                                                | Как                                                 |
+| ------------------------------------------------------- | --------------------------------------------------- |
+| модулю A нужен результат модуля B сейчас                | вызов `B/service.ts`                                |
+| модулю B надо отреагировать на факт в A, A о B не знает | событие A, подписчик в B                            |
+| письмо/уведомление по факту                             | подписчик → `ctx.mail.send` (скилл `notifications`) |
+| пересчёт после факта                                    | подписчик → функция пересчёта или задача            |
 
 ## Автоматизации школы (R3)
 
-Владелец школы собирает правило «триггер → условия → действия» в UI; правило хранится в `automations` (JSONB со
-схемой каталога). Каталог — реестр:
+Владелец школы собирает правило «триггер → условия → действия» в UI; правило хранится реляционно: `automations`, `automation_conditions`, `automation_actions` + таблица параметров на
+тип действия (как у блоков, D-034). Каталог — реестр:
 
 ```ts
 // apps/api/src/modules/automations/catalog/triggers.ts

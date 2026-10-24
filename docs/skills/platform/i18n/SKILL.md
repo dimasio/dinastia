@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: Строки интерфейса и локализация Dinastia — i18next, файлы packages/i18n/locales/ru/<namespace>.json (namespace = модуль, плюс common, errors, blocks, questions, emails, settings), ключи вида <ns>:<раздел>.<ключ>, t() в компонентах и на сервере, плюрализация, интерполяция, даты/числа/деньги через форматтеры, коды ошибок errors:<CODE>, проверка отсутствующих ключей в pnpm check. Использовать при любой работе с текстом в UI, письмах, ошибках: «переведи», «подпись», «текст кнопки», «добавь язык».
+description: Строки интерфейса и локализация Dinastia — i18next, файлы packages/i18n/locales/ru/<namespace>.json (namespace = модуль, плюс common, errors, blocks, questions, emails, settings), ключи вида <ns>:<раздел>.<ключ>, t() в компонентах и на сервере, плюрализация, интерполяция, даты/числа/деньги через форматтеры, коды ошибок errors:<CODE>, проверка отсутствующих ключей в pnpm check. Использовать при любой работе с текстом в UI, письмах, ошибках — «переведи», «подпись», «текст кнопки», «добавь язык».
 ---
 
 # Строки и локализация
@@ -28,10 +28,10 @@ packages/i18n/locales/ru/
 
 ```tsx
 const { t } = useTranslation('courses')
-t('list.title')                              // в своём namespace
-t('common:save')                             // общий
-t('courses:lessonsCount', { count: n })      // ключи lessonsCount_one / _few / _many / _other (русская плюрализация)
-t('learning:dueAt', { date })                // в строке: "до {{date, datetime}}"
+t('list.title') // в своём namespace
+t('common:save') // общий
+t('courses:lessonsCount', { count: n }) // ключи lessonsCount_one / _few / _many / _other (русская плюрализация)
+t('learning:dueAt', { date }) // в строке: "до {{date, datetime}}"
 ```
 
 - Даты, числа, деньги — форматтеры `formatDate`, `formatNumber`, `formatMoney` из `@dinastia/i18n` (часовой пояс

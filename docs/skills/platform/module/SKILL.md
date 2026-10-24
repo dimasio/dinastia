@@ -37,7 +37,7 @@ packages/i18n/locales/ru/<m>.json       строки                            
 `index.ts` модуля:
 
 ```ts
-import { defineModule } from '@/kernel/module'
+import { defineModule } from '#/kernel/module'
 import { router } from './router'
 import { permissions } from './permissions'
 import { subscribers } from './events'
@@ -56,7 +56,7 @@ export default defineModule({ name: 'courses', router, permissions, subscribers,
   (экспорт = публичный API) или подписка на его событие.
 - Циклы запрещены: `learning → courses` можно, `courses → learning` — через событие. Направления — схема в
   `docs/specs/architecture.md` §2; `pnpm check` (dependency-cruiser) ловит нарушения.
-- Ядро (`@/kernel/*`) доступно всем модулям; модули из ядра не импортируются.
+- Ядро (`#/kernel/*`) доступно всем модулям; модули из ядра не импортируются.
 
 ## Создать модуль
 
@@ -67,12 +67,12 @@ export default defineModule({ name: 'courses', router, permissions, subscribers,
 
 ## Куда класть
 
-| Хочу | Куда |
-|---|---|
-| новая сущность предметной области | таблица в модуле, которому она принадлежит по `domain.md`; нет подходящего — спроси |
-| общая zod-схема (email, телефон, деньги, RichText, пагинация) | `packages/contracts/src/common/` |
-| общий UI-компонент | `packages/ui` — это ядро; в модуле — `features/<m>/components` |
-| вспомогательная функция ядра (новый хелпер БД) | запрос к ядру (`AGENTS.md`) |
+| Хочу                                                          | Куда                                                                                |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| новая сущность предметной области                             | таблица в модуле, которому она принадлежит по `domain.md`; нет подходящего — спроси |
+| общая zod-схема (email, телефон, деньги, RichText, пагинация) | `packages/contracts/src/common/`                                                    |
+| общий UI-компонент                                            | `packages/ui` — это ядро; в модуле — `features/<m>/components`                      |
+| вспомогательная функция ядра (новый хелпер БД)                | запрос к ядру (`AGENTS.md`)                                                         |
 
 ## Готово, когда
 
@@ -82,4 +82,4 @@ export default defineModule({ name: 'courses', router, permissions, subscribers,
 
 - не ясно, какому модулю принадлежит сущность;
 - нужна зависимость, создающая цикл;
-- нужна правка `@/kernel/*` или `packages/ui`.
+- нужна правка `#/kernel/*` или `packages/ui`.

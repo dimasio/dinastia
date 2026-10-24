@@ -15,22 +15,25 @@ description: Генерация документов в Dinastia — PDF из Re
 ```ts
 // apps/api/src/modules/certificates/documents.ts
 import { z } from 'zod'
-import { defineDocument } from '@/kernel/documents'
+import { defineDocument } from '#/kernel/documents'
 import { CertificateTemplate } from './templates/certificate'
 
 export const certificatePdf = defineDocument({
-  key: 'certificates.certificate',
-  schema: z.object({
-    studentName: z.string(), courseTitle: z.string(), number: z.string(),
-    issuedAt: z.coerce.date(), layout: CertificateLayout,
-  }),
-  page: { size: 'A4', orientation: 'landscape', margin: 0 },
-  Component: CertificateTemplate,       // React-компонент → HTML (renderToStaticMarkup) → Chromium → PDF
-  filePurpose: 'certificate',           // private
+	key: 'certificates.certificate',
+	schema: z.object({
+		studentName: z.string(),
+		courseTitle: z.string(),
+		number: z.string(),
+		issuedAt: z.coerce.date(),
+		layout: CertificateLayout,
+	}),
+	page: { size: 'A4', orientation: 'landscape', margin: 0 },
+	Component: CertificateTemplate, // React-компонент → HTML (renderToStaticMarkup) → Chromium → PDF
+	filePurpose: 'certificate', // private
 })
 
 // в сервисе/задаче:
-const fileId = await ctx.documents.render(certificatePdf, data)   // ставит задачу или выполняется в задаче
+const fileId = await ctx.documents.render(certificatePdf, data) // ставит задачу или выполняется в задаче
 ```
 
 - Шаблон — обычный React без клиентских хуков; стили — инлайн/встроенный CSS; шрифты — из
@@ -42,17 +45,17 @@ const fileId = await ctx.documents.render(certificatePdf, data)   // стави�
 ```ts
 // apps/api/src/modules/learning/exports.ts
 export const courseStudentsExport = defineExport({
-  key: 'learning.course-students',
-  perm: 'learning.analytics',
-  input: z.object({ courseId: Id, filters: StudentFilters.optional() }),
-  formats: ['xlsx', 'csv'],
-  columns: [
-    { key: 'name', title: 'learning:export.name' },
-    { key: 'email', title: 'learning:export.email' },
-    { key: 'progressPct', title: 'learning:export.progress', type: 'percent' },
-    { key: 'enrolledAt', title: 'learning:export.enrolledAt', type: 'date' },
-  ],
-  rows: (ctx, input) => studentsCursor(ctx, input),   // async-итератор батчами — не грузить всё в память
+	key: 'learning.course-students',
+	perm: 'learning.analytics',
+	input: z.object({ courseId: Id, filters: StudentFilters.optional() }),
+	formats: ['xlsx', 'csv'],
+	columns: [
+		{ key: 'name', title: 'learning:export.name' },
+		{ key: 'email', title: 'learning:export.email' },
+		{ key: 'progressPct', title: 'learning:export.progress', type: 'percent' },
+		{ key: 'enrolledAt', title: 'learning:export.enrolledAt', type: 'date' },
+	],
+	rows: (ctx, input) => studentsCursor(ctx, input), // async-итератор батчами — не грузить всё в память
 })
 ```
 

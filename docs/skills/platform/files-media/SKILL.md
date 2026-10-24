@@ -1,13 +1,13 @@
 ---
 name: files-media
-description: Файлы и медиа в Dinastia — загрузка напрямую в S3 по presigned URL (files.createUpload → PUT → files.complete), назначение файла defineFilePurpose (лимиты размера, MIME, видимость private/public), таблица files, подписанные ссылки на чтение ctx.files.signedUrl, компоненты FileDropzone/ImageInput, картинки (превью, размеры), видео через провайдера (Kinescope) в блоке video, удаление и квоты школы, MinIO локально. Использовать для «загрузка файла», «обложка», «вложение к ДЗ», «картинка», «видео в уроке», «скачать файл».
+description: Файлы и медиа в Dinastia — загрузка напрямую в S3 по presigned URL (files.createUpload → PUT → files.complete), назначение файла defineFilePurpose (лимиты размера, MIME, видимость private/public), таблица files, подписанные ссылки на чтение ctx.files.signedUrl, компоненты FileDropzone/ImageInput, картинки (превью, размеры), видео через провайдера (Kinescope) в блоке video, удаление и квоты школы, SeaweedFS локально. Использовать для «загрузка файла», «обложка», «вложение к ДЗ», «картинка», «видео в уроке», «скачать файл».
 ---
 
 # Файлы и медиа
 
 > Статус: целевой — сверить с кодом в фазе 1 (пункт 1.7).
 
-Хранилище — S3-совместимое в РФ (D-011), локально MinIO. Файлы не проходят через API-сервер.
+Хранилище — S3-совместимое в РФ (D-011), локально SeaweedFS (D-037). Файлы не проходят через API-сервер.
 
 ## Поток загрузки
 
@@ -25,14 +25,14 @@ onChange={setId} />`; в ресурсе — `widget: 'image', purpose: '…'`.
 
 ```ts
 // apps/api/src/modules/courses/files.ts
-import { defineFilePurpose } from '@/kernel/storage'
+import { defineFilePurpose } from '#/kernel/storage'
 
 export const courseCover = defineFilePurpose('course-cover', {
-  maxSize: '5MB',
-  mime: ['image/jpeg', 'image/png', 'image/webp'],
-  visibility: 'public',          // public — CDN-ссылка без подписи; private — только signedUrl
-  perm: 'courses.manage',        // кто может загружать
-  image: { variants: { card: [640, 360], thumb: [160, 90] } },   // задача делает превью
+	maxSize: '5MB',
+	mime: ['image/jpeg', 'image/png', 'image/webp'],
+	visibility: 'public', // public — CDN-ссылка без подписи; private — только signedUrl
+	perm: 'courses.manage', // кто может загружать
+	image: { variants: { card: [640, 360], thumb: [160, 90] } }, // задача делает превью
 })
 ```
 

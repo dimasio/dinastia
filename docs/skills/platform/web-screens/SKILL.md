@@ -30,22 +30,22 @@ apps/web/src/routes/
 // apps/web/src/routes/admin/assessments/review.tsx
 import { z } from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
-import { requirePerm } from '@/app/guards'
-import { reviewQueueQuery } from '@/features/assessments/api'
-import { ReviewQueue } from '@/features/assessments/review/review-queue'
+import { requirePerm } from '#/app/guards'
+import { reviewQueueQuery } from '#/features/assessments/api'
+import { ReviewQueue } from '#/features/assessments/review/review-queue'
 
 const Search = z.object({
-  status: z.enum(['submitted', 'needs_revision']).default('submitted'),
-  groupId: z.string().uuid().optional(),
-  page: z.number().int().min(1).default(1),
+	status: z.enum(['submitted', 'needs_revision']).default('submitted'),
+	groupId: z.string().uuid().optional(),
+	page: z.number().int().min(1).default(1),
 })
 
 export const Route = createFileRoute('/admin/assessments/review')({
-  validateSearch: Search,
-  beforeLoad: requirePerm('assessments.review'),
-  loaderDeps: ({ search }) => search,
-  loader: ({ context, deps }) => context.queryClient.ensureQueryData(reviewQueueQuery(deps)),
-  component: () => <ReviewQueue search={Route.useSearch()} />,
+	validateSearch: Search,
+	beforeLoad: requirePerm('assessments.review'),
+	loaderDeps: ({ search }) => search,
+	loader: ({ context, deps }) => context.queryClient.ensureQueryData(reviewQueueQuery(deps)),
+	component: () => <ReviewQueue search={Route.useSearch()} />,
 })
 ```
 
@@ -62,14 +62,29 @@ export const Route = createFileRoute('/admin/assessments/review')({
 
 ```ts
 // apps/web/src/features/assessments/nav.ts
-import { defineNav } from '@/app/nav'
+import { defineNav } from '#/app/nav'
 import { ClipboardCheck, ListChecks } from 'lucide-react'
 
 export const nav = defineNav([
-  { area: 'admin', to: '/admin/assessments/review', label: 'assessments:nav.review', icon: ClipboardCheck,
-    perm: 'assessments.review', group: 'learning', order: 30, badge: 'assessments.reviewCount' },
-  { area: 'admin', to: '/admin/assessments/bank', label: 'assessments:nav.bank', icon: ListChecks,
-    perm: 'assessments.bank.read', group: 'content', order: 20 },
+	{
+		area: 'admin',
+		to: '/admin/assessments/review',
+		label: 'assessments:nav.review',
+		icon: ClipboardCheck,
+		perm: 'assessments.review',
+		group: 'learning',
+		order: 30,
+		badge: 'assessments.reviewCount',
+	},
+	{
+		area: 'admin',
+		to: '/admin/assessments/bank',
+		label: 'assessments:nav.bank',
+		icon: ListChecks,
+		perm: 'assessments.bank.read',
+		group: 'content',
+		order: 20,
+	},
 ])
 ```
 

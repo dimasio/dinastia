@@ -1,72 +1,108 @@
 ---
 name: local-env
-description: Локальное окружение Dinastia — требования (Node 24, pnpm, Docker), docker compose (Postgres 17 с базами dev и test, MinIO для S3, Mailpit для почты), .env из .env.example, pnpm install, pnpm db:reset и db:seed (демо-школа demo с пользователями всех ролей), pnpm dev (api, web, воркер), адреса http://demo.localhost:5173, API :3000, Mailpit :8025, MinIO :9001, типичные проблемы. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу», «демо-данные», «где письма».
+description: Локальное окружение Dinastia — требования (Node 24 через nvm и .nvmrc, pnpm через corepack, Docker), docker/compose.yml (PostgreSQL 18 с базами dinastia и dinastia_test и ролями app_owner/app_user, SeaweedFS как S3 с бакетом dinastia, Mailpit для почты), .env из .env.example, команды pnpm env:up/down/reset/logs/ps, pnpm dev (api :3000, web :5173), адреса и доступы, проверка сервисов, типичные проблемы; демо-данные pnpm db:seed. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу/окружение», «демо-данные», «где письма», «где файлы».
 ---
 
 # Локальное окружение
 
-> Статус: целевой — сверить с кодом в фазе 0 (пункт 0.2).
+> Статус: сверено с кодом в фазе 0 (пункты 0.2–0.4), кроме разделов с пометкой «фаза N».
 
 Работаем **только** с локальными сервисами; к продовым БД и хранилищам не подключаться.
 
 ## Требования
 
-Node.js 24 LTS (`.nvmrc`), pnpm (через `corepack enable`), Docker Desktop / OrbStack.
+| Что | Как |
+|---|---|
+| Node.js 24 LTS | `nvm install` (берёт версию из `.nvmrc`), затем `nvm use` в каждом новом терминале |
+| pnpm 10 | `corepack enable` (версия — `packageManager` в `package.json`) |
+| Docker | Docker Desktop / OrbStack, запущен |
 
 ## Первый запуск
 
 ```bash
+nvm use
 corepack enable
 pnpm install
-cp .env.example .env                 # значения по умолчанию подходят для compose
-pnpm env:up                          # docker compose -f docker/compose.yml up -d
-pnpm db:reset                        # создать dev-базу, роли app_owner/app_user, миграции
-pnpm db:seed                         # демо-школа
-pnpm dev                             # api + web + воркер задач
+cp .env.example .env        # значения по умолчанию подходят для compose
+pnpm env:up                 # Postgres, SeaweedFS, Mailpit + создание бакета; ждёт healthy
+pnpm dev                    # api + web (воркер задач — с фазы 1)
 ```
+
+Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (демо-данные).
 
 ## Сервисы
 
 | Что | Адрес | Доступ |
 |---|---|---|
-| кабинет демо-школы | http://demo.localhost:5173 | см. пользователей ниже |
-| корневой домен (регистрация школы) | http://localhost:5173 | — |
-| API, OpenAPI | http://localhost:3000, `/api/openapi.json` | — |
-| Postgres | `localhost:5432`, базы `dinastia`, `dinastia_test` | `app_owner` / `app_owner` |
-| Mailpit (письма, magic link) | http://localhost:8025 | — |
-| MinIO (S3) | http://localhost:9001 | `minio` / `minio12345` |
+| API | http://localhost:3000, `/health/live` | — |
+| веб | корень — http://dinastia.localhost:5173, школа — http://demo.dinastia.localhost:5173 (D-041) | см. «Демо-данные» |
+| PostgreSQL 18 | `localhost:5432`, базы `dinastia`, `dinastia_test` | приложение — `app_user`/`app_user`; миграции — `app_owner`/`app_owner`; суперпользователь — `postgres`/`postgres` (только для отладки) |
+| S3 (SeaweedFS) | http://localhost:8333, бакет `dinastia`, path-style | ключ `dinastia` / `dinastia-secret`; UI файлов — http://localhost:8888 |
+| Mailpit (письма, magic link) | http://localhost:8025, SMTP `localhost:1025` | — |
 
-`*.localhost` резолвится браузерами в 127.0.0.1 сам; для curl — `-H 'Host: demo.localhost'`.
+`*.localhost` резолвится браузерами в 127.0.0.1 сам; для curl — `http://127.0.0.1:3000/...` с
+`-H 'Host: demo.dinastia.localhost:5173'` и для POST — `-H 'Origin: http://demo.dinastia.localhost:5173'`.
+Сессия — cookie на `.dinastia.localhost`: один вход на корне и во всех школах.
 
-## Демо-данные (`pnpm db:seed`)
+## Роли БД (D-006)
 
-Школа `demo`; пароль у всех — `demo12345`: `owner@demo.local`, `admin@demo.local`, `teacher@demo.local`,
-`curator@demo.local`, `student1@demo.local` … `student5@demo.local`. Курс «Демо-курс» с разделами, уроками всех
-блоков, тестом и ДЗ, поток с куратором, ученики с разным прогрессом. Вторая школа `other` — для проверки изоляции.
+| Роль | Может | Для чего |
+|---|---|---|
+| `app_owner` | владелец баз и схемы `public`, DDL | миграции (`DATABASE_URL_OWNER`) |
+| `app_user` | только DML (`select/insert/update/delete`) на таблицы `app_owner` — выдаётся автоматически (default privileges); без DDL, **без `BYPASSRLS`** | приложение и тесты (`DATABASE_URL`, `DATABASE_URL_TEST`) |
 
-Сид — код в `tools/seed/`; новая сущность MVP → дополни сид в той же задаче.
+Роли и базы создаёт `docker/postgres/init.sh` при **первом** старте тома. Поменяли `init.sh` — `pnpm env:reset`.
 
 ## Команды
 
 | Команда | Что |
 |---|---|
-| `pnpm env:up` / `env:down` / `env:logs` | сервисы compose |
-| `pnpm db:reset` | пересоздать dev-базу и применить миграции (данные удаляются) |
-| `pnpm db:migrate` | применить новые миграции |
-| `pnpm db:studio` | Drizzle Studio |
-| `pnpm jobs:list` | очереди задач |
+| `pnpm env:up` | поднять сервисы и дождаться healthy; создать бакет (идемпотентно) |
+| `pnpm env:down` | остановить (данные сохраняются) |
+| `pnpm env:reset` | **удалить данные** (тома) и поднять заново — только локально |
+| `pnpm env:logs` / `env:ps` | логи / состояние контейнеров |
+| `pnpm dev` | api (tsx watch) + web (vite) |
+| `pnpm db:migrate` / `db:reset` / `db:seed` / `db:studio` / `db:generate --name <что>` | миграции (под `app_owner`), сброс локальной БД, демо-данные, Drizzle Studio, новая миграция |
+| фаза 1: `pnpm jobs:list` | очереди задач |
+
+## Проверить, что всё работает
+
+```bash
+pnpm env:ps                                           # все (healthy)
+curl -s localhost:3000/health/live                    # {"status":"ok"} (при pnpm dev)
+docker exec -e PGPASSWORD=app_user dinastia-postgres-1 psql -h localhost -U app_user -d dinastia -tAc 'select uuidv7()'
+curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' 'http://localhost:8333/dinastia?list-type=2' | head -c 200
+```
+
+## Демо-данные
+
+`pnpm db:seed` (идемпотентен; `apps/api/src/seed.ts`, идёт через сервисы): пароль у всех — `demo12345`.
+
+| Школа | Пользователи |
+|---|---|
+| `demo` | `owner@demo.local`, `admin@demo.local`, `teacher@demo.local`, `curator@demo.local`, `student1@demo.local` … `student5@demo.local` |
+| `other` (проверка изоляции) | `owner@other.local`; `teacher@demo.local` — здесь ученик (один человек — разные роли) |
+
+С фазы 2 — демо-курс с уроками всех блоков, тестом и заданием, потоком и прогрессом. Новая сущность → дополни сид
+в той же задаче. Письма (magic link, приглашения) — в Mailpit.
 
 ## Типичные проблемы
 
 | Симптом | Что делать |
 |---|---|
-| `ECONNREFUSED 5432` | `pnpm env:up`, проверить `docker ps` |
+| `Cannot connect to the Docker daemon` | запустить Docker Desktop |
+| `ECONNREFUSED 5432` / `8333` | `pnpm env:up`, `pnpm env:ps` |
+| порт занят | поменять в `.env` (`DB_PORT`, `S3_PORT`, `API_PORT`, `WEB_PORT`, …) и в URL там же |
+| `permission denied for schema public` | DDL под `app_user` — DDL только миграциями под `app_owner` |
 | `permission denied for table` / пустые выборки | запрос не через `ctx.db` или не установлен тенант — скилл `data-access` |
+| роли/базы не те после правки `init.sh` | `pnpm env:reset` |
 | magic link не приходит | Mailpit http://localhost:8025 |
-| порт занят | поменять в `.env` (`API_PORT`, `WEB_PORT`) |
+| `node: command not found` / не та версия | `nvm use` |
 | схема разошлась после смены ветки | `pnpm db:reset && pnpm db:seed` |
+| вход отвечает 403 `Invalid origin` | запрос не с `*.dinastia.localhost` (или без заголовка `Origin` у curl) |
 
 ## Остановись и спроси, если
 
 - нужны данные или доступы прод/стейдж окружения;
-- compose не поднимается из-за ограничений машины (ресурсы, корпоративный прокси).
+- compose не поднимается из-за ограничений машины (ресурсы, корпоративный прокси);
+- нужен новый сервис в compose (Redis, …) — это изменение окружения, согласуй.

@@ -12,22 +12,24 @@ description: Уведомления в Dinastia — письма через defi
 ```tsx
 // apps/api/src/modules/assessments/emails/submission-reviewed.tsx
 import { z } from 'zod'
-import { defineEmail, EmailLayout, Button, Text } from '@/kernel/mail'
+import { defineEmail, EmailLayout, Button, Text } from '#/kernel/mail'
 
 export const submissionReviewedEmail = defineEmail({
-  key: 'assessments.submission-reviewed',
-  schema: z.object({
-    studentName: z.string(), lessonTitle: z.string(),
-    status: z.enum(['accepted', 'needs_revision', 'rejected']), url: z.string().url(),
-  }),
-  category: 'learning',               // для предпочтений: transactional (нельзя отписаться) | learning | marketing
-  subject: (d, t) => t(`emails:submissionReviewed.subject.${d.status}`, d),
-  Component: ({ data, t, school }) => (
-    <EmailLayout school={school}>
-      <Text>{t('emails:submissionReviewed.body', data)}</Text>
-      <Button href={data.url}>{t('emails:submissionReviewed.cta')}</Button>
-    </EmailLayout>
-  ),
+	key: 'assessments.submission-reviewed',
+	schema: z.object({
+		studentName: z.string(),
+		lessonTitle: z.string(),
+		status: z.enum(['accepted', 'needs_revision', 'rejected']),
+		url: z.string().url(),
+	}),
+	category: 'learning', // для предпочтений: transactional (нельзя отписаться) | learning | marketing
+	subject: (d, t) => t(`emails:submissionReviewed.subject.${d.status}`, d),
+	Component: ({ data, t, school }) => (
+		<EmailLayout school={school}>
+			<Text>{t('emails:submissionReviewed.body', data)}</Text>
+			<Button href={data.url}>{t('emails:submissionReviewed.cta')}</Button>
+		</EmailLayout>
+	),
 })
 ```
 

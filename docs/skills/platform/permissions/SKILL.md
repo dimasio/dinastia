@@ -9,11 +9,11 @@ description: Роли и права в Dinastia — роли школы owner/ad
 
 Роли — `docs/specs/domain.md` §2. Три слоя защиты:
 
-| Слой | Что решает | Где |
-|---|---|---|
-| RLS | данные **школы** — только своей | `tenantTable` (скилл `db-schema`), автоматически |
-| разрешение | **роль** может выполнить действие | `permissions.ts` + `can()` в процедуре |
-| политика | **какие записи** доступны (свои группы, свои попытки) | `policies.ts` + условие в сервисе |
+| Слой       | Что решает                                            | Где                                              |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------ |
+| RLS        | данные **школы** — только своей                       | `tenantTable` (скилл `db-schema`), автоматически |
+| разрешение | **роль** может выполнить действие                     | `permissions.ts` + `can()` в процедуре           |
+| политика   | **какие записи** доступны (свои группы, свои попытки) | `policies.ts` + условие в сервисе                |
 
 UI только прячет; запрещает всегда сервер.
 
@@ -21,12 +21,12 @@ UI только прячет; запрещает всегда сервер.
 
 ```ts
 // apps/api/src/modules/assessments/permissions.ts
-import { definePermissions } from '@/kernel/permissions'
+import { definePermissions } from '#/kernel/permissions'
 
 export const permissions = definePermissions('assessments', {
-  'bank.read':   ['owner', 'admin', 'teacher'],
-  'bank.manage': ['owner', 'admin', 'teacher'],
-  review:        ['owner', 'admin', 'teacher', 'curator'],
+	'bank.read': ['owner', 'admin', 'teacher'],
+	'bank.manage': ['owner', 'admin', 'teacher'],
+	review: ['owner', 'admin', 'teacher', 'curator'],
 })
 // ключи: 'assessments.bank.read', 'assessments.bank.manage', 'assessments.review'
 ```
@@ -62,7 +62,9 @@ export function reviewScope(ctx: SchoolCtx) {
 
 ```tsx
 const can = useCan()
-{can('courses.publish') && <Button onClick={publish}>{t('courses:publish')}</Button>}
+{
+	can('courses.publish') && <Button onClick={publish}>{t('courses:publish')}</Button>
+}
 ```
 
 Пункты меню (`nav.ts`), ресурсы и их действия (`defineResource`), маршруты (`beforeLoad: requirePerm('…')`)

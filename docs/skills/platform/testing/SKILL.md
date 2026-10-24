@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Тесты Dinastia — unit на Vitest рядом с кодом (*.test.ts: чистые функции, grade, evaluate, toPublic, миграции блоков), интеграционные на реальном Postgres (фикстура withTestSchool с ролями, callAs(role, procedure, input), expectPermissionMatrix, изоляция школ, подмена времени), e2e-сценарии Playwright в tests/e2e (фикстуры школы и входа по роли, локаторы getByRole/getByTestId, соглашение data-testid <модуль>-<элемент>, сценарий фичи и демо фазы), запуск pnpm test / pnpm e2e, что тестировать обязательно. Использовать для «напиши тест», «проверь сценарий», «e2e», «тест прав» — аналог сценариев «Ариадны» GaskarFM.
+description: Тесты Dinastia — unit на Vitest рядом с кодом (*.test.ts — чистые функции, grade, evaluate, toPublic, миграции блоков), интеграционные на реальном Postgres (фикстура withTestSchool с ролями, callAs(role, procedure, input), expectPermissionMatrix, изоляция школ, подмена времени), e2e-сценарии Playwright в tests/e2e (фикстуры школы и входа по роли, локаторы getByRole/getByTestId, соглашение data-testid <модуль>-<элемент>, сценарий фичи и демо фазы), запуск pnpm test / pnpm e2e, что тестировать обязательно. Использовать для «напиши тест», «проверь сценарий», «e2e», «тест прав» — аналог сценариев «Ариадны» GaskarFM.
 ---
 
 # Тесты
@@ -11,15 +11,15 @@ description: Тесты Dinastia — unit на Vitest рядом с кодом (
 
 ## Что обязательно
 
-| Изменение | Тест |
-|---|---|
-| сервисная логика | интеграционный: результат + побочные эффекты (события, задачи) |
-| процедура | матрица прав: роли с правом — ок, без права — 403 |
-| политика «только свои» | куратор/ученик не видит чужое (`notFound`) |
-| новая тенантная таблица | изоляция школ — генерируется `check:registries` автоматически |
-| блок / тип вопроса | схема, `defaults`, `toPublic` без секретов, `evaluate`/`grade`, миграции версий |
-| задача / подписчик | выполнение + идемпотентность (двойной запуск) |
-| фича с UI | e2e-сценарий основного пути |
+| Изменение               | Тест                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| сервисная логика        | интеграционный: результат + побочные эффекты (события, задачи)                                         |
+| процедура               | матрица прав: роли с правом — ок, без права — 403                                                      |
+| политика «только свои»  | куратор/ученик не видит чужое (`notFound`)                                                             |
+| новая тенантная таблица | изоляция школ — генерируется `check:registries` автоматически                                          |
+| блок / тип вопроса      | схема, `defaults`, `toPublic` без секретов, `evaluate`/`grade`; для блока — `save → load → copy` на БД |
+| задача / подписчик      | выполнение + идемпотентность (двойной запуск)                                                          |
+| фича с UI               | e2e-сценарий основного пути                                                                            |
 
 ## Unit
 
@@ -39,20 +39,27 @@ describe('multiple_choice', () => {
 
 ```ts
 // apps/api/src/modules/courses/courses.test.ts
-import { withTestSchool, callAs, expectPermissionMatrix } from '@/test'
+import { withTestSchool, callAs, expectPermissionMatrix } from '#/test'
 
 describe('courses', () => {
-  const t = withTestSchool()        // школа + участники всех ролей, транзакция откатывается после теста
+	const t = withTestSchool() // школа + участники всех ролей, транзакция откатывается после теста
 
-  it('публикация курса эмитит событие', async () => {
-    const c = await callAs(t.teacher, 'courses.create', { title: 'Курс' })
-    await callAs(t.teacher, 'courses.publish', { id: c.id })
-    expect(t.events).toContainEqual(expect.objectContaining({ name: 'course.published' }))
-  })
+	it('публикация курса эмитит событие', async () => {
+		const c = await callAs(t.teacher, 'courses.create', { title: 'Курс' })
+		await callAs(t.teacher, 'courses.publish', { id: c.id })
+		expect(t.events).toContainEqual(expect.objectContaining({ name: 'course.published' }))
+	})
 
-  it('права', () => expectPermissionMatrix(t, 'courses.publish', { id: t.fixtures.courseId }, {
-    allow: ['owner', 'admin', 'teacher'], deny: ['curator', 'student'],
-  }))
+	it('права', () =>
+		expectPermissionMatrix(
+			t,
+			'courses.publish',
+			{ id: t.fixtures.courseId },
+			{
+				allow: ['owner', 'admin', 'teacher'],
+				deny: ['curator', 'student'],
+			},
+		))
 })
 ```
 
@@ -66,13 +73,13 @@ describe('courses', () => {
 import { test, expect } from '../fixtures'
 
 test('куратор возвращает ДЗ на доработку', async ({ school, loginAs, page }) => {
-  const { submissionId } = await school.seed.submittedAssignment()
-  await loginAs('curator')
-  await page.goto('/admin/assessments/review')
-  await page.getByTestId(`assessments-review-row-${submissionId}`).click()
-  await page.getByRole('textbox', { name: 'Комментарий' }).fill('Добавьте пример')
-  await page.getByRole('button', { name: 'Вернуть на доработку' }).click()
-  await expect(page.getByText('Отправлено на доработку')).toBeVisible()
+	const { submissionId } = await school.seed.submittedAssignment()
+	await loginAs('curator')
+	await page.goto('/admin/assessments/review')
+	await page.getByTestId(`assessments-review-row-${submissionId}`).click()
+	await page.getByRole('textbox', { name: 'Комментарий' }).fill('Добавьте пример')
+	await page.getByRole('button', { name: 'Вернуть на доработку' }).click()
+	await expect(page.getByText('Отправлено на доработку')).toBeVisible()
 })
 ```
 

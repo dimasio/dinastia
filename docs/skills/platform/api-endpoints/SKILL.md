@@ -21,11 +21,11 @@ export const COURSE_STATUSES = ['draft', 'published', 'archived'] as const
 export const CourseStatus = z.enum(COURSE_STATUSES)
 
 export const Course = z.object({
-  id: Id,
-  title: z.string().trim().min(1).max(200),
-  description: RichText.nullable(),
-  status: CourseStatus,
-  createdAt: z.coerce.date(),
+	id: Id,
+	title: z.string().trim().min(1).max(200),
+	description: RichText.nullable(),
+	status: CourseStatus,
+	createdAt: z.coerce.date(),
 })
 export type Course = z.infer<typeof Course>
 
@@ -34,11 +34,17 @@ export const CourseUpdate = CourseCreate.partial().extend({ id: Id })
 export const CourseListInput = PageInput.extend({ status: CourseStatus.optional() })
 
 export const coursesContract = {
-  list: oc.route({ method: 'GET', path: '/courses' }).input(CourseListInput).output(Page(Course)),
-  get: oc.route({ method: 'GET', path: '/courses/{id}' }).input(z.object({ id: Id })).output(Course),
-  create: oc.route({ method: 'POST', path: '/courses' }).input(CourseCreate).output(Course),
-  update: oc.route({ method: 'PATCH', path: '/courses/{id}' }).input(CourseUpdate).output(Course),
-  publish: oc.route({ method: 'POST', path: '/courses/{id}/publish' }).input(z.object({ id: Id })).output(Course),
+	list: oc.route({ method: 'GET', path: '/courses' }).input(CourseListInput).output(Page(Course)),
+	get: oc
+		.route({ method: 'GET', path: '/courses/{id}' })
+		.input(z.object({ id: Id }))
+		.output(Course),
+	create: oc.route({ method: 'POST', path: '/courses' }).input(CourseCreate).output(Course),
+	update: oc.route({ method: 'PATCH', path: '/courses/{id}' }).input(CourseUpdate).output(Course),
+	publish: oc
+		.route({ method: 'POST', path: '/courses/{id}/publish' })
+		.input(z.object({ id: Id }))
+		.output(Course),
 }
 ```
 
@@ -52,25 +58,31 @@ export const coursesContract = {
 
 ```ts
 // apps/api/src/modules/courses/router.ts
-import { impl, school, can } from '@/kernel/orpc'
+import { impl, school, can } from '#/kernel/orpc'
 import * as service from './service'
 
 export const router = impl.courses.router({
-  list: impl.courses.list.use(school).use(can('courses.read'))
-    .handler(({ context, input }) => service.list(context, input)),
-  create: impl.courses.create.use(school).use(can('courses.manage'))
-    .handler(({ context, input }) => service.create(context, input)),
-  publish: impl.courses.publish.use(school).use(can('courses.publish'))
-    .handler(({ context, input }) => service.publish(context, input.id)),
-  // …
+	list: impl.courses.list
+		.use(school)
+		.use(can('courses.read'))
+		.handler(({ context, input }) => service.list(context, input)),
+	create: impl.courses.create
+		.use(school)
+		.use(can('courses.manage'))
+		.handler(({ context, input }) => service.create(context, input)),
+	publish: impl.courses.publish
+		.use(school)
+		.use(can('courses.publish'))
+		.handler(({ context, input }) => service.publish(context, input.id)),
+	// …
 })
 ```
 
-| Middleware | Когда |
-|---|---|
-| `pub` | без входа (страница приглашения, проверка сертификата по номеру) — только с согласия человека |
-| `authed` | вход есть, школа не нужна (список моих школ) |
-| `school` | всё в контексте школы — **по умолчанию** |
+| Middleware      | Когда                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| `pub`           | без входа (страница приглашения, проверка сертификата по номеру) — только с согласия человека      |
+| `authed`        | вход есть, школа не нужна (список моих школ)                                                       |
+| `school`        | всё в контексте школы — **по умолчанию**                                                           |
 | `can('<perm>')` | обязателен после `school` (скилл `permissions`); `check:registries` ругается на процедуру без него |
 
 Handler — одна строка: вызвать сервис. Логика, проверки, события — в сервисе (скилл `data-access`).
@@ -93,7 +105,7 @@ Handler — одна строка: вызвать сервис. Логика, п
 
 ```ts
 // apps/web/src/features/courses/api.ts
-import { orpc } from '@/app/orpc'
+import { orpc } from '#/app/orpc'
 export const coursesQuery = (input: CourseListInput) => orpc.courses.list.queryOptions({ input })
 // компонент:   const { data } = useSuspenseQuery(coursesQuery(params))
 // мутация:     useMutation(orpc.courses.publish.mutationOptions({ onSuccess: () => qc.invalidateQueries({ queryKey: orpc.courses.key() }) }))

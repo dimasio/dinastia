@@ -12,21 +12,21 @@ description: Дизайн-система Dinastia packages/ui — компоне
 
 ## Что есть
 
-| Нужно | Компонент (`@dinastia/ui`) |
-|---|---|
-| заголовок экрана с действиями, хлебные крошки | `PageHeader` |
-| кнопка, группа, меню | `Button`, `ButtonGroup`, `DropdownMenu` |
-| поля | `Input`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `Switch`, `RadioGroup`, `DatePicker`, `RichTextEditor` |
-| форма | `Form`, `FormField` (обёртки react-hook-form) |
-| окна | `Dialog`, `Sheet`, `AlertDialog` (`confirm()`-хелпер) |
-| вкладки, аккордеон | `Tabs`, `Accordion` |
-| таблица | `DataTable` (TanStack Table) — в CRUD используется через ресурс |
-| пусто / ошибка / загрузка | `EmptyState`, `ErrorState`, `Skeleton`, `Spinner` |
-| статусы | `Badge` (`tone`: neutral, info, success, warning, danger) |
-| прогресс | `Progress`, `ProgressRing` |
-| уведомления | `toast` (sonner) |
-| dnd-список | `SortableList` (dnd-kit) |
-| файлы | `FileDropzone`, `ImageInput` (скилл `files-media`) |
+| Нужно                                         | Компонент (`@dinastia/ui`)                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| заголовок экрана с действиями, хлебные крошки | `PageHeader`                                                                                                  |
+| кнопка, группа, меню                          | `Button`, `ButtonGroup`, `DropdownMenu`                                                                       |
+| поля                                          | `Input`, `Textarea`, `Select`, `Combobox`, `Checkbox`, `Switch`, `RadioGroup`, `DatePicker`, `RichTextEditor` |
+| форма                                         | `Form`, `FormField` (обёртки react-hook-form)                                                                 |
+| окна                                          | `Dialog`, `Sheet`, `AlertDialog` (`confirm()`-хелпер)                                                         |
+| вкладки, аккордеон                            | `Tabs`, `Accordion`                                                                                           |
+| таблица                                       | `DataTable` (TanStack Table) — в CRUD используется через ресурс                                               |
+| пусто / ошибка / загрузка                     | `EmptyState`, `ErrorState`, `Skeleton`, `Spinner`                                                             |
+| статусы                                       | `Badge` (`tone`: neutral, info, success, warning, danger)                                                     |
+| прогресс                                      | `Progress`, `ProgressRing`                                                                                    |
+| уведомления                                   | `toast` (sonner)                                                                                              |
+| dnd-список                                    | `SortableList` (dnd-kit)                                                                                      |
+| файлы                                         | `FileDropzone`, `ImageInput` (скилл `files-media`)                                                            |
 
 Список — `packages/ui/src/index.ts`; пропсы — по типам. Не выдумывай пропсы.
 
@@ -37,7 +37,7 @@ description: Дизайн-система Dinastia packages/ui — компоне
 - Отступы — шкала Tailwind (`gap-2/4/6`, `p-4/6`); радиусы — `rounded-md`/`rounded-lg`.
 - Типографика — классы `text-sm` (интерфейс), `text-base` (контент урока), заголовки через `PageHeader`/`h2.text-xl`.
 - Тёмная тема — автоматически через токены; проверяй оба режима.
-- **Брендинг школы**: `settings.branding.primary` → `--primary` / `--primary-foreground` (контраст вычисляет ядро),
+- **Брендинг школы**: `school_branding.primary_color` → `--primary` / `--primary-foreground` (контраст вычисляет ядро),
   логотип и фавикон — из настроек. Цвет школы — только через `primary`.
 
 ## Формы вне ресурса

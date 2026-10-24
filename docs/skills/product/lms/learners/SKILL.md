@@ -9,16 +9,16 @@ description: Ученики и прогресс в Dinastia — модуль lea
 
 ## Где лежит
 
-| Что | Где |
-|---|---|
-| таблицы `groups`, `group_curators`, `enrollments`, `lesson_progress`, `deadlines` | `apps/api/src/modules/learning/schema.ts` |
-| зачисление, отзыв, истечение | `apps/api/src/modules/learning/enrollment.service.ts` |
-| доступ и прогресс (`computeLessonAccess`, `recalcProgress`) | `apps/api/src/modules/learning/progress.service.ts` |
-| подписчики событий (`lesson.completed`, `quiz.graded`, `submission.reviewed`, `lesson.published`) | `apps/api/src/modules/learning/events.ts` |
-| задачи `learning.drip-unlock`, `learning.expire-enrollments`, `learning.deadline-reminders` | `apps/api/src/modules/learning/jobs.ts` |
-| аналитика (запросы-агрегаты) | `apps/api/src/modules/learning/analytics.service.ts` |
-| сертификаты | `apps/api/src/modules/certificates/` |
-| экраны: ученики курса, потоки, кабинет ученика | `apps/web/src/features/learning/` |
+| Что                                                                                               | Где                                                   |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| таблицы `groups`, `group_curators`, `enrollments`, `lesson_progress`, `deadlines`                 | `apps/api/src/modules/learning/schema.ts`             |
+| зачисление, отзыв, истечение                                                                      | `apps/api/src/modules/learning/enrollment.service.ts` |
+| доступ и прогресс (`computeLessonAccess`, `recalcProgress`)                                       | `apps/api/src/modules/learning/progress.service.ts`   |
+| подписчики событий (`lesson.completed`, `quiz.graded`, `submission.reviewed`, `lesson.published`) | `apps/api/src/modules/learning/events.ts`             |
+| задачи `learning.drip-unlock`, `learning.expire-enrollments`, `learning.deadline-reminders`       | `apps/api/src/modules/learning/jobs.ts`               |
+| аналитика (запросы-агрегаты)                                                                      | `apps/api/src/modules/learning/analytics.service.ts`  |
+| сертификаты                                                                                       | `apps/api/src/modules/certificates/`                  |
+| экраны: ученики курса, потоки, кабинет ученика                                                    | `apps/web/src/features/learning/`                     |
 
 ## Ключевые правила для кода
 
@@ -36,12 +36,12 @@ description: Ученики и прогресс в Dinastia — модуль lea
 
 ## Типовые задачи
 
-| Задача | Как |
-|---|---|
-| новый способ зачисления | `change-workflow`; процедура в контракте, `enrollment.service`, событие `enrollment.created` |
-| новая метрика в аналитике | `analytics.service` + индекс (`db-schema`) + виджет (`web-screens`) |
-| новое напоминание | задача `background-jobs` + письмо `notifications` |
-| поле сертификата | шаблон сертификата, `documents` |
+| Задача                    | Как                                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| новый способ зачисления   | `change-workflow`; процедура в контракте, `enrollment.service`, событие `enrollment.created` |
+| новая метрика в аналитике | `analytics.service` + индекс (`db-schema`) + виджет (`web-screens`)                          |
+| новое напоминание         | задача `background-jobs` + письмо `notifications`                                            |
+| поле сертификата          | шаблон сертификата, `documents`                                                              |
 
 ## Остановись и спроси, если
 

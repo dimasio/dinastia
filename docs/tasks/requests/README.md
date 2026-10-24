@@ -4,7 +4,8 @@
 
 ```markdown
 ---
-status: open          # open | accepted | done | rejected
+
+status: open # open | accepted | done | rejected
 created: 2026-10-24
 ---
 

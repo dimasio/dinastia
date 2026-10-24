@@ -14,10 +14,10 @@ description: Интеграции Dinastia с внешними сервисам�
 ```ts
 // apps/api/src/kernel/video/provider.ts
 export interface VideoProvider {
-  createUpload(input: { title: string; schoolId: string }): Promise<{ videoId: string; uploadUrl: string }>
-  getStatus(videoId: string): Promise<'processing' | 'ready' | 'failed'>
-  playerToken(videoId: string, viewer: { memberId: string }): Promise<{ token: string; expiresAt: Date }>
-  parseWebhook(req: WebhookRequest): Promise<VideoEvent | null>   // проверяет подпись
+	createUpload(input: { title: string; schoolId: string }): Promise<{ videoId: string; uploadUrl: string }>
+	getStatus(videoId: string): Promise<'processing' | 'ready' | 'failed'>
+	playerToken(videoId: string, viewer: { memberId: string }): Promise<{ token: string; expiresAt: Date }>
+	parseWebhook(req: WebhookRequest): Promise<VideoEvent | null> // проверяет подпись
 }
 // реализации: kernel/video/kinescope.ts, kernel/video/fake.ts
 // выбор: config.VIDEO_PROVIDER = 'kinescope' | 'fake'

@@ -1,6 +1,6 @@
 ---
 name: crud-entity
-description: Сквозной рецепт Dinastia — новая сущность от таблицы до экрана за один проход: таблица (db-schema) → миграция → zod-схемы и контракт list/get/create/update/remove (api-endpoints) → сервис (data-access) → роутер с can() → разрешения (permissions) → ресурс с таблицей и формой (admin-resource) → маршрут и пункт меню (web-screens) → строки (i18n) → тесты прав, изоляции и e2e (testing) → сид. Использовать для «добавь сущность/справочник/реестр X», «нужна таблица и экран для X», «CRUD для X» — особенно небольшим моделям как пошаговый маршрут.
+description: Сквозной рецепт Dinastia — новая сущность от таблицы до экрана за один проход — таблица (db-schema) → миграция → zod-схемы и контракт list/get/create/update/remove (api-endpoints) → сервис (data-access) → роутер с can() → разрешения (permissions) → ресурс с таблицей и формой (admin-resource) → маршрут и пункт меню (web-screens) → строки (i18n) → тесты прав, изоляции и e2e (testing) → сид. Использовать для «добавь сущность/справочник/реестр X», «нужна таблица и экран для X», «CRUD для X» — особенно небольшим моделям как пошаговый маршрут.
 ---
 
 # Сущность от таблицы до экрана
@@ -8,8 +8,7 @@ description: Сквозной рецепт Dinastia — новая сущнос�
 > Статус: целевой — сверить с кодом в фазе 1 (после 1.1–1.2 рецепт проходит генераторами).
 
 Рецепт склеивает скиллы платформы в один маршрут. Пример — справочник **тегов вопросов** `question_tags` в модуле
-`assessments`. Пример учебный: в текущей модели (`domain.md`) теги — колонка `questions.tags`, отдельной таблицы
-нет. Подставь свои имена; детали каждого шага — в указанном скилле.
+`assessments`. Это реальная сущность модели (`domain.md`: `question_tags` + связка `question_tag_links`). Подставь свои имена; детали каждого шага — в указанном скилле.
 
 ## 0. Вход
 
@@ -20,12 +19,15 @@ description: Сквозной рецепт Dinastia — новая сущнос�
 
 ```ts
 // apps/api/src/modules/assessments/schema.ts
-export const questionTags = tenantTable('question_tags', {
-  ...tenantColumns(),
-  courseId: fk('course_id', () => courses.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  color: text('color'),
-}, (t) => [uniqueIndex().on(t.schoolId, t.courseId, t.name)])
+export const questionTags = tenantTable(
+	'question_tags',
+	{
+		courseId: uuid('course_id').notNull(),
+		name: text('name').notNull(),
+		color: text('color'),
+	},
+	(t) => [tenantRef(t, t.courseId, courses, 'cascade'), uniqueIndex().on(t.schoolId, t.courseId, t.name)],
+)
 ```
 
 `pnpm db:generate --name question_tags && pnpm db:migrate`
