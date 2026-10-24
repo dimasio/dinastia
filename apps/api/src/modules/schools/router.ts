@@ -1,6 +1,7 @@
 import { appOrigin } from '#/kernel/config.ts'
 import { fail } from '#/kernel/errors.ts'
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { createSchool, listMySchools } from './service.ts'
 
@@ -38,7 +39,13 @@ export const schoolsRouter = {
 		.use(mw.school)
 		.use(mw.tenantTx)
 		.use(mw.member)
-		.handler(({ context }) => ({ user: context.user, member: context.member, school: context.school })),
+		.use(can('schools.access'))
+		.handler(({ context }) => ({
+			user: context.user,
+			member: context.member,
+			school: context.school,
+			permissions: rolePermissions(context.member.role),
+		})),
 }
 
 export const invitationsRouter = {
@@ -48,6 +55,7 @@ export const invitationsRouter = {
 		.use(mw.school)
 		.use(mw.tenantTx)
 		.use(mw.member)
+		.use(can('schools.members.manage'))
 		.handler(async ({ input, context }) => {
 			const inv = await inviteStaff(schoolCtx(context), input)
 			return { id: inv.invitationId, expiresAt: inv.expiresAt }

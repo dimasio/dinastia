@@ -117,7 +117,7 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | `ctx.school`                                                                                | `{ id, slug, settings }`                                                                              |
 | `ctx.user`                                                                                  | текущий пользователь                                                                                  |
 | `ctx.member`                                                                                | `{ id, role }` в этой школе                                                                           |
-| `ctx.can(perm, resource?)`                                                                  | проверка права                                                                                        |
+| `ctx.can(perm)` | есть ли у участника разрешение (скилл `permissions`) |
 | `ctx.emit(event)`                                                                           | доменное событие (отправляется после коммита)                                                         |
 | `ctx.jobs.send(name, data)`                                                                 | поставить фоновую задачу (в той же транзакции)                                                        |
 | `ctx.log`                                                                                   | pino-логгер с requestId, schoolId, userId                                                             |

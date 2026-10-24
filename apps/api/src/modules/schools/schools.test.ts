@@ -7,6 +7,8 @@ import { db, pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { AppError } from '#/kernel/errors.ts'
 import { memoryOutbox } from '#/kernel/mail.ts'
+import { hasPermission } from '#/kernel/permissions.ts'
+import { permissionMap } from '#/permissions.ts'
 import { createUser, uniqueSlug } from '#/test/users.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { createSchool, findActiveMember, listMySchools } from './service.ts'
@@ -44,9 +46,21 @@ function inSchool<T>(
 	fn: (ctx: SchoolCtx) => Promise<T>,
 	now = () => new Date(),
 ) {
-	return withTenant(s.school.id, (tx) => fn({ db: tx, school: s.school, user: who.user, member: who.member, now }), {
-		userId: who.user.id,
-	})
+	return withTenant(
+		s.school.id,
+		(tx) =>
+			fn({
+				db: tx,
+				school: s.school,
+				user: who.user,
+				member: who.member,
+				can: (p) => hasPermission(permissionMap, who.member.role, p),
+				now,
+			}),
+		{
+			userId: who.user.id,
+		},
+	)
 }
 
 describe('регистрация школы', () => {

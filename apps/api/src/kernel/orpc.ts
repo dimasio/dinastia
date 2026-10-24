@@ -79,9 +79,9 @@ export const mw = { host: hostMw, session: sessionMw, school: schoolMw, tenantTx
 
 /** SchoolCtx для сервисов из контекста цепочки `school`. */
 export function schoolCtx(
-	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member'] },
+	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member']; can: SchoolCtx['can'] },
 ): SchoolCtx {
-	return { db: c.db, school: c.school, user: c.user, member: c.member, now: c.now }
+	return { db: c.db, school: c.school, user: c.user, member: c.member, can: c.can, now: c.now }
 }
 
 /** AppError сервиса → ORPCError с тем же HTTP-классом и `data.code` (скилл data-access). */

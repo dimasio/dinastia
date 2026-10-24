@@ -5,7 +5,7 @@ description: API Dinastia на oRPC 1.16 — контракт в packages/contra
 
 # API: контракт и процедуры
 
-> Статус: сверено с кодом в фазе 0 (пункт 0.5); `can('perm')` — пункт 0.6. Образец — модуль `schools`
+> Статус: сверено с кодом в фазе 0 (пункты 0.5–0.6). Образец — модуль `schools`
 > (`packages/contracts/src/schools.ts`, `apps/api/src/modules/schools/router.ts`, тесты `apps/api/src/router.test.ts`).
 
 Контракт — источник правды (D-004): из него типы клиента, валидация входа/выхода, REST и OpenAPI.
@@ -44,6 +44,7 @@ export const invitationsContract = {
 ```ts
 // apps/api/src/modules/schools/router.ts (фрагмент)
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { can } from '#/permissions.ts'
 import { inviteStaff } from './invitations.service.ts'
 
 export const invitationsRouter = {
@@ -53,6 +54,7 @@ export const invitationsRouter = {
 		.use(mw.school)
 		.use(mw.tenantTx)
 		.use(mw.member)
+		.use(can('schools.members.manage'))
 		.handler(async ({ input, context }) => {
 			const inv = await inviteStaff(schoolCtx(context), input)
 			return { id: inv.invitationId, expiresAt: inv.expiresAt }
@@ -70,10 +72,11 @@ export const invitationsRouter = {
 | вход, без школы (корень: мои школы, регистрация школы) | `+ .use(mw.session)` | `user` |
 | школа хоста, без входа (страница приглашения, вход в школу) | `.use(mw.host).use(mw.school).use(mw.tenantTx)` | `school`, `db` |
 | вход + школа, без членства (принять приглашение) | `.use(mw.host).use(mw.session).use(mw.school).use(mw.tenantTx)` | `user`, `school`, `db` |
-| **участник школы — по умолчанию** | `… .use(mw.tenantTx).use(mw.member)` | + `member` → `schoolCtx(context)` |
+| **участник школы — по умолчанию** | `… .use(mw.tenantTx).use(mw.member).use(can('…'))` | + `member`, `can` → `schoolCtx(context)` |
 
 - `mw.tenantTx` открывает транзакцию школы на всю процедуру — `context.db` видит только её данные (RLS).
-- С пункта 0.6 после `mw.member` — `.use(can('<perm>'))`; процедура без него не проходит `check:registries`.
+- После `mw.member` — **обязательно** `.use(can('<perm>'))` (`import { can } from '#/permissions.ts'`, скилл
+  `permissions`); процедура без него валит тест-страж.
 - Handler — короткий: вызвать сервис (скилл `data-access`) и собрать ответ по схеме выхода. Проверки, правила,
   письма — в сервисе.
 - Публичная процедура (без `mw.session`) — только с согласия человека.

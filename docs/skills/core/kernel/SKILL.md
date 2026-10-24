@@ -21,7 +21,7 @@ description: Устройство и доработка ядра Dinastia (то�
 | Auth | `kernel/auth/{auth,schema}.ts`, `kernel/host.ts` | better-auth (пользователи, сессии, пароль, magic link, rate limit в БД, origin-check явно — D-040), согласия, резолв школы по хосту; школы, участники, приглашения — модуль `schools` (D-007) | `lms-school`, `security-baseline` |
 | Членство | `kernel/members/{schema,members}.ts` | таблица `members` (RLS + «свои членства» вне школы), `findActiveMember` — нужно контексту каждого запроса | `lms-school`, `permissions` |
 | oRPC | `kernel/orpc.ts`, `kernel/context.ts`, `src/router.ts`, `src/app.ts` | `impl` (implementer контракта + `errorsMw`), `mw.host/session/school/tenantTx/member`, `schoolCtx`, `toORPCError`; входы `/api/rpc`, `/api/v1`, `/api/openapi.json` | `api-endpoints` |
-| Права                   | `kernel/permissions.ts`                                                                                                                           | `definePermissions`, тип `Permission`, `can`, роли                                                                      | `permissions`                            |
+| Права | `kernel/permissions.ts`, `kernel/router-guard.ts`, реестр `src/permissions.ts` | `definePermissions`, `mergePermissions`, `createCan`, `hasPermission`, `permissionsOf`; страж «у процедуры участника есть can()» | `permissions` |
 | Модули                  | `kernel/module.ts`                                                                                                                                | `defineModule`, сборка роутера, подписчиков, задач, настроек                                                            | `module`                                 |
 | События                 | `kernel/events/*`                                                                                                                                 | `defineEvent`, `on`, outbox-таблица, диспетчер после коммита                                                            | `events-automations`                     |
 | Задачи                  | `kernel/jobs/*`                                                                                                                                   | pg-boss, `defineJob`, расписания, `scope: all-schools`, воркер                                                          | `background-jobs`                        |
@@ -40,7 +40,7 @@ description: Устройство и доработка ядра Dinastia (то�
    `tenantTable` пускает только текущую школу, тест `rls-coverage` проверяет каждую таблицу с `school_id`, FK —
    составные (D-038);
    глобальный клиент недоступен модулям (lint `no-restricted-imports`).
-2. Каждая процедура `school` требует `can()` — `check:registries` проверяет.
+2. Каждая процедура с `mw.member` объявляет `can(…)` — проверяет тест-страж (`kernel/router-guard.ts`).
 3. `toPublic` убирает все `secretKeys` — проверка на `defaults()` и на примерах из тестов.
    3a. Модель реляционная (D-032): `jsonb` только через `richText()`/`opaqueJson()`; поля схем реестров = колонки их таблиц.
 4. События доставляются только после коммита; подписчики и задачи — at-least-once.

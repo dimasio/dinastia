@@ -23,7 +23,7 @@ closed:
 | 0.3  | `packages/db` (`schools`, `tenantTable` + RLS, `tenantRef`, `richText`, `opaqueJson`; `pii` — фаза 1.11) и `kernel/db`: Drizzle, роли `app_owner`/`app_user`, `withTenant` | done |
 | 0.4  | `kernel/auth`: better-auth, регистрация школы, приглашения, rate limit входа, `consents`                                                                      | done |
 | 0.5  | `kernel/orpc`: `pub`/`authed`/`school`, ошибки, OpenAPI, клиент web                                                                                           | done |
-| 0.6  | `kernel/permissions`: `definePermissions`, `can()`, роли                                                                                                      | backlog |
+| 0.6  | `kernel/permissions`: `definePermissions`, `can()`, роли                                                                                                      | done |
 | 0.7  | web: области `admin`/`learn`/`_auth`, тема, i18n, oRPC + Query, guard по ролям                                                                                | backlog |
 | 0.8  | CI на GitHub Actions: check + e2e на compose                                                                                                                  | backlog |
 | 0.9  | Логи pino с контекстом, редактор ПДн, `/health/*`                                                                                                             | backlog |

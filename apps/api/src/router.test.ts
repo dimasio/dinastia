@@ -102,7 +102,16 @@ describe('приглашения через API', () => {
 		})
 		expect(await json(accept)).toMatchObject({ role: 'teacher' })
 		const me = await json(await call('GET', '/api/v1/school/me', { slug: school.slug, cookie: invitee.cookie }))
-		expect(me).toMatchObject({ member: { role: 'teacher' } })
+		expect(me).toMatchObject({ member: { role: 'teacher' }, permissions: ['schools.access', 'schools.members.read'] })
+
+		// учитель не может приглашать: сервер запрещает, даже если UI кнопку не спрятал
+		const denied = await call('POST', '/api/v1/school/invitations', {
+			slug: school.slug,
+			cookie: invitee.cookie,
+			body: { email: `t-${Date.now()}@test.local`, role: 'curator' },
+		})
+		expect(denied.status).toBe(403)
+		expect((await json(denied)).data).toMatchObject({ code: 'NO_PERMISSION', permission: 'schools.members.manage' })
 	})
 
 	it('бизнес-ошибка сервиса приходит кодом, а не 500', async () => {

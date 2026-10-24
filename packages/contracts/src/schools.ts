@@ -65,6 +65,8 @@ export const Me = z.object({
 	user: z.object({ id: Id, email: z.string(), name: z.string() }),
 	member: z.object({ id: Id, role: MemberRole }),
 	school: SchoolPublic,
+	/** Разрешения роли — чтобы UI прятал недоступное; запрещает всегда сервер (скилл permissions). */
+	permissions: z.array(z.string()),
 })
 export type Me = z.infer<typeof Me>
 

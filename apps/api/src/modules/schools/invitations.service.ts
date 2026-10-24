@@ -18,7 +18,7 @@ const hashToken = (token: string) => createHash('sha256').update(token).digest('
 /** Пригласить сотрудника или продлить действующее приглашение на тот же email. Роль admin выдаёт только владелец. */
 export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 	const { email, role } = StaffInviteSchema.parse(input)
-	if (!['owner', 'admin'].includes(ctx.member.role)) fail.forbidden('NO_PERMISSION')
+	if (!ctx.can('schools.members.manage')) fail.forbidden('NO_PERMISSION')
 	if (role === 'admin' && ctx.member.role !== 'owner') fail.forbidden('ONLY_OWNER_INVITES_ADMIN')
 
 	const [existing] = await ctx.db
