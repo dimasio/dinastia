@@ -6,6 +6,7 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import { db, pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { AppError } from '#/kernel/errors.ts'
+import { log } from '#/kernel/log.ts'
 import { memoryOutbox } from '#/kernel/mail.ts'
 import { hasPermission } from '#/kernel/permissions.ts'
 import { permissionMap } from '#/permissions.ts'
@@ -56,6 +57,7 @@ function inSchool<T>(
 				member: who.member,
 				can: (p) => hasPermission(permissionMap, who.member.role, p),
 				now,
+				log,
 			}),
 		{
 			userId: who.user.id,

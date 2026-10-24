@@ -75,6 +75,19 @@ describe('email + пароль', () => {
 	})
 })
 
+describe('лимит считается по клиенту, а не на всех', () => {
+	it('другой клиент не страдает; подделка левой части X-Forwarded-For лимит не обходит', async () => {
+		const attacker = freshIp()
+		const email = uniqueEmail('limit')
+		for (let i = 0; i < 5; i++) await post('/sign-in/email', { email, password: 'nope-nope' }, { ip: attacker })
+		// тот же клиент, но с «подставным» адресом слева — всё ещё лимит (доверяем только последнему звену)
+		const spoofed = await post('/sign-in/email', { email, password: 'nope-nope' }, { ip: `8.8.8.8, ${attacker}` })
+		expect(spoofed.status).toBe(429)
+		// другой клиент — свой лимит
+		expect((await post('/sign-in/email', { email, password: 'nope-nope' }, { ip: freshIp() })).status).toBe(401)
+	})
+})
+
 describe('magic link', () => {
 	it('письмо со ссылкой на домен школы; переход по ссылке создаёт пользователя и сессию', async () => {
 		const email = uniqueEmail('magic')

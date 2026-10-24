@@ -15,6 +15,7 @@ import { db, type Tx } from './db/client.ts'
 import { withTenant } from './db/tenant.ts'
 import { AppError } from './errors.ts'
 import { type HostTarget, resolveHost } from './host.ts'
+import type { Logger } from './log.ts'
 import { findActiveMember } from './members/members.ts'
 
 /** Контекст, который HTTP-слой передаёт в каждую процедуру. */
@@ -22,14 +23,22 @@ export interface RequestCtx {
 	headers: Headers
 	ip: string | null
 	now: () => Date
+	/** Логгер запроса: requestId, дальше цепочка добавляет userId, schoolId, memberId (скилл observability). */
+	log: Logger
+	requestId: string
+	/** Поля для итоговой строки лога запроса (schoolId, userId, memberId) — без ПДн. */
+	tags: Record<string, string>
 }
 
 /** Первым в каждой цепочке: бизнес-ошибки сервисов (AppError) и ошибки схем в сервисах — в ответ API, а не 500. */
-const errorsMw = os.$context<RequestCtx>().middleware(async ({ next }) => {
+const errorsMw = os.$context<RequestCtx>().middleware(async ({ context, next, path }) => {
 	try {
 		return await next()
 	} catch (error) {
-		throw toORPCError(error)
+		const mapped = toORPCError(error)
+		// Ожидаемые ошибки (бизнес, валидация, права) — не шум; всё остальное — ошибка сервера: в лог с requestId.
+		if (!(mapped instanceof ORPCError)) context.log.error({ err: error, procedure: path.join('.') }, 'procedure failed')
+		throw mapped
 	}
 })
 
@@ -47,7 +56,8 @@ const sessionMw = os.$context<RequestCtx>().middleware(async ({ context, next })
 	const session = await auth.api.getSession({ headers: context.headers })
 	if (!session) throw new ORPCError('UNAUTHORIZED', { message: 'UNAUTHENTICATED', data: { code: 'UNAUTHENTICATED' } })
 	const user: User = { id: session.user.id, email: session.user.email, name: session.user.name }
-	return next({ context: { user } })
+	context.tags.userId = user.id
+	return next({ context: { user, log: context.log.child({ userId: user.id }) } })
 })
 
 const schoolMw = os.$context<RequestCtx & { host: HostTarget }>().middleware(async ({ context, next }) => {
@@ -55,7 +65,8 @@ const schoolMw = os.$context<RequestCtx & { host: HostTarget }>().middleware(asy
 	const [row] = await db.select().from(schools).where(eq(schools.slug, context.host.slug)).limit(1)
 	if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
 	const school: School = { id: row.id, slug: row.slug, name: row.name }
-	return next({ context: { school } })
+	context.tags.schoolId = school.id
+	return next({ context: { school, log: context.log.child({ schoolId: school.id }) } })
 })
 
 /** Транзакция школы на всё время процедуры: ctx.db видит только её данные (RLS). */
@@ -70,7 +81,8 @@ const memberMw = os
 	.middleware(async ({ context, next }) => {
 		const member = await findActiveMember(context.db, context.user.id)
 		if (!member) throw new ORPCError('FORBIDDEN', { message: 'NOT_A_MEMBER', data: { code: 'NOT_A_MEMBER' } })
-		return next({ context: { member } })
+		context.tags.memberId = member.id
+		return next({ context: { member, log: context.log.child({ memberId: member.id, role: member.role }) } })
 	})
 
 const notFound = (code: string) => new ORPCError('NOT_FOUND', { message: code, data: { code } })
@@ -81,7 +93,7 @@ export const mw = { host: hostMw, session: sessionMw, school: schoolMw, tenantTx
 export function schoolCtx(
 	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member']; can: SchoolCtx['can'] },
 ): SchoolCtx {
-	return { db: c.db, school: c.school, user: c.user, member: c.member, can: c.can, now: c.now }
+	return { db: c.db, school: c.school, user: c.user, member: c.member, can: c.can, now: c.now, log: c.log }
 }
 
 /** AppError сервиса → ORPCError с тем же HTTP-классом и `data.code` (скилл data-access). */

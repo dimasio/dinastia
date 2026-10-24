@@ -5,22 +5,32 @@ description: Наблюдаемость Dinastia — структурные ло
 
 # Наблюдаемость
 
-> Статус: целевой — логи — фаза 0; ошибки, метрики, алерты — фаза 5.
+> Статус: логи, requestId, health — сверено с кодом в фазе 0 (пункт 0.9); ошибки (GlitchTip), метрики, алерты — фаза 5.
 
 ## Логи
 
 ```ts
-ctx.log.info({ courseId, lessons: n }, 'course published')
+ctx.log.info({ courseId, lessons: n }, 'course published')       // в сервисе — из SchoolCtx
 ctx.log.warn({ attemptId }, 'attempt expired on submit')
 ctx.log.error({ err, provider: 'kinescope' }, 'video status failed')
 ```
 
+Как устроено (`apps/api/src/kernel/log.ts`, `apps/api/src/app.ts`):
+- pino; в dev — pino-pretty, в проде — JSON; в тестах — `silent` (кроме `createLogger(stream)`).
+- Каждый запрос получает `requestId` (свой или из `x-request-id` прокси, если похож на id) и отвечает тем же
+  заголовком `x-request-id` — по нему запрос ищется в логах (скилл `debugging`).
+- Цепочка процедуры добавляет к логгеру `userId`, `schoolId`, `memberId`, `role`; итоговая строка запроса
+  (`msg: "request"`: метод, путь, статус, `ms`) содержит их же. 5xx — `error`, 4xx — `warn`.
+- Неожиданное исключение в процедуре (не бизнес-ошибка, не валидация, не права) — `error` с `procedure` и стеком
+  (`errorsMw` в `kernel/orpc.ts`); клиент получает 500 без подробностей.
+- **Маскирование** (`REDACT_PATHS`): ключи `password`, `token`, `secret`, `email`, `phone`, `name`, `cookie`,
+  `authorization`, `set-cookie`, `ip` на глубине до 2 → `[скрыто]`. Тест — `kernel/log.test.ts`. Не полагайся на него:
+  не клади ПДн в поля лога вообще; идентификаторы (`userId`, `schoolId`) — можно.
+
+Правила:
 - Структура: объект полей + короткое сообщение на английском (строки логов — не UI).
-- Контекст (`requestId`, `schoolId`, `memberId`, `route`/`job`) добавляет ядро.
 - Уровни: `error` — нужна реакция человека; `warn` — неожиданно, но обработано; `info` — значимые бизнес-факты;
-  `debug` — только локально.
-- **Нельзя**: ПДн (email, имя, телефон, ответы), токены, пароли, тела запросов целиком (скилл `personal-data`;
-  редактор pino маскирует известные поля, но не полагайся на него).
+  `debug` — только локально (`LOG_LEVEL=debug`).
 - Не логируй в цикле по записям — агрегируй.
 
 ## Ошибки
@@ -40,7 +50,10 @@ ctx.log.error({ err, provider: 'kinescope' }, 'video status failed')
 
 ## Health
 
-- `/health/live` — процесс жив; `/health/ready` — БД, S3, очередь доступны. Используются оркестратором.
+- `/health/live` — процесс жив (без зависимостей).
+- `/health/ready` — зависимости: сейчас `db`; S3 — с пункта 1.7. 503 + `{ status: 'fail', checks: { db: 'fail' } }`, если
+  хоть одна недоступна. Новая зависимость — проверка в `readiness()` (`apps/api/src/app.ts`) + тест.
+- Запросы к `/health/*` не пишутся в лог запросов (шум от оркестратора).
 
 ## Алерты (фаза 5)
 

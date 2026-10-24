@@ -17,6 +17,7 @@ const Env = z.object({
 	APP_PUBLIC_PORT: z.string().default(''),
 
 	AUTH_SECRET: z.string().min(32),
+	TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 
 	MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('smtp'),
 	SMTP_HOST: z.string().default('localhost'),

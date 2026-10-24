@@ -49,4 +49,5 @@ status: current
 | D-039 | Внутренние импорты приложения — Node subpath imports `#/…` (`package.json → imports`), а не `@/…` | стандарт Node: работает без сборки в tsx, Node 24, TypeScript 7 (nodenext), vitest и Vite без отдельных алиасов |
 | D-040 | Проверка origin/CSRF better-auth включена явно (`disableOriginCheck: false`) и покрыта тестами | при `NODE_ENV=test` better-auth молча отключает проверку — тесты проходили бы без защиты, а случайный `NODE_ENV=test` в проде снял бы её |
 | D-041 | Локальный домен — `dinastia.localhost` (школы — `<slug>.dinastia.localhost`), сессия — cookie на `.APP_DOMAIN` | браузеры не принимают cookie на `localhost`; `*.localhost` резолвится в 127.0.0.1 без настроек; один вход на корне и в школах |
+| D-042 | IP клиента вычисляет ядро: адрес сокета или `X-Forwarded-For` на `TRUST_PROXY_HOPS` доверенных звеньев с конца; better-auth получает его в служебном заголовке, входящее значение которого всегда перезаписывается | без этого better-auth считал лимит входа одним счётчиком на всех (5 ошибок — вход закрыт всем), а доверие к сырому `X-Forwarded-For` позволило бы обойти лимит подделкой |
 

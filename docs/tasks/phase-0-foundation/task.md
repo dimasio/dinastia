@@ -26,7 +26,7 @@ closed:
 | 0.6  | `kernel/permissions`: `definePermissions`, `can()`, роли                                                                                                      | done |
 | 0.7  | web: области `admin`/`learn`/`_auth`, тема, i18n, oRPC + Query, guard по ролям                                                                                | done |
 | 0.8  | CI на GitHub Actions: check + e2e на compose                                                                                                                  | done |
-| 0.9  | Логи pino с контекстом, редактор ПДн, `/health/*`                                                                                                             | backlog |
+| 0.9  | Логи pino с контекстом, редактор ПДн, `/health/*`                                                                                                             | done |
 | 0.10 | Сверка скиллов фазы с кодом                                                                                                                                   | backlog |
 
 ## Решения
@@ -39,3 +39,4 @@ closed:
 | 2026-10-24 | Составные FK между тенантными таблицами, `tenantTable` сам добавляет колонки (D-038); импорты `#/` (D-039) |
 | 2026-10-24 | better-auth только для пользователей/сессий/входа; школы, участники, приглашения — свои таблицы с RLS (уточнение D-007) |
 | 2026-10-24 | Origin-check better-auth явно включён (D-040); локальный домен `dinastia.localhost` (D-041) |
+| 2026-10-24 | Доверенный IP клиента для rate limit и логов (D-042) |

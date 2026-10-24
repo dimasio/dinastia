@@ -29,6 +29,8 @@ export const auth = betterAuth({
 		useSecureCookies: config.APP_PROTOCOL === 'https',
 		// Явно: иначе better-auth молча отключает проверку origin/CSRF при NODE_ENV=test, и тесты ничего не проверяют.
 		disableOriginCheck: false,
+		// IP для rate limit — только вычисленный ядром (app.ts, TRUST_PROXY_HOPS), не сырой X-Forwarded-For клиента.
+		ipAddress: { ipAddressHeaders: ['x-dinastia-client-ip'] },
 	},
 	user: {
 		additionalFields: { platformRole: { type: 'string', required: false, input: false } },

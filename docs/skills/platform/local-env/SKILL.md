@@ -101,6 +101,7 @@ curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' '
 | magic link не приходит | Mailpit http://localhost:8025 |
 | `node: command not found` / не та версия | `nvm use` |
 | схема разошлась после смены ветки | `pnpm db:reset && pnpm db:seed` |
+| все получают 429 на входе после 5 ошибок у одного | `TRUST_PROXY_HOPS` в `.env` не совпадает со схемой (через Vite — 1, напрямую к :3000 — 0) |
 | вход отвечает 403 `Invalid origin` | запрос не с `*.dinastia.localhost` (или без заголовка `Origin` у curl) |
 
 ## Остановись и спроси, если
