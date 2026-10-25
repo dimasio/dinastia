@@ -54,9 +54,11 @@ jobs:
       - name: Генераторы выдают рабочий код
         run: |
           pnpm gen:module ci-probe --title "Проверка генератора"
+          pnpm gen:resource schools ci-probe --row StaffMember --api members --perm schools.members.read
           pnpm typecheck
           pnpm lint
           pnpm --filter @dinastia/api test
+          pnpm --filter @dinastia/web test
 
       - name: Артефакты упавших e2e
         if: failure()

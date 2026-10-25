@@ -22,7 +22,7 @@ closed:
 | # | Пункт | Статус |
 |---|---|---|
 | 1.1 | `defineModule`, реестр модулей, меню из фич (`nav.ts`), `pnpm gen:module`, lint-запрет глобального клиента БД в модулях | done |
-| 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `paginate`/`applyFilters`, `pnpm gen:resource`; экран «Сотрудники школы» | active |
+| 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `listQuery`/`toPage`, `pnpm gen:resource`; экран «Сотрудники школы» | done |
 | 1.3 | `@dinastia/db` `blockTable`; реестр блоков, публикация строками, `pnpm gen:block`; демо-блок `callout` | backlog |
 | 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | backlog |
 | 1.5 | `check:registries` | backlog |
@@ -38,3 +38,5 @@ closed:
 
 | Дата | Решение |
 |---|---|
+| 2026-10-25 | D-043: ресурс-фреймворк на TanStack Table 9, состояние списка в адресе, `ResourceProvider` |
+| 2026-10-25 | D-044: `AUTH_SIGN_IN_LIMIT` вне production — e2e-набор упирался в лимит входов |

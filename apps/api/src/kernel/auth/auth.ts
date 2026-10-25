@@ -55,7 +55,7 @@ export const auth = betterAuth({
 		window: 60,
 		max: 100,
 		customRules: {
-			'/sign-in/email': { window: 60, max: 5 },
+			'/sign-in/email': { window: 60, max: config.NODE_ENV === 'production' ? 5 : config.AUTH_SIGN_IN_LIMIT },
 			'/sign-up/email': { window: 60, max: 5 },
 			'/sign-in/magic-link': { window: 60, max: 3 },
 		},

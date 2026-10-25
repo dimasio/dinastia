@@ -18,7 +18,7 @@ description: Устройство и доработка ядра Dinastia (то�
 | Часть | Где | Что | Состояние | Скилл |
 |---|---|---|---|---|
 | хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `appUser` | есть; `blockTable`, `settingsTable` — 1.3/1.6, `pii` — 1.11 | `db-schema` |
-| БД | `kernel/db/{client,tenant,admin,cli,rls-coverage}.ts` | пул `app_user`, `withTenant`, `withUser`, миграции/reset под `app_owner`, проверка покрытия RLS | есть; `paginate`, `applyFilters`, `forEachSchool` — 1.2/1.6 | `data-access` |
+| БД | `kernel/db/{client,tenant,admin,cli,rls-coverage,listing}.ts` | пул `app_user`, `withTenant`, `withUser`, миграции/reset под `app_owner`, проверка покрытия RLS, списки `listQuery`/`toPage` | есть; `forEachSchool` — 1.6 | `data-access` |
 | конфиг | `kernel/config.ts` | zod-схема env, `.env` локально, `appOrigin()` | есть | `settings` |
 | ошибки | `kernel/errors.ts` | `AppError`, `fail.*` | есть | `data-access` |
 | auth | `kernel/auth/{auth,schema}.ts`, `kernel/host.ts`, `kernel/client-ip.ts` | better-auth (пароль, magic link, rate limit в БД, origin-check явно — D-040, IP — D-042), согласия, школа по хосту | есть | `lms-school`, `security-baseline` |
@@ -33,9 +33,9 @@ description: Устройство и доработка ядра Dinastia (то�
 | журнал, http, вебхуки | `kernel/{audit,http,webhooks}.ts` | `ctx.audit`, `ctx.http`, `defineWebhookHandler` | фаза 1.11 | `security-baseline`, `integrations` |
 | документы | `kernel/documents/*` | `defineDocument`, `defineExport` | фаза 4 | `documents` |
 | тест-хелперы | `test/{users,http,global-setup}.ts` | `createUser`, `uniqueEmail/Slug`, `call`, `signUp`, чистая `dinastia_test` | есть; `withTestSchool`, `callAs`, `expectPermissionMatrix` — 1.9 | `testing` |
-| UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState` | есть; ресурс-фреймворк — 1.2 | `ui-kit`, `admin-resource` |
+| UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState`; ресурс-фреймворк `@dinastia/ui/resource` (`defineResource`, `ResourcePage`, `ResourceTable`, `ResourceForm`, `ResourceProvider`) | есть | `ui-kit`, `admin-resource` |
 | реестры блоков/вопросов | `packages/{blocks,questions}` | `defineBlock`, `defineQuestion`, хосты | фаза 1.3–1.4 | `lesson-blocks`, `question-types` |
-| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module` | есть; `gen:resource/block/question`, `check:registries` — 1.2–1.5 | `skill-authoring`, `module` |
+| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module,resource}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module`, `pnpm gen:resource` (маркеры `gen:<вид>:<место>`, разделы JSON — `jsonSection`) | есть; `gen:block/question`, `check:registries` — 1.3–1.5 | `skill-authoring`, `module`, `admin-resource` |
 
 ## Инварианты (ломать нельзя)
 

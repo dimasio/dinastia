@@ -1,12 +1,12 @@
 ---
 name: data-access
-description: Код доступа к данным и бизнес-логика в Dinastia — сервисные функции service.ts от контекста (ctx.db — транзакция с тенантом, ctx.user, ctx.member, ctx.emit, ctx.jobs), выборки Drizzle (select, relational query, join), пагинация paginate и фильтры applyFilters, создание/обновление/удаление, транзакции и блокировки, вызов сервиса другого модуля, N+1, ошибки fail.*, что нельзя (глобальный db, school_id руками). Использовать для «напиши логику», «выборка», «посчитай», «обнови статус», «сервис», «запрос к БД».
+description: Код доступа к данным и бизнес-логика в Dinastia — сервисные функции service.ts от контекста (ctx.db — транзакция с тенантом, ctx.user, ctx.member, ctx.emit, ctx.jobs), выборки Drizzle (select, relational query, join), списки listQuery/toPage (пагинация, поиск, сортировка, фильтры), создание/обновление/удаление, транзакции и блокировки, вызов сервиса другого модуля, N+1, ошибки fail.*, что нельзя (глобальный db, school_id руками). Использовать для «напиши логику», «выборка», «посчитай», «обнови статус», «сервис», «запрос к БД».
 ---
 
 # Доступ к данным
 
-> Статус: сверено с кодом в фазе 0 (0.3–0.6); `paginate`/`applyFilters` — 1.2, `ctx.emit`/`ctx.jobs` — 1.6, lint-запрет
-> глобального клиента — 1.1.
+> Статус: сверено с кодом в фазе 0 (0.3–0.6) и 1 (1.1: lint-запрет глобального клиента; 1.2: `listQuery`/`toPage`);
+> `ctx.emit`/`ctx.jobs` — 1.6.
 
 Контекст запроса — `docs/specs/architecture.md` §4.
 
@@ -47,7 +47,7 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 `emit`, `jobs`. В процедуре его собирает `schoolCtx(context)` (скилл `api-endpoints`); в интеграционном тесте — вручную
 внутри `withTenant` (образец — `inSchool` в `apps/api/src/modules/schools/schools.test.ts`).
 
-Списки с пагинацией, поиском и фильтрами — `paginate()` (пункт 1.2): до него — `select … limit/offset` руками.
+Списки с пагинацией, поиском и фильтрами — `listQuery()` + `toPage()` (`#/kernel/db/listing.ts`), раздел ниже.
 
 ## Правила
 
@@ -74,9 +74,30 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 
 ## Пагинация и фильтры
 
-Вход списков — `PageInput` из `@dinastia/contracts/common`: `{ page, pageSize ≤ 100, sort?, search?, filters? }`;
-выход — `Page<T>`: `{ items, total, page, pageSize }`. `paginate()` применяет поиск (`ilike` по колонкам `search`),
-разрешённые сортировки (неизвестная — 400), фильтры ресурса (`applyFilters`, скилл `admin-resource`).
+Вход списка — `pageInput({ sorts, defaultSort, filters })` из `@dinastia/contracts/common`: `{ page, pageSize ≤ 100,
+q?, sort, dir, filters }`; допустимые сортировки и фильтры — часть схемы, чужое отсекает контракт (400). Выход —
+`page(Item)` → `{ items, total, page, pageSize }`. Сервис превращает вход в условия `listQuery()` и собирает ответ
+`toPage()` (образец — `listStaff` в `apps/api/src/modules/schools/members.service.ts`):
+
+```ts
+export async function listStaff(ctx: SchoolCtx, input: StaffListQuery) {
+	const q = listQuery(input, {
+		search: [users.name, users.email], // ILIKE, % и _ экранируются
+		sort: { name: users.name, role: members.role, joinedAt: members.joinedAt }, // каждая сортировка контракта
+		tiebreak: members.id, // второй ключ — порядок стабилен между страницами
+		filters: { role: members.role, status: members.status }, // равенство
+	})
+	const where = and(ne(members.role, 'student'), q.where) as SQL
+	const [items, [total]] = await Promise.all([
+		ctx.db.select(columns).from(members).innerJoin(users, eq(users.id, members.userId))
+			.where(where).orderBy(...q.orderBy).limit(q.limit).offset(q.offset),
+		ctx.db.select({ n: count() }).from(members).innerJoin(users, eq(users.id, members.userId)).where(where),
+	])
+	return toPage(items, total?.n ?? 0, input)
+}
+```
+
+Экран к такому списку — ресурс (скилл `admin-resource`).
 
 ## Готово, когда
 

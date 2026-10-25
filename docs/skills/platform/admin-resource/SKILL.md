@@ -1,104 +1,147 @@
 ---
 name: admin-resource
-description: Ресурс-фреймворк Dinastia (low-code экраны) — defineResource в apps/web/src/features/<m>/resources/*.ts описывает реестр (ResourceTable — колонки, сортировка, поиск, фильтры, пагинация, выбор строк, массовые действия) и форму (ResourceForm — поля из zod-схемы контракта, виджеты, раскладка, условная видимость, зависимые поля) с действиями и правами; страница ResourcePage, серверная сторона paginate/applyFilters; генератор pnpm gen:resource. Использовать для «экран со списком», «реестр», «таблица», «форма редактирования», «фильтр», «колонка», «справочник» — аналог форм и настроек таблиц GaskarFM.
+description: Ресурс-фреймворк Dinastia (low-code экраны) — defineResource в apps/web/src/features/<m>/resources/*.ts описывает экран-реестр (ResourceTable на TanStack Table 9 — колонки, серверные сортировка, поиск, фильтры, страницы; меню действий строки) и формы (ResourceForm — поля из zod-схемы контракта, переопределения, layout, visibleIf) с действиями и правами; ResourcePage с состоянием в адресе (resourceSearch), ResourceProvider в лэйауте, строки <ns>:<key>.*, реестр features/resources.ts и тест строк; серверная сторона pageInput/listQuery/toPage; генератор pnpm gen:resource. Использовать для «экран со списком», «реестр», «таблица», «форма редактирования», «фильтр», «колонка», «справочник» — аналог форм и настроек таблиц GaskarFM.
 ---
 
 # Админ-ресурс
 
-> Статус: целевой — сверить с кодом в фазе 1 (пункт 1.2).
+> Статус: сверено с кодом в фазе 1 (пункт 1.2). Образец — «Сотрудники школы»
+> (`apps/web/src/features/schools/resources/staff.ts`, `/admin/staff`).
 
-Ресурс — описание CRUD-экрана сущности. Из него строятся таблица, фильтры, форма создания/редактирования и действия.
-Для **продуктовых** экранов (конструктор урока, плеер, проверка ДЗ) ресурс не нужен — скилл `web-screens`.
+Ресурс — описание CRUD-экрана сущности. Из него строятся таблица, поиск, фильтры, страницы, форма создания и действия
+над строками. Для **продуктовых** экранов (конструктор урока, плеер, проверка ДЗ) ресурс не нужен — скилл `web-screens`.
 
 ## Описание
 
 ```ts
-// apps/web/src/features/courses/resources/courses.ts
-import { defineResource, col, filter, action } from '@dinastia/ui/resource'
-import { Course, CourseCreate, CourseUpdate, COURSE_STATUSES } from '@dinastia/contracts/courses'
-import { orpc } from '#/app/orpc'
+// apps/web/src/features/schools/resources/staff.ts
+import { MEMBER_STATUSES, STAFF_ROLES, StaffInvite, StaffInviteRole, StaffMember } from '@dinastia/contracts/schools'
+import { action, defineResource } from '@dinastia/ui/resource'
+import { z } from 'zod'
+import { client } from '#/app/orpc.ts'
 
-export const coursesResource = defineResource({
-	key: 'courses',
-	i18n: 'courses', // namespace: заголовки колонок/полей = courses:fields.<поле>
-	row: Course,
-	api: {
-		list: orpc.courses.list,
-		get: orpc.courses.get,
-		create: orpc.courses.create,
-		update: orpc.courses.update,
-	},
-	perms: { read: 'courses.read', write: 'courses.manage' },
-
+export const staffResource = defineResource({
+	key: 'staff', // ключ кэша, data-testid, раздел строк schools:staff.*
+	ns: 'schools', // namespace строк = модуль
+	row: StaffMember, // zod-схема строки из контракта → тип строки
+	list: client.members.list, // процедура списка: её вход задаёт допустимые sort и filters
+	perms: { read: 'schools.members.read', write: 'schools.members.manage' },
 	columns: [
-		col('title', { link: (r) => `/admin/courses/${r.id}`, sortable: true }),
-		col('status', { render: 'badge', options: COURSE_STATUSES }),
-		col('createdAt', { render: 'date', sortable: true }),
+		{ field: 'name', sort: 'name' }, // sort — ключ из sorts контракта; без него колонка не сортируется
+		{ field: 'email' },
+		{ field: 'role', sort: 'role', render: 'badge', labels: 'common:roles' },
+		{ field: 'status', render: 'badge', tone: (v) => (v === 'blocked' ? 'destructive' : 'outline') },
+		{ field: 'joinedAt', sort: 'joinedAt', render: 'date' },
 	],
-	search: true, // строка поиска → input.search
-	filters: [filter('status', { type: 'select', options: COURSE_STATUSES })],
-	defaultSort: { createdAt: 'desc' },
-
-	form: {
-		create: CourseCreate,
-		update: CourseUpdate,
-		fields: {
-			description: { widget: 'richtext' },
-			coverFileId: { widget: 'image', purpose: 'course-cover' },
-		},
-		layout: [['title'], ['description'], ['coverFileId']],
-		mode: 'sheet', // sheet | dialog | page
+	search: true, // строка поиска → input.q
+	filters: [
+		{ field: 'role', options: STAFF_ROLES, labels: 'common:roles' }, // field — ключ filters контракта
+		{ field: 'status', options: MEMBER_STATUSES },
+	],
+	create: {
+		schema: StaffInvite, // та же схема, что вход процедуры
+		fields: { role: { labels: 'common:roles' } },
+		initial: { role: 'teacher' },
+		submit: (values) => client.invitations.create(values),
 	},
-
 	actions: [
-		action('publish', {
-			perm: 'courses.publish',
-			visible: (r) => r.status === 'draft',
-			confirm: true,
-			run: (r) => orpc.courses.publish.call({ id: r.id }),
+		action({
+			key: 'changeRole',
+			visible: (row, viewer) => row.role !== 'owner' && row.id !== viewer.memberId,
+			form: {
+				schema: z.object({ role: StaffInviteRole }),
+				fields: { role: { labels: 'common:roles' } },
+				initial: (row) => (row.role === 'owner' || row.role === 'student' ? {} : { role: row.role }),
+			},
+			run: (row, values) => client.members.changeRole({ id: row.id, role: values.role }),
 		}),
+		{
+			key: 'block',
+			variant: 'destructive',
+			confirm: true,
+			visible: (row) => row.status === 'active',
+			run: (row) => client.members.setStatus({ id: row.id, status: 'blocked' }),
+		},
 	],
 })
 ```
 
-Маршрут:
+Типы проверяют описание по контракту: `sort` — только из `sorts` процедуры, `filters[].field` — только из её
+`filters`, `columns[].field` — только поля строки. Действие с формой — через `action()` (значения `run` типизированы
+схемой формы); без формы — обычный объект.
+
+Маршрут (создаёт генератор):
 
 ```tsx
-// apps/web/src/routes/admin/courses/index.tsx
-export const Route = createFileRoute('/admin/courses/')({
-	beforeLoad: requirePerm('courses.read'),
-	component: () => <ResourcePage resource={coursesResource} />,
+// apps/web/src/routes/admin/staff/index.tsx
+export const Route = createFileRoute('/admin/staff/')({
+	validateSearch: resourceSearch, // page, q, sort, dir, filters — в адресе; битое отбрасывается
+	beforeLoad: requirePerm(staffResource.perms.read),
+	component: () => {
+		const search = Route.useSearch()
+		const navigate = Route.useNavigate()
+		return <ResourcePage resource={staffResource} search={search} onSearch={(s) => navigate({ search: s, replace: true })} />
+	},
 })
 ```
+
+`ResourcePage` берёт права зрителя и текст ошибок из `ResourceProvider` — он уже стоит в `routes/admin/route.tsx`.
 
 ## Справочник
 
-| Часть                          | Варианты                                                                                                                                                                                              |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `col.render`                   | `text` (по умолчанию), `badge`, `date`, `datetime`, `number`, `money`, `bool`, `avatar`, `user`, `progress`, `custom` (функция-компонент)                                                             |
-| `filter.type`                  | `select`, `multiselect`, `date-range`, `bool`, `ref` (выбор записи другого ресурса: `ref: 'groups'`)                                                                                                  |
-| `form.fields.<поле>.widget`    | по типу zod автоматически: string→`input`, enum→`select`, boolean→`switch`, number→`number`, date→`date`; явно: `textarea`, `richtext`, `image`, `file`, `ref`, `multiref`, `color`, `slug`, `custom` |
-| `form.fields.<поле>.visibleIf` | `(values) => boolean` — аналог `visibleIf` GaskarFM                                                                                                                                                   |
-| `form.fields.<поле>.dependsOn` | список полей; при изменении — пересчёт опций (`options: (values) => …`)                                                                                                                               |
-| `action`                       | на строке, в массовых (`bulk: true`), в шапке (`scope: 'page'`); `run` → после успеха список инвалидируется                                                                                           |
+Типы — `packages/ui/src/resource/types.ts`; используй только существующие опции.
 
-Полный список опций — типы `ResourceDef` в `packages/ui/src/resource/types.ts`; используй только существующие.
-Не хватает опции — запрос к ядру, не самописная таблица рядом.
+| Часть | Варианты |
+| ----- | -------- |
+| `columns[].render` | `text` (по умолчанию), `badge` (+ `tone(value)` → `default`/`secondary`/`destructive`/`outline`), `date`, `datetime`, `number`, `bool`, функция `(row) => ReactNode` |
+| `columns[].labels`, `filters[].labels`, `fields.<поле>.labels` | префикс подписей значений (`common:roles`); по умолчанию `<ns>:<key>.values.<поле>.<значение>`, нет строки — само значение |
+| `filters[]` | `{ field, options }` — выбор одного значения (select «все / …») |
+| `create` | `schema`, `fields`, `layout`, `initial`, `submit(values)`, `perm` (по умолчанию `perms.write`), `mode: 'sheet' \| 'dialog'` |
+| виджет поля (`fields.<поле>.widget`) | по типу zod: string→`input`, email (в т.ч. `pipe(z.email())`)→`email`, enum→`select`, boolean→`switch`, number→`number`; явно: `textarea`, `select` с `options` |
+| `fields.<поле>` | `hint: true` (строка `hints.<поле>`), `visibleIf: (values) => boolean` — поле должно быть необязательным в схеме (скрытое не отправляется) |
+| `layout` | строки полей: `[['firstName', 'lastName'], ['email']]` |
+| `actions[]` | `key`, `perm` (по умолчанию `perms.write`), `visible(row, viewer)`, `variant: 'destructive'`, `confirm: true` (подтверждение) или `form` (диалог с формой, `initial(row)`), `run(row, values)`; после успеха — тост и перезагрузка списка |
+
+Права: кнопка «создать» и действия скрыты без права (`viewer.permissions` из `schools.me`), запрещает сервер.
+После изменений вне ресурса список обновляют `queryClient.invalidateQueries({ queryKey: resourceKey('<key>') })`.
+
+Не хватает опции (выбор строк и массовые действия, виджеты `richtext`/`image`/`ref`, фильтр по дате) — запрос к ядру
+`docs/tasks/requests/`, не самописная таблица рядом.
+
+## Строки
+
+Раздел `<ns>:<key>` в `packages/i18n/locales/ru/<ns>.json`:
+
+| Ключ | Где |
+| ---- | --- |
+| `title`, `description` | заголовок экрана |
+| `fields.<поле>` | колонки, фильтры, поля форм |
+| `values.<поле>.<значение>` | бейджи и варианты select без `labels` |
+| `search` (необязательно) | подсказка в поиске |
+| `empty.title`, `empty.description` | пустой список без фильтров |
+| `create.button`, `create.title`, `create.description` (необяз.), `create.submit`, `create.success` | форма создания |
+| `actions.<key>.label`, `.title`, `.description` (необяз.), `.submit`, `.success` | действия; в строки подставляются поля строки (`{{name}}`) |
+
+Общие (`common:resource.*`): поиск, «все», страницы, «ничего не нашлось». Ошибки API — `errors:<CODE>`.
+Полноту строк проверяет `apps/web/src/features/resources.test.ts` по реестру `features/resources.ts` (`resourceKeys()`).
 
 ## Сервер
 
-Фильтры приходят как `input.filters: { status: 'draft' }`; сервис передаёт их в `paginate()` с разрешённым списком
-`filters: { status: courses.status }` (скилл `data-access`). Фильтр, которого нет в сервисе, — 400.
+Вход списка — `pageInput({ sorts, defaultSort, filters })` в контракте (`@dinastia/contracts/common`), выход —
+`page(Row)`; сервис — `listQuery()` + `toPage()` (скилл `data-access`). Сортировка или фильтр не из контракта — 400.
 
 ## Шаги
 
-1. Контракт сущности есть (`list`, `get`, `create`, `update`) — скилл `api-endpoints`.
-2. `pnpm gen:resource <module> <entity>` — заготовка ресурса, маршрут, строки i18n.
-3. Колонки, фильтры, поля, действия; строки — в `packages/i18n/locales/ru/<module>.json`.
+1. Контракт сущности: схема строки, `list` на `pageInput`, процедуры действий — скилл `api-endpoints`.
+2. `pnpm gen:resource <модуль> <ресурс> --row <СхемаСтроки> [--api <namespace>] [--perm <право>] [--title "…"]` —
+   ресурс с колонками из схемы, маршрут `/admin/<ресурс>`, раздел строк, запись в `features/resources.ts`
+   (`--dry-run` — показать изменения). `--api` — namespace процедур в контракте (по умолчанию camelCase ресурса),
+   `--perm` — право чтения (по умолчанию `<модуль>.access`).
+3. Сортировки, поиск, фильтры, форма, действия; подписи в `<модуль>.json` (генератор кладёт имена полей).
 4. Пункт меню в `features/<m>/nav.ts` (скилл `web-screens`).
-5. `pnpm check`; e2e: открыть список, создать, отфильтровать (скилл `testing`).
+5. `pnpm check`; e2e: открыть список, найти, отфильтровать, создать, действие (образец — `tests/e2e/staff.spec.ts`).
 
 ## Остановись и спроси, если
 
-- нужен виджет или тип колонки, которого нет в `types.ts`;
-- экран не укладывается в «список + форма» — это продуктовый экран (`web-screens`).
+- нужен виджет, тип колонки или фильтр, которого нет в `types.ts`;
+- экран не укладывается в «список + форма + действия» — это продуктовый экран (`web-screens`).

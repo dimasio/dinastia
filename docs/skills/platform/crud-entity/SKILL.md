@@ -52,7 +52,7 @@ questionTags: {
 
 ## 3. Сервис — `data-access`
 
-`apps/api/src/modules/assessments/tags.service.ts`: `list` (через `paginate`, `where courseId`), `get`
+`apps/api/src/modules/assessments/tags.service.ts`: `list` (через `listQuery`/`toPage`, `where courseId`), `get`
 (`getOrFail`), `create` (проверка, что курс существует — `getCourse` из `courses/service`; дубль имени →
 `fail.conflict('TAG_EXISTS')`), `update`, `remove`.
 
@@ -63,12 +63,14 @@ questionTags: {
 
 ## 5. Ресурс и экран — `admin-resource`, `web-screens`
 
-`pnpm gen:resource assessments question-tags` → колонки (`name`, `color` с `render: 'custom'`), форма (`color` —
-`widget: 'color'`), маршрут `routes/admin/courses/$courseId/tags.tsx` (вкладка курса), пункт навигации или вкладка.
+`pnpm gen:resource assessments question-tags --row QuestionTag --api questionTags --perm assessments.bank.read` →
+ресурс с колонками из схемы, маршрут `/admin/question-tags`, строки `assessments:question-tags.*`, запись в реестре
+ресурсов. Дальше руками: `color` — `render` функцией, форма создания (`create`), действия; вкладка курса вместо
+отдельного маршрута — экран `web-screens` с `ResourcePage` внутри.
 
 ## 6. Строки — `i18n`
 
-`packages/i18n/locales/ru/assessments.json`: `tags.title`, `fields.name`, `fields.color`, `errors.json`:
+`packages/i18n/locales/ru/assessments.json`: `question-tags.title`, `question-tags.fields.name`, `…fields.color`, `errors.json`:
 `TAG_EXISTS`. Термины — `docs/specs/glossary.md`.
 
 ## 7. Тесты — `testing`

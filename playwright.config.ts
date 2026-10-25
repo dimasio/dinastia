@@ -23,6 +23,8 @@ export default defineConfig({
 	webServer: [
 		{
 			command: 'pnpm --filter @dinastia/api start',
+			// все входы набора — с 127.0.0.1; лимит по IP (5/мин) иначе роняет сценарии. В production не меняется.
+			env: { AUTH_SIGN_IN_LIMIT: '1000' },
 			url: 'http://localhost:3000/health/live',
 			reuseExistingServer: !process.env.CI,
 			timeout: 60_000,

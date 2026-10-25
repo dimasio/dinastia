@@ -27,7 +27,8 @@
 		"db:studio": "pnpm --filter @dinastia/api db:studio",
 		"db:seed": "pnpm --filter @dinastia/api db:seed",
 		"e2e": "playwright test",
-		"gen:module": "pnpm --filter @dinastia/tools run gen:module"
+		"gen:module": "pnpm --filter @dinastia/tools run gen:module",
+		"gen:resource": "pnpm --filter @dinastia/tools run gen:resource"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",

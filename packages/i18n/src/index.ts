@@ -5,6 +5,7 @@ import common from '../locales/ru/common.json' with { type: 'json' }
 import errors from '../locales/ru/errors.json' with { type: 'json' }
 import home from '../locales/ru/home.json' with { type: 'json' }
 import nav from '../locales/ru/nav.json' with { type: 'json' }
+import schools from '../locales/ru/schools.json' with { type: 'json' }
 // gen:module:import
 
 export const resources = {
@@ -14,6 +15,7 @@ export const resources = {
 		auth,
 		nav,
 		home,
+		schools,
 		// gen:module:entry
 	},
 } as const

@@ -7,31 +7,45 @@
 	},
 	"exports": {
 		".": "./src/index.ts",
+		"./resource": "./src/resource/index.ts",
 		"./styles.css": "./src/styles/globals.css"
 	},
 	"scripts": {
-		"typecheck": "tsc -p ."
+		"typecheck": "tsc -p .",
+		"test": "vitest run"
 	},
 	"dependencies": {
+		"@hookform/resolvers": "catalog:",
+		"@tanstack/react-table": "catalog:",
 		"class-variance-authority": "catalog:",
 		"clsx": "catalog:",
+		"cn": "^0.5.0",
 		"lucide-react": "catalog:",
 		"radix-ui": "catalog:",
+		"react-hook-form": "catalog:",
 		"sonner": "catalog:",
 		"tailwind-merge": "catalog:",
-		"tw-animate-css": "catalog:"
+		"tw-animate-css": "catalog:",
+		"zod": "catalog:"
 	},
 	"peerDependencies": {
+		"@tanstack/react-query": "catalog:",
+		"i18next": "catalog:",
 		"react": "catalog:",
-		"react-dom": "catalog:"
+		"react-dom": "catalog:",
+		"react-i18next": "catalog:"
 	},
 	"devDependencies": {
 		"@dinastia/config": "workspace:*",
+		"@tanstack/react-query": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"i18next": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
+		"react-i18next": "catalog:",
 		"tailwindcss": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	}
 }

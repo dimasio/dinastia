@@ -1,11 +1,11 @@
 ---
 name: web-screens
-description: Экраны и навигация клиента Dinastia — файловые маршруты TanStack Router в apps/web/src/routes (области admin для сотрудников, learn для учеников, _auth), лэйауты областей, защита маршрута requirePerm/requireRole, загрузка данных в loader через ensureQueryData, параметры поиска с zod (validateSearch), пункты меню nav.ts в features/<m>, состояние загрузки/ошибки/пусто, мутации и инвалидация, продуктовые экраны вручную (конструктор урока, плеер, проверка ДЗ). Использовать для «новый экран/страница», «пункт меню», «маршрут», «кабинет ученика», «дашборд».
+description: Экраны и навигация клиента Dinastia — файловые маршруты TanStack Router в apps/web/src/routes (области admin для сотрудников, learn для учеников, _auth), лэйауты областей, защита маршрута requireMember/requirePerm, загрузка данных в loader через ensureQueryData, параметры поиска с zod (validateSearch), пункты меню nav.ts в features/<m>, состояние загрузки/ошибки/пусто, мутации и инвалидация, продуктовые экраны вручную (конструктор урока, плеер, проверка ДЗ). Использовать для «новый экран/страница», «пункт меню», «маршрут», «кабинет ученика», «дашборд».
 ---
 
 # Экраны и навигация
 
-> Статус: сверено с кодом в фазе 0 (пункт 0.7) и 1 (1.1: меню из фич).
+> Статус: сверено с кодом в фазе 0 (пункт 0.7) и 1 (1.1: меню из фич; 1.2: `requirePerm`, `ResourceProvider`).
 
 Клиент — `docs/specs/architecture.md` §7. CRUD-экран сущности — скилл `admin-resource`; здесь — всё остальное.
 
@@ -15,17 +15,19 @@ description: Экраны и навигация клиента Dinastia — фа
 apps/web/src/
   main.tsx                     провайдеры: i18n, ThemeProvider, QueryClient, RouterProvider, Toaster
   app/                         ядро клиента: orpc.ts (клиент API), auth.ts (better-auth), queries.ts (sessionQuery,
-                               meQuery), guards.ts (requireMember), host.ts (корень/школа), errors.ts (errorText),
+                               meQuery), guards.ts (requireMember, requirePerm), host.ts (корень/школа), errors.ts (errorText),
                                layout/ (admin-shell, learn-shell, centered, user-menu)
-  features/<модуль>/           экраны и компоненты фич (auth, schools, invite, …)
+  features/<модуль>/           экраны и компоненты фич (auth, schools, invite, …); resources/ — ресурсы (admin-resource)
+  features/resources.ts        реестр ресурсов (тест строк экранов; gen:resource дописывает сам)
   routes/                      файловые маршруты (плагин генерирует routeTree.gen.ts — не править)
     __root.tsx                 notFound и errorComponent (текст ошибки по data.code)
     index.tsx                  корень: вход/«Ваши школы»; школа: редирект по роли (student → /learn, остальные → /admin)
     register.tsx               регистрация школы (только корень)
     login.tsx                  вход в школу (?redirect= — только относительный путь)
     invite.$token.tsx          приглашение сотрудника
-    admin/route.tsx            лэйаут кабинета школы: requireMember({ staff: true }) → context.me
+    admin/route.tsx            лэйаут кабинета школы: requireMember({ staff: true }) → context.me; ResourceProvider
     admin/index.tsx            /admin
+    admin/staff/index.tsx      /admin/staff — «Сотрудники», ресурс (образец экрана-реестра)
     learn/route.tsx            лэйаут кабинета ученика: requireMember()
     learn/index.tsx            /learn
 ```
@@ -39,7 +41,18 @@ export const Route = createFileRoute('/admin')({
 	}),
 	component: () => {
 		const { me } = Route.useRouteContext()
-		return <AdminShell me={me}><Outlet /></AdminShell>
+		const { t } = useTranslation('errors')
+		return (
+			<AdminShell me={me}>
+				{/* окружение экранов-ресурсов: кто смотрит (права) и текст ошибки API */}
+				<ResourceProvider
+					viewer={{ memberId: me.member.id, role: me.member.role, permissions: me.permissions }}
+					errorText={(error) => t(errorText(error))}
+				>
+					<Outlet />
+				</ResourceProvider>
+			</AdminShell>
+		)
 	},
 })
 ```
@@ -47,6 +60,9 @@ export const Route = createFileRoute('/admin')({
 `requireMember` (`app/guards.ts`): не поддомен школы → `/`; 401 → `/login?redirect=…`; ученик в `staff`-области →
 `/learn`; 403 (не участник) → errorComponent «У вас нет доступа к этой школе». Дочерние маршруты берут `me`
 (роль, `permissions`) из `Route.useRouteContext()`.
+
+Экран только с разрешением — `beforeLoad: requirePerm('schools.members.read')` (`app/guards.ts`): нет права в
+`me.permissions` → `/admin`. Прячет экран и пункт меню; запрещает всё равно сервер (`can()` в процедуре).
 
 Экран с данными и параметрами:
 

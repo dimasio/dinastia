@@ -5,9 +5,11 @@ import { root } from '../skills.ts'
 
 export interface Change {
 	file: string // от корня репозитория
-	kind: 'create' | 'insert'
+	kind: 'create' | 'insert' | 'json'
 	content: string
 	marker?: string
+	/** Для json: ключ верхнего уровня, под который кладётся объект `content` (JSON). */
+	key?: string
 }
 
 /** kebab-case → camelCase (`question-bank` → `questionBank`). */
@@ -27,6 +29,11 @@ export function insertBefore(file: string, marker: string, line: string): Change
 	return { file, kind: 'insert', marker, content: line }
 }
 
+/** Добавить раздел `key` в JSON-файл (строки i18n); раздел уже есть — ошибка плана. */
+export function jsonSection(file: string, key: string, value: unknown): Change {
+	return { file, kind: 'json', key, content: JSON.stringify(value) }
+}
+
 /** Проверить все изменения до записи: новых файлов нет, маркеры есть, строки ещё не вставлены. */
 export function plan(changes: Change[]): string[] {
 	const problems: string[] = []
@@ -41,6 +48,11 @@ export function plan(changes: Change[]): string[] {
 				if (text.includes(c.content.trim())) problems.push(`уже вставлено в ${c.file}: ${c.content.trim()}`)
 			}
 		}
+		if (c.kind === 'json') {
+			if (!existsSync(path)) problems.push(`нет файла: ${c.file}`)
+			else if (c.key && c.key in JSON.parse(readFileSync(path, 'utf8')))
+				problems.push(`уже есть «${c.key}» в ${c.file}`)
+		}
 	}
 	return problems
 }
@@ -53,6 +65,10 @@ export function apply(changes: Change[]): string[] {
 		if (c.kind === 'create') {
 			mkdirSync(dirname(path), { recursive: true })
 			writeFileSync(path, c.content)
+		} else if (c.kind === 'json') {
+			const data = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+			data[c.key ?? ''] = JSON.parse(c.content)
+			writeFileSync(path, `${JSON.stringify(data, null, '\t')}\n`)
 		} else {
 			const lines = readFileSync(path, 'utf8').split('\n')
 			const re = markerRe(c.marker ?? '')

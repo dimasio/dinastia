@@ -17,6 +17,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
+import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const LearnIndexRoute = LearnIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LearnRouteRoute,
 } as any)
+const AdminStaffIndexRoute = AdminStaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/admin/staff/': typeof AdminStaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
+  '/admin/staff': typeof AdminStaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/admin/staff/': typeof AdminStaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,8 +108,16 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/admin/'
     | '/learn/'
+    | '/admin/staff/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/invite/$token' | '/admin' | '/learn'
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/invite/$token'
+    | '/admin'
+    | '/learn'
+    | '/admin/staff'
   id:
     | '__root__'
     | '/'
@@ -111,6 +128,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/admin/'
     | '/learn/'
+    | '/admin/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -180,15 +198,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnIndexRouteImport
       parentRoute: typeof LearnRouteRoute
     }
+    '/admin/staff/': {
+      id: '/admin/staff/'
+      path: '/staff'
+      fullPath: '/admin/staff/'
+      preLoaderRoute: typeof AdminStaffIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
 interface AdminRouteRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminStaffIndexRoute: typeof AdminStaffIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminStaffIndexRoute: AdminStaffIndexRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(

@@ -16,11 +16,12 @@ description: Школа как тенант в Dinastia — модуль schools
 | таблицы `members` (ядро — нужна каждому запросу) и `invitations` | `apps/api/src/kernel/members/schema.ts`, `apps/api/src/modules/schools/schema.ts`; пользователи, сессии, согласия — `apps/api/src/kernel/auth/schema.ts` (better-auth, D-007) |
 | регистрация школы, список своих школ, членство | `apps/api/src/modules/schools/service.ts` (`createSchool`, `listMySchools`, `findActiveMember`) |
 | приглашения сотрудников | `apps/api/src/modules/schools/invitations.service.ts` (`inviteStaff`, `getInvitation`, `acceptInvitation`) |
-| API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`), `apps/api/src/modules/schools/router.ts` |
+| сотрудники: список, смена роли, блокировка | `apps/api/src/modules/schools/members.service.ts` (`listStaff`, `changeStaffRole`, `setStaffStatus`) |
+| API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`, `membersContract`), `apps/api/src/modules/schools/router.ts` |
 | схемы slug, ролей, приглашения | `packages/contracts/src/schools.ts` (`SchoolSlug`, `RESERVED_SLUGS`, `StaffInvite`) |
 | брендинг и общие настройки                                       | `apps/api/src/modules/schools/settings.ts` (скилл `settings`)        |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |
-| экраны: сотрудники (ресурс), настройки, выбор школы, регистрация | `apps/web/src/features/schools/`, `routes/_auth/register-school.tsx` |
+| экраны: сотрудники (ресурс `/admin/staff`), выбор школы, регистрация; настройки — позже | `apps/web/src/features/schools/` (`resources/staff.ts`, `nav.ts`), `routes/admin/staff/`, `routes/register.tsx` |
 
 ## Правила
 
@@ -36,6 +37,8 @@ description: Школа как тенант в Dinastia — модуль schools
   членства (список школ). Политика «свои членства» намеренно не действует внутри школы — иначе членство в школе B
   дало бы роль в школе A (тест «членство в школе B не даёт доступа к школе A»).
 - **Смена роли** — owner/admin; admin не может назначить owner и не может понизить другого admin (только owner).
+  Свою роль и свой доступ изменить нельзя (`CANNOT_CHANGE_SELF`), владельца — тоже (`OWNER_IMMUTABLE`); на экране
+  «Сотрудники» такие строки без действий.
 - **Блокировка участника** (`blocked`): сессии в этой школе отзываются, доступ к школе закрыт, данные сохраняются.
 - **Один пользователь — много школ**: на корневом домене — список школ участника; внутри школы — только её данные.
   Сессия общая, членство проверяется по школе запроса.

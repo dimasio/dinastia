@@ -1,3 +1,4 @@
+import type { Me } from '@dinastia/contracts/schools'
 import type { QueryClient } from '@tanstack/react-query'
 import { redirect } from '@tanstack/react-router'
 import { httpStatus } from './errors.ts'
@@ -19,3 +20,10 @@ export async function requireMember(queryClient: QueryClient, opts: { staff?: bo
 		throw error
 	}
 }
+
+/** Экран области admin только с разрешением (`beforeLoad: requirePerm('…')`); без права — на главную кабинета. */
+export const requirePerm =
+	(perm: string) =>
+	({ context }: { context: { me: Me } }) => {
+		if (!context.me.permissions.includes(perm)) throw redirect({ to: '/admin' })
+	}

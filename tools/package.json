@@ -6,7 +6,8 @@
 		"docs:check": "tsx src/docs-check.ts",
 		"skills:link": "tsx src/skills-link.ts",
 		"typecheck": "tsc -p .",
-		"gen:module": "tsx src/gen/module.ts"
+		"gen:module": "tsx src/gen/module.ts",
+		"gen:resource": "tsx src/gen/resource.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"
