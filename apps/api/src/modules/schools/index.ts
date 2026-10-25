@@ -1,5 +1,6 @@
 import { defineModule } from '#/kernel/module.ts'
 import { invitationEmail } from './emails/invitation.tsx'
+import { avatarPurpose } from './files.ts'
 import { sendInvitationJob } from './jobs.ts'
 import { permissions } from './permissions.ts'
 import { invitationsRouter, membersRouter, schoolsRouter } from './router.ts'
@@ -10,4 +11,5 @@ export default defineModule({
 	permissions,
 	jobs: [sendInvitationJob],
 	emails: [invitationEmail],
+	files: [avatarPurpose],
 })

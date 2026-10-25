@@ -22,6 +22,8 @@
 		"db:seed": "tsx src/seed.ts"
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "catalog:",
+		"@aws-sdk/s3-request-presigner": "catalog:",
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@dinastia/i18n": "workspace:*",

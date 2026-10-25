@@ -61,9 +61,17 @@ export type SchoolPublic = z.infer<typeof SchoolPublic>
 
 export const MySchool = SchoolPublic.extend({ role: MemberRole, url: z.url() })
 
+/** Аватар участника: назначение файла schools.avatar (сервер) и проверка до загрузки (клиент). */
+export const AVATAR = {
+	purpose: 'schools.avatar',
+	mime: ['image/jpeg', 'image/png', 'image/webp'],
+	maxSize: 2 * 1024 * 1024,
+} as const
+
 export const Me = z.object({
 	user: z.object({ id: Id, email: z.string(), name: z.string() }),
-	member: z.object({ id: Id, role: MemberRole }),
+	/** avatarUrl — подписанная ссылка (живёт час), null — аватара нет. */
+	member: z.object({ id: Id, role: MemberRole, avatarUrl: z.url().nullable() }),
 	school: SchoolPublic,
 	/** Разрешения роли — чтобы UI прятал недоступное; запрещает всегда сервер (скилл permissions). */
 	permissions: z.array(z.string()),
@@ -88,6 +96,11 @@ export const schoolsContract = {
 	current: oc.route({ method: 'GET', path: '/school' }).output(SchoolPublic),
 	/** Кто я в школе текущего хоста. */
 	me: oc.route({ method: 'GET', path: '/school/me' }).output(Me),
+	/** Свой аватар в школе: файл назначения schools.avatar (загружен и подтверждён), null — убрать. */
+	updateMyAvatar: oc
+		.route({ method: 'POST', path: '/school/me/avatar' })
+		.input(z.object({ fileId: Id.nullable() }))
+		.output(Me),
 }
 
 export const invitationsContract = {
@@ -120,6 +133,7 @@ export const StaffMember = z.object({
 	role: MemberRole,
 	status: MemberStatus,
 	joinedAt: DateTime,
+	avatarUrl: z.url().nullable(),
 })
 export type StaffMember = z.infer<typeof StaffMember>
 

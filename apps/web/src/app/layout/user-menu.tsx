@@ -1,6 +1,4 @@
 import {
-	Avatar,
-	AvatarFallback,
 	Button,
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,22 +9,29 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 	type Theme,
+	UserAvatar,
 	useTheme,
 } from '@dinastia/ui'
 import { useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { authClient } from '#/app/auth.ts'
 import { hostUrl } from '#/app/host.ts'
 
-const initials = (name: string) =>
-	name
-		.split(/\s+/)
-		.map((p) => p[0])
-		.join('')
-		.slice(0, 2)
-		.toUpperCase()
-
-export function UserMenu({ name, email, role }: { name: string; email: string; role?: string }) {
+export function UserMenu({
+	name,
+	email,
+	role,
+	avatarUrl,
+	profileTo,
+}: {
+	name: string
+	email: string
+	role?: string
+	avatarUrl?: string | null
+	/** Профиль участника в области (в школе); на корневом домене — нет. */
+	profileTo?: '/admin/profile' | '/learn/profile'
+}) {
 	const { t } = useTranslation(['common', 'nav'])
 	const { theme, setTheme } = useTheme()
 	const qc = useQueryClient()
@@ -39,9 +44,7 @@ export function UserMenu({ name, email, role }: { name: string; email: string; r
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<Button variant="ghost" size="icon" className="rounded-full" aria-label={name} data-testid="user-menu">
-					<Avatar className="size-8">
-						<AvatarFallback>{initials(name)}</AvatarFallback>
-					</Avatar>
+					<UserAvatar name={name} src={avatarUrl} />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-60">
@@ -50,6 +53,13 @@ export function UserMenu({ name, email, role }: { name: string; email: string; r
 					<p className="truncate text-xs text-muted-foreground">{email}</p>
 					{role ? <p className="text-xs text-muted-foreground">{t(`roles.${role}` as 'roles.owner')}</p> : null}
 				</DropdownMenuLabel>
+				{profileTo ? (
+					<DropdownMenuItem asChild>
+						<Link to={profileTo} data-testid="user-menu-profile">
+							{t('profile', { ns: 'nav' })}
+						</Link>
+					</DropdownMenuItem>
+				) : null}
 				<DropdownMenuSeparator />
 				<DropdownMenuLabel className="text-xs text-muted-foreground">{t('theme.title')}</DropdownMenuLabel>
 				<DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>

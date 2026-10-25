@@ -14,7 +14,7 @@ export const staffResource = defineResource({
 	list: client.members.list,
 	perms: { read: 'schools.members.read', write: 'schools.members.manage' },
 	columns: [
-		{ field: 'name', sort: 'name' },
+		{ field: 'name', sort: 'name', avatar: 'avatarUrl' },
 		{ field: 'email' },
 		{ field: 'role', sort: 'role', render: 'badge', labels: 'common:roles' },
 		{

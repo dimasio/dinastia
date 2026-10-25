@@ -5,6 +5,7 @@ import { type Subscriber, subscriberJob } from './events.ts'
 import type { AnyJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
+import type { FilePurpose } from './storage/files.ts'
 
 export interface ModuleDef<
 	N extends string = string,
@@ -23,6 +24,8 @@ export interface ModuleDef<
 	subscribers?: Subscriber<any>[]
 	/** Шаблоны писем модуля (`modules/<m>/emails/*.tsx`); ключ — `<модуль>.<письмо>`. */
 	emails?: AnyEmail[]
+	/** Назначения файлов модуля (`defineFilePurpose`); ключ — `<модуль>.<назначение>`. */
+	files?: FilePurpose[]
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
@@ -31,6 +34,9 @@ export function defineModule<const N extends string, R extends object, P extends
 	if (def.permissions.module !== def.name) {
 		throw new Error(`модуль ${def.name}: разрешения объявлены для «${def.permissions.module}»`)
 	}
+	for (const f of def.files ?? [])
+		if (!f.key.startsWith(`${def.name}.`))
+			throw new Error(`модуль ${def.name}: назначение файла «${f.key}» чужого модуля`)
 	for (const e of def.emails ?? [])
 		if (!e.key.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: письмо «${e.key}» чужого модуля`)
 	for (const job of def.jobs ?? [])

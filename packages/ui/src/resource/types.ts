@@ -41,6 +41,8 @@ export interface ColumnDef<Row, S extends string> {
 	render?: 'text' | 'badge' | 'date' | 'datetime' | 'number' | 'bool' | ((row: Row) => ReactNode)
 	/** Префикс ключей подписей значений (`common:roles`); по умолчанию `<ns>:<key>.values.<field>`. */
 	labels?: string
+	/** Поле строки со ссылкой на фото: в ячейке — аватар (фото или инициалы по значению колонки) и текст. */
+	avatar?: keyof Row & string
 	/** Вид бейджа по значению (для `render: 'badge'`). */
 	tone?: (value: unknown) => BadgeTone
 }

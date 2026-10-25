@@ -28,7 +28,13 @@ export function LearnShell({ me, children }: { me: Me; children: ReactNode }) {
 							</Link>
 						)),
 					)}
-					<UserMenu name={me.user.name} email={me.user.email} role={me.member.role} />
+					<UserMenu
+						name={me.user.name}
+						email={me.user.email}
+						role={me.member.role}
+						avatarUrl={me.member.avatarUrl}
+						profileTo="/learn/profile"
+					/>
 				</nav>
 			</header>
 			<main className="mx-auto w-full max-w-4xl flex-1 p-4 md:p-8">{children}</main>

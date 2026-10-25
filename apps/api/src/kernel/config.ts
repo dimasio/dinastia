@@ -26,6 +26,17 @@ const Env = z.object({
 	/** Попыток входа по паролю в минуту с одного IP. Меняется только вне production (e2e: все входы с 127.0.0.1). */
 	AUTH_SIGN_IN_LIMIT: z.coerce.number().int().min(1).max(1000).default(5),
 
+	/** S3-совместимое хранилище (D-011; локально SeaweedFS, D-037). Endpoint должен открываться и из браузера. */
+	S3_ENDPOINT: z.url(),
+	S3_REGION: z.string().default('ru-central1'),
+	S3_BUCKET: z.string().min(1),
+	S3_ACCESS_KEY: z.string().min(1),
+	S3_SECRET_KEY: z.string().min(1),
+	S3_FORCE_PATH_STYLE: z
+		.enum(['true', 'false'])
+		.default('false')
+		.transform((v) => v === 'true'),
+
 	MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('smtp'),
 	SMTP_HOST: z.string().default('localhost'),
 	SMTP_PORT: z.coerce.number().int().default(1025),

@@ -23,7 +23,7 @@ status: draft
 | `schools`                                                       | `slug`, `name`, `status` (`active`, `suspended`, `deleted`), `deletion_requested_at`, `timezone`, `locale` |
 | `school_branding`                                               | `school_id` PK, `logo_file_id`, `favicon_file_id`, `primary_color`, `support_email`                        |
 | `school_domains`                                                | `school_id`, `host`, `kind` (`old_slug`, `custom`), `redirect_until`                                       |
-| `members`                                                       | `user_id`, `role`, `status` (`invited`, `active`, `blocked`), `invited_by`, `joined_at`                    |
+| `members`                                                       | `user_id`, `role`, `status` (`invited`, `active`, `blocked`), `invited_by`, `joined_at`, `avatar_file_id` |
 | `users`, `sessions`, `accounts`, `verifications`, `invitations` | better-auth (ядро); `users.platform_role` (`operator` или null)                                            |
 | `<module>_settings`                                             | настройки школы модуля, PK `school_id`, типизированные колонки (D-036)                                     |
 
@@ -81,7 +81,7 @@ status: draft
 
 | Таблица          | Колонки                                                                                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `files`          | `key` в S3, `purpose`, `mime`, `size`, `owner_member_id`, `status` (`pending`, `ready`)                                                       |
+| `files`          | `key` в S3, `purpose`, `name`, `mime`, `size`, `owner_member_id` (без FK — цикл с `members.avatar_file_id`), `status` (`pending`, `ready`)     |
 | `file_variants`  | `file_id`, `variant`, `key`, `width`, `height`                                                                                                |
 | `audit_log`      | `actor_member_id`, `actor_operator_id?`, `action`, `entity`, `entity_id`, `diff jsonb` (непрозрачный), `ip`, `created_at` — только добавление |
 | `consents`       | `user_id`, `school_id?`, `kind` (`offer`, `privacy`, `pd_processing`, `marketing`), `version`, `ip`, `created_at`                             |

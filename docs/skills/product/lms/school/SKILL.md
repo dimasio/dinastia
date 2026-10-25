@@ -21,7 +21,7 @@ description: Школа как тенант в Dinastia — модуль schools
 | схемы slug, ролей, приглашения | `packages/contracts/src/schools.ts` (`SchoolSlug`, `RESERVED_SLUGS`, `StaffInvite`) |
 | брендинг и общие настройки                                       | `apps/api/src/modules/schools/settings.ts` (скилл `settings`)        |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |
-| экраны: сотрудники (ресурс `/admin/staff`), выбор школы, регистрация; настройки — позже | `apps/web/src/features/schools/` (`resources/staff.ts`, `nav.ts`), `routes/admin/staff/`, `routes/register.tsx` |
+| экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`), выбор школы, регистрация; настройки — позже | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |
 
 ## Правила
 
@@ -38,6 +38,8 @@ description: Школа как тенант в Dinastia — модуль schools
 - **Членство и RLS**: в транзакции школы видны только её участники; вне школы (`withUser`) — только свои
   членства (список школ). Политика «свои членства» намеренно не действует внутри школы — иначе членство в школе B
   дало бы роль в школе A (тест «членство в школе B не даёт доступа к школе A»).
+- **Аватар** — у участника в каждой школе свой (`members.avatar_file_id`, файл школы `schools.avatar`, лимиты — `AVATAR`
+  в контракте); ставит себе сам (`schools.updateMyAvatar`), прежний файл удаляется. Виден в меню и в списке сотрудников.
 - **Смена роли** — owner/admin; admin не может назначить owner и не может понизить другого admin (только owner).
   Свою роль и свой доступ изменить нельзя (`CANNOT_CHANGE_SELF`), владельца — тоже (`OWNER_IMMUTABLE`); на экране
   «Сотрудники» такие строки без действий.

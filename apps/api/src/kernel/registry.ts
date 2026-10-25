@@ -1,7 +1,8 @@
-// Реестр приложения: задачи (модулей, подписчиков, ядра) и письма. Заполняет modules/index.ts при импорте; читают
+// Реестр приложения: задачи (модулей, подписчиков, ядра), письма и назначения файлов. Заполняет modules/index.ts при импорте; читают
 // воркер (очереди, расписания), ctx.emit (кому доставить событие), ctx.mail и задача mail.send (шаблон по ключу).
 import type { AnyJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
+import type { FilePurpose } from './storage/files.ts'
 
 const jobs = new Map<string, AnyJob>()
 const byEvent = new Map<string, AnyJob[]>()
@@ -32,3 +33,15 @@ export function registerEmails(list: AnyEmail[]) {
 
 export const allEmails = (): AnyEmail[] => [...emails.values()]
 export const emailByKey = (key: string): AnyEmail | undefined => emails.get(key)
+
+const purposes = new Map<string, FilePurpose>()
+
+export function registerFilePurposes(list: FilePurpose[]) {
+	for (const p of list) {
+		if (purposes.has(p.key) && purposes.get(p.key) !== p)
+			throw new Error(`назначение файла «${p.key}» объявлено дважды`)
+		purposes.set(p.key, p)
+	}
+}
+
+export const filePurpose = (key: string): FilePurpose | undefined => purposes.get(key)

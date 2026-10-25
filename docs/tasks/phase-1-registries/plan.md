@@ -15,6 +15,21 @@
 | 2026-10-25 | 1.6 | находки: обязательный peer pg-boss `@opentelemetry/api` раздвоил `drizzle-orm` (вариант с otel в api, без — в `@dinastia/db`) → типы таблиц несовместимы; лечится `@opentelemetry/api` в корне (один вариант на всех). Задачу all-schools из запроса ставить нельзя (ошибка), расписание — только у all-schools |
 | 2026-10-25 | 1.8 | `kernel/mail/`: `defineEmail` (react-email 6, D-046), `EmailLayout`, `renderEmail` (HTML + текст), `ctx.mail.send` → задача `mail.send`, `deliverEmail` для писем с секретом, транспорт с именем школы-отправителя; `defineModule({ emails })`, namespace `emails`; приглашение: `inviteStaff` ставит `schools.send-invitation`, задача выпускает токен и шлёт письмо; `pnpm emails:preview`; Playwright поднимает API + воркер (`start:all`). Тесты: рендер всех примеров, экранирование, откат — письма нет, приглашение через очередь (api 80, e2e 9) |
 | 2026-10-25 | 1.8 | находки: очередь создавал только воркер — API упал бы на постановке до старта воркера → очередь создаётся при первой постановке (`ensureQueue`); тестовые процессы делили одну очередь — задачу файла A выполнял воркер файла B, письмо уходило в чужой `memoryOutbox` → своя схема `pgboss_<n>` на процесс (`BOSS_SCHEMA`, `test/setup.ts`), файлы снова параллельно (19 с вместо 49 с при последовательном прогоне); дата в письме — в часовом поясе Москвы, а не сервера |
+| 2026-10-25 | 1.7 | `kernel/storage`: таблица `files` (миграция `0002_files_avatars`, + `members.avatar_file_id`), S3 на AWS SDK v3 (D-047), `defineFilePurpose` + `defineModule({ files })`, `files.createUpload` (лимиты до ссылки; подписаны тип и длина) → PUT → `files.complete` (HEAD-сверка), `ctx.files` (signedUrl, get, remove → задача `files.delete-object`), `signFileKey`, очистка `pending` > 24 ч; модуль ядра `files` (право `files.upload`, право назначения — в сервисе). Аватар участника: `schools.updateMyAvatar`, `avatarUrl` в `me` и в списке сотрудников; UI — `ImageInput`, `UserAvatar`, `uploadFile` (XHR с прогрессом), экран «Профиль» в обеих областях, аватар в меню (me — из кэша запроса), колонка `avatar` в ресурсе. Тесты: 6 интеграционных на SeaweedFS (api 86), e2e 12 |
+| 2026-10-25 | 1.7 | находки: внешние ключи `members ↔ files` в обе стороны замыкали вывод типов Drizzle → у `files.owner_member_id` FK нет, владельца проверяет код; меню пользователя брало `me` из контекста маршрута и не обновлялось после смены аватара → из кэша запроса; e2e-проверка «картинка видна» проходила на аватаре прошлого прогона до окончания загрузки → сценарий начинает с удаления и ждёт конец загрузки; сервер не разбирает содержимое файла — тип заявляет клиент, поэтому исполняемые типы в назначения не включаются |
+
+## План 1.7
+
+1. Зависимость `apps/api`: S3-клиент (см. решения), `config`: `S3_*` из `.env.example`.
+2. `kernel/storage/`: `defineFilePurpose(key, { maxSize, mime, perm })`, `files.createUpload` → presigned PUT (подписаны `content-type` и `content-length` — другой размер/тип S3 не примет), `files.complete` → HEAD объекта, сверка размера и типа, `status = ready`; `ctx.files.signedUrl(fileId, { ttl, download })`; ключ `schools/<schoolId>/<purpose>/<fileId>` строит ядро. Реестр назначений — `defineModule({ files })`.
+3. **Миграция**: таблица `files` (tenantTable: `key` уникален, `purpose`, `name`, `mime`, `size`, `owner_member_id` → members, `status` pending/ready); `members.avatar_file_id` → files (set null).
+4. Контракт `files.createUpload`, `files.complete` (право — из назначения); аватар: `schools.updateMyAvatar({ fileId | null })`, `avatarUrl` в `schools.me` и в списке сотрудников.
+5. Задача ядра `files.cleanup` (all-schools, раз в час): `pending` старше 24 ч — удалить объект и строку.
+6. UI: `ImageInput` в `packages/ui` (выбор, проверка размера/типа, загрузка с прогрессом, превью); экран «Профиль» с аватаром; аватар в меню пользователя и колонкой в «Сотрудниках» (`render: 'avatar'`).
+7. Тесты: поток загрузки на SeaweedFS (presign → PUT → complete); чужой размер/тип — отказ; файл другой школы — не виден (RLS); signedUrl работает, без подписи — 403; очистка pending; e2e — загрузить аватар, увидеть в меню.
+8. Сверка скиллов `files-media`, `admin-resource` (`render: 'avatar'`), `ui-kit`, `lms-school`, `core-kernel`, `db-schema`.
+
+Вне пункта: превью картинок (`file_variants`, нужна библиотека обработки изображений) — с обложками курсов; видео (Kinescope) — с блоком video; квоты школы.
 
 ## План 1.8
 
@@ -57,4 +72,4 @@
 
 ## Дальше
 
-1.7: файлы — S3 (SeaweedFS локально), presigned upload, таблица `files` — план пункта перед началом (схема БД — согласовать).
+1.11: `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний — план пункта перед началом.

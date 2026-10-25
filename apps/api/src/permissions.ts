@@ -2,10 +2,12 @@
 // Список ведётся здесь, а не через modules/index.ts: роутеры модулей импортируют `can` отсюда — обратный импорт дал бы цикл.
 import type { MemberRole } from '@dinastia/contracts/schools'
 import { createCan, mergePermissions, permissionsOf } from './kernel/permissions.ts'
+import { permissions as files } from './kernel/storage/permissions.ts'
 import { permissions as schools } from './modules/schools/permissions.ts'
 // gen:module:permissions-import
 
 export const permissionMap = mergePermissions(
+	files,
 	schools,
 	// gen:module:permissions
 )

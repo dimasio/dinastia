@@ -18,6 +18,7 @@ import {
 	DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu.tsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table.tsx'
+import { UserAvatar } from '#/components/user-avatar.tsx'
 import { cn } from '#/lib/utils.ts'
 import { useResourceT } from './context.tsx'
 import type { ActionDef, ColumnDef, ResourceDef } from './types.ts'
@@ -55,6 +56,13 @@ export function ResourceTable<Row extends { id: string }>({
 			const row = ctx.row.original
 			const v = row[c.field] as unknown
 			if (typeof c.render === 'function') return c.render(row)
+			if (c.avatar)
+				return (
+					<span className="flex items-center gap-2">
+						<UserAvatar name={String(v ?? '')} src={row[c.avatar] as string | null} size="sm" />
+						{String(v ?? '')}
+					</span>
+				)
 			if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>
 			switch (c.render) {
 				case 'badge':

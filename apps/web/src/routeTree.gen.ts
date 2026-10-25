@@ -15,8 +15,10 @@ import { Route as LearnRouteRouteImport } from './routes/learn/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminProfileRouteImport } from './routes/admin/profile'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
+import { Route as LearnProfileRouteImport } from './routes/learn/profile'
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
 
 const IndexRoute = IndexRouteImport.update({
@@ -49,6 +51,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -57,6 +64,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
 const LearnIndexRoute = LearnIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LearnRouteRoute,
+} as any)
+const LearnProfileRoute = LearnProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => LearnRouteRoute,
 } as any)
 const AdminStaffIndexRoute = AdminStaffIndexRouteImport.update({
@@ -71,7 +83,9 @@ export interface FileRoutesByFullPath {
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
@@ -80,7 +94,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/learn/profile': typeof LearnProfileRoute
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
@@ -92,7 +108,9 @@ export interface FileRoutesById {
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
@@ -105,7 +123,9 @@ export interface FileRouteTypes {
     | '/learn'
     | '/login'
     | '/register'
+    | '/admin/profile'
     | '/invite/$token'
+    | '/learn/profile'
     | '/admin/'
     | '/learn/'
     | '/admin/staff/'
@@ -114,7 +134,9 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/admin/profile'
     | '/invite/$token'
+    | '/learn/profile'
     | '/admin'
     | '/learn'
     | '/admin/staff'
@@ -125,7 +147,9 @@ export interface FileRouteTypes {
     | '/learn'
     | '/login'
     | '/register'
+    | '/admin/profile'
     | '/invite/$token'
+    | '/learn/profile'
     | '/admin/'
     | '/learn/'
     | '/admin/staff/'
@@ -184,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -198,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnIndexRouteImport
       parentRoute: typeof LearnRouteRoute
     }
+    '/learn/profile': {
+      id: '/learn/profile'
+      path: '/profile'
+      fullPath: '/learn/profile'
+      preLoaderRoute: typeof LearnProfileRouteImport
+      parentRoute: typeof LearnRouteRoute
+    }
     '/admin/staff/': {
       id: '/admin/staff/'
       path: '/staff'
@@ -209,11 +247,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminProfileRoute: typeof AdminProfileRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminStaffIndexRoute: typeof AdminStaffIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminProfileRoute: AdminProfileRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminStaffIndexRoute: AdminStaffIndexRoute,
 }
@@ -223,10 +263,12 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface LearnRouteRouteChildren {
+  LearnProfileRoute: typeof LearnProfileRoute
   LearnIndexRoute: typeof LearnIndexRoute
 }
 
 const LearnRouteRouteChildren: LearnRouteRouteChildren = {
+  LearnProfileRoute: LearnProfileRoute,
   LearnIndexRoute: LearnIndexRoute,
 }
 

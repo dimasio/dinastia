@@ -1,9 +1,10 @@
 import { appOrigin } from '#/kernel/config.ts'
+import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
-import { changeStaffRole, listStaff, setStaffStatus } from './members.service.ts'
+import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
 import { createSchool, listMySchools } from './service.ts'
 
 export const schoolsRouter = {
@@ -41,12 +42,29 @@ export const schoolsRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('schools.access'))
-		.handler(({ context }) => ({
-			user: context.user,
-			member: context.member,
-			school: context.school,
-			permissions: rolePermissions(context.member.role),
-		})),
+		.handler(({ context }) => meOf(schoolCtx(context))),
+
+	updateMyAvatar: impl.schools.updateMyAvatar
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.access'))
+		.handler(async ({ input, context }) => {
+			const ctx = schoolCtx(context)
+			await updateMyAvatar(ctx, input.fileId)
+			return meOf(ctx)
+		}),
+}
+
+async function meOf(ctx: SchoolCtx) {
+	return {
+		user: ctx.user,
+		member: { ...ctx.member, avatarUrl: await avatarUrlOf(ctx, ctx.member.id) },
+		school: ctx.school,
+		permissions: rolePermissions(ctx.member.role),
+	}
 }
 
 export const invitationsRouter = {

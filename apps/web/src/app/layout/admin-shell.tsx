@@ -33,7 +33,13 @@ export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 					</Sheet>
 					<span className="font-semibold md:hidden">{me.school.name}</span>
 					<div className="ml-auto">
-						<UserMenu name={me.user.name} email={me.user.email} role={me.member.role} />
+						<UserMenu
+							name={me.user.name}
+							email={me.user.email}
+							role={me.member.role}
+							avatarUrl={me.member.avatarUrl}
+							profileTo="/admin/profile"
+						/>
 					</div>
 				</header>
 				<main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-8">{children}</main>

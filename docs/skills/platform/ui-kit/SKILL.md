@@ -14,7 +14,7 @@ description: Дизайн-система Dinastia packages/ui — компоне
 
 Сейчас в `@dinastia/ui` (`packages/ui/src/index.ts`): `Button`, `Input`, `Label`, `Field` (подпись + подсказка/ошибка
 с aria), `Card*`, `Alert*`, `Badge`, `Avatar*`, `Separator`, `Skeleton`, `Sheet*`, `DropdownMenu*`, `PageHeader`,
-`EmptyState`, `Toaster` + `toast`, `ThemeProvider`/`useTheme`, `cn`. Стили — `import '@dinastia/ui/styles.css'`
+`EmptyState`, `UserAvatar` (фото или инициалы), `ImageInput` (загрузка картинки — скилл `files-media`), `Toaster` + `toast`, `ThemeProvider`/`useTheme`, `cn`. Стили — `import '@dinastia/ui/styles.css'`
 (уже в `main.tsx`).
 
 Дальше по фазам: `Dialog`/`AlertDialog`, `Tabs`, `Select`/`Combobox`, `Checkbox`/`Switch`/`RadioGroup`, `DatePicker`,

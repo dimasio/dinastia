@@ -1,11 +1,14 @@
 // Сотрудники школы (скилл lms-school): список, смена роли, блокировка. Правила — в сервисе, права — в процедуре.
-import type { StaffListQuery } from '@dinastia/contracts/schools'
+import type { StaffListQuery, StaffMember } from '@dinastia/contracts/schools'
 import { and, count, eq, ne, type SQL } from 'drizzle-orm'
 import { users } from '#/kernel/auth/schema.ts'
-import type { SchoolCtx } from '#/kernel/context.ts'
+import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { signFileKey } from '#/kernel/storage/files.ts'
+import { files } from '#/kernel/storage/schema.ts'
+import { avatarPurpose } from './files.ts'
 
 const columns = {
 	id: members.id,
@@ -15,6 +18,12 @@ const columns = {
 	role: members.role,
 	status: members.status,
 	joinedAt: members.joinedAt,
+	avatarKey: files.key,
+}
+
+/** Строка сотрудника для API: ключ аватара → подписанная ссылка. */
+async function toStaff({ avatarKey, ...row }: Omit<StaffMember, 'avatarUrl'> & { avatarKey: string | null }) {
+	return { ...row, avatarUrl: avatarKey ? await signFileKey(avatarKey) : null } satisfies StaffMember
 }
 
 export async function listStaff(ctx: SchoolCtx, input: StaffListQuery) {
@@ -30,13 +39,14 @@ export async function listStaff(ctx: SchoolCtx, input: StaffListQuery) {
 			.select(columns)
 			.from(members)
 			.innerJoin(users, eq(users.id, members.userId))
+			.leftJoin(files, eq(files.id, members.avatarFileId))
 			.where(where)
 			.orderBy(...q.orderBy)
 			.limit(q.limit)
 			.offset(q.offset),
 		ctx.db.select({ n: count() }).from(members).innerJoin(users, eq(users.id, members.userId)).where(where),
 	])
-	return toPage(items, total?.n ?? 0, input)
+	return toPage(await Promise.all(items.map(toStaff)), total?.n ?? 0, input)
 }
 
 async function getStaffOrFail(ctx: SchoolCtx, id: string) {
@@ -44,9 +54,10 @@ async function getStaffOrFail(ctx: SchoolCtx, id: string) {
 		.select(columns)
 		.from(members)
 		.innerJoin(users, eq(users.id, members.userId))
+		.leftJoin(files, eq(files.id, members.avatarFileId))
 		.where(eq(members.id, id))
 	if (!row || row.role === 'student') return fail.notFound('MEMBER_NOT_FOUND')
-	return row
+	return toStaff(row)
 }
 
 /** Общие правила изменения сотрудника: не себя, не владельца; администраторами управляет только владелец. */
@@ -71,4 +82,29 @@ export async function setStaffStatus(ctx: SchoolCtx, input: { id: string; status
 	await ctx.db.update(members).set({ status: input.status }).where(eq(members.id, input.id))
 	ctx.log.info({ targetMemberId: input.id, status: input.status }, 'member status changed')
 	return { ...target, status: input.status }
+}
+
+/** Ссылка на аватар участника (null — нет). */
+export async function avatarUrlOf(ctx: BaseCtx, memberId: string) {
+	const [row] = await ctx.db
+		.select({ key: files.key })
+		.from(members)
+		.innerJoin(files, eq(files.id, members.avatarFileId))
+		.where(eq(members.id, memberId))
+	return row ? signFileKey(row.key) : null
+}
+
+/** Свой аватар: файл назначения schools.avatar, загруженный этим участником; прежний файл удаляется. */
+export async function updateMyAvatar(ctx: SchoolCtx, fileId: string | null) {
+	if (fileId) {
+		const file = await ctx.files.get(fileId)
+		if (file?.status !== 'ready' || file.purpose !== avatarPurpose.key || file.ownerMemberId !== ctx.member.id)
+			fail.invalid('FILE_INVALID')
+	}
+	const [prev] = await ctx.db
+		.select({ fileId: members.avatarFileId })
+		.from(members)
+		.where(eq(members.id, ctx.member.id))
+	await ctx.db.update(members).set({ avatarFileId: fileId }).where(eq(members.id, ctx.member.id))
+	if (prev?.fileId && prev.fileId !== fileId) await ctx.files.remove(prev.fileId)
 }

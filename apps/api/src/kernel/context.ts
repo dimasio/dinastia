@@ -4,6 +4,7 @@ import type { Tx } from './db/client.ts'
 import type { Emit } from './events.ts'
 import type { Jobs } from './jobs.ts'
 import type { MailApi } from './mail/send.ts'
+import type { Files } from './storage/files.ts'
 
 export type { Tx }
 
@@ -26,6 +27,8 @@ export interface BaseCtx {
 	jobs: Jobs
 	/** Письмо из шаблона — задачей в этой же транзакции (скилл notifications). */
 	mail: MailApi
+	/** Файлы школы: подписанная ссылка, удаление (скилл files-media). */
+	files: Files
 }
 
 /** Контекст запроса участника школы. */
