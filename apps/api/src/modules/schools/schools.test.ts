@@ -1,22 +1,24 @@
 import { schools } from '@dinastia/db'
 import { eq, inArray } from 'drizzle-orm'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { consents } from '#/kernel/auth/schema.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { db, pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { AppError } from '#/kernel/errors.ts'
 import { log } from '#/kernel/log.ts'
-import { memoryOutbox } from '#/kernel/mail.ts'
 import { hasPermission } from '#/kernel/permissions.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { permissionMap } from '#/permissions.ts'
+import { inviteToken, lastMailTo, pendingJobs, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { createUser, uniqueSlug } from '#/test/users.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { createSchool, findActiveMember, listMySchools } from './service.ts'
 
 const created: string[] = []
+beforeAll(startTestWorker)
 afterAll(async () => {
+	await stopTestWorker()
 	if (created.length) await db.delete(schools).where(inArray(schools.id, created))
 	await pool.end()
 })
@@ -107,11 +109,13 @@ describe('приглашения сотрудников', () => {
 		const teacher = await createUser('teacher')
 		const owner = { user: s.owner, member: { id: s.ownerMember.id, role: 'owner' as const } }
 
-		const inv = await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email: teacher.email, role: 'teacher' }))
-		const mail = memoryOutbox.find((m) => m.to === teacher.email)
-		expect(mail?.subject).toContain('Школа')
-		expect(mail?.text).toContain(inv.url)
-		const token = inv.url.split('/invite/')[1] ?? ''
+		await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email: teacher.email, role: 'teacher' }))
+		const mail = await lastMailTo(teacher.email)
+		expect(mail.subject).toBe('Приглашение в школу «Школа»')
+		expect(mail.fromName).toBe('Школа')
+		expect(mail.text).toContain('Анна приглашает вас в школу «Школа». Ваша роль — Преподаватель.')
+		expect(mail.text).toContain(`http://${s.school.slug}.`)
+		const token = await inviteToken(teacher.email)
 
 		expect(await withTenant(s.school.id, (tx) => getInvitation(tx, token))).toMatchObject({ role: 'teacher' })
 		const accepted = await withTenant(s.school.id, (tx) => acceptInvitation(tx, token, teacher), { userId: teacher.id })
@@ -125,10 +129,11 @@ describe('приглашения сотрудников', () => {
 		const owner = { user: s.owner, member: { id: s.ownerMember.id, role: 'owner' as const } }
 		const email = `again-${Date.now()}@test.local`
 		const first = await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email, role: 'curator' }))
+		const oldToken = await inviteToken(email)
 		const second = await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email, role: 'teacher' }))
 		expect(second.invitationId).toBe(first.invitationId)
-		const oldToken = first.url.split('/invite/')[1] ?? ''
-		const newToken = second.url.split('/invite/')[1] ?? ''
+		const newToken = await inviteToken(email)
+		expect(newToken).not.toBe(oldToken)
 		expect(await code(withTenant(s.school.id, (tx) => getInvitation(tx, oldToken)))).toBe('INVITATION_NOT_FOUND')
 		expect(await withTenant(s.school.id, (tx) => getInvitation(tx, newToken))).toMatchObject({ role: 'teacher' })
 	})
@@ -151,8 +156,8 @@ describe('приглашения сотрудников', () => {
 		const owner = { user: s.owner, member: { id: s.ownerMember.id, role: 'owner' as const } }
 		const invitee = await createUser('invitee')
 		const stranger = await createUser('stranger')
-		const inv = await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email: invitee.email, role: 'curator' }))
-		const token = inv.url.split('/invite/')[1] ?? ''
+		await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email: invitee.email, role: 'curator' }))
+		const token = await inviteToken(invitee.email)
 
 		expect(await code(withTenant(s.school.id, (tx) => acceptInvitation(tx, token, stranger)))).toBe(
 			'INVITATION_EMAIL_MISMATCH',
@@ -162,6 +167,20 @@ describe('приглашения сотрудников', () => {
 		expect(await code(withTenant(s.school.id, (tx) => acceptInvitation(tx, token, invitee, later)))).toBe(
 			'INVITATION_EXPIRED',
 		)
+	})
+
+	it('письмо уходит только после коммита; до выпуска токена приглашение не принять', async () => {
+		const s = await newSchool()
+		const owner = { user: s.owner, member: { id: s.ownerMember.id, role: 'owner' as const } }
+		const email = `rollback-${Date.now()}@test.local`
+		await expect(
+			inSchool(s, owner, async (ctx) => {
+				await inviteStaff(ctx, { email, role: 'teacher' })
+				throw new Error('откат')
+			}),
+		).rejects.toThrow('откат')
+		await expect(lastMailTo(email)).rejects.toThrow(/нет письма/)
+		expect(await pendingJobs()).toBe(0)
 	})
 
 	it('уже участник — ALREADY_MEMBER', async () => {

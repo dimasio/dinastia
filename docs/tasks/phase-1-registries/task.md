@@ -28,7 +28,7 @@ closed:
 | 1.5 | `check:registries` | backlog |
 | 1.6 | События (outbox) и задачи (pg-boss), воркер | done |
 | 1.7 | Файлы: S3, presigned upload, `files` | backlog |
-| 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | backlog |
+| 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | done |
 | 1.9 | Тест-фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix`, e2e-фикстуры | done |
 | 1.11 | `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний | backlog |
 | 1.12 | Rich text: `RichText`, профили, редактор/просмотр | backlog |
@@ -40,4 +40,5 @@ closed:
 |---|---|
 | 2026-10-25 | D-043: ресурс-фреймворк на TanStack Table 9, состояние списка в адресе, `ResourceProvider` |
 | 2026-10-25 | D-044: `AUTH_SIGN_IN_LIMIT` вне production — e2e-набор упирался в лимит входов |
+| 2026-10-25 | D-046: письма — пакет `react-email` 6; токен приглашения выпускает задача, в очередь не попадает |
 | 2026-10-25 | D-045: outbox событий — задачи pg-boss в транзакции запроса, без отдельной таблицы (решение владельца) |

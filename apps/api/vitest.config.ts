@@ -7,6 +7,7 @@ if (existsSync('../../.env')) process.loadEnvFile('../../.env')
 export default defineConfig({
 	test: {
 		globalSetup: ['./src/test/global-setup.ts'],
+		setupFiles: ['./src/test/setup.ts'],
 		env: {
 			NODE_ENV: 'test',
 			DATABASE_URL: process.env.DATABASE_URL_TEST ?? '',

@@ -1,5 +1,5 @@
 // Контекст школы для сервисов — один и тот же у процедуры и у задачи (BaseCtx): транзакция, школа, время, лог,
-// события и задачи в этой транзакции.
+// события, задачи и письма в этой транзакции.
 import { schools } from '@dinastia/db'
 import { eq } from 'drizzle-orm'
 import type { BaseCtx } from './context.ts'
@@ -8,9 +8,11 @@ import { withTenant } from './db/tenant.ts'
 import { emitFor } from './events.ts'
 import { jobsFor } from './jobs.ts'
 import type { Logger } from './log.ts'
+import { mailFor } from './mail/send.ts'
 
 export function tenantCtx(tx: Tx, school: BaseCtx['school'], env: { now: () => Date; log: Logger }): BaseCtx {
-	return { db: tx, school, now: env.now, log: env.log, emit: emitFor(tx, school.id), jobs: jobsFor(tx, school.id) }
+	const jobs = jobsFor(tx, school.id)
+	return { db: tx, school, now: env.now, log: env.log, emit: emitFor(tx, school.id), jobs, mail: mailFor(jobs) }
 }
 
 /** Активная школа по id (задачи: школу могли приостановить или удалить, пока задача ждала). */

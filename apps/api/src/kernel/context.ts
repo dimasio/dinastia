@@ -3,6 +3,7 @@ import type { Permission } from '../permissions.ts'
 import type { Tx } from './db/client.ts'
 import type { Emit } from './events.ts'
 import type { Jobs } from './jobs.ts'
+import type { MailApi } from './mail/send.ts'
 
 export type { Tx }
 
@@ -23,6 +24,8 @@ export interface BaseCtx {
 	emit: Emit
 	/** Поставить фоновую задачу в этой же транзакции (скилл background-jobs). */
 	jobs: Jobs
+	/** Письмо из шаблона — задачей в этой же транзакции (скилл notifications). */
+	mail: MailApi
 }
 
 /** Контекст запроса участника школы. */

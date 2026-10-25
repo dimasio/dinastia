@@ -18,6 +18,11 @@ const Env = z.object({
 
 	AUTH_SECRET: z.string().min(32),
 	TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+	/** Схема очереди задач pg-boss; в тестах — своя у каждого процесса (src/test/setup.ts). */
+	BOSS_SCHEMA: z
+		.string()
+		.regex(/^[a-z_][a-z0-9_]*$/)
+		.default('pgboss'),
 	/** Попыток входа по паролю в минуту с одного IP. Меняется только вне production (e2e: все входы с 127.0.0.1). */
 	AUTH_SIGN_IN_LIMIT: z.coerce.number().int().min(1).max(1000).default(5),
 

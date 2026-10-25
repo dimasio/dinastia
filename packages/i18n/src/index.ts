@@ -2,6 +2,7 @@
 import i18next, { type i18n } from 'i18next'
 import auth from '../locales/ru/auth.json' with { type: 'json' }
 import common from '../locales/ru/common.json' with { type: 'json' }
+import emails from '../locales/ru/emails.json' with { type: 'json' }
 import errors from '../locales/ru/errors.json' with { type: 'json' }
 import home from '../locales/ru/home.json' with { type: 'json' }
 import nav from '../locales/ru/nav.json' with { type: 'json' }
@@ -12,6 +13,7 @@ export const resources = {
 	ru: {
 		common,
 		errors,
+		emails,
 		auth,
 		nav,
 		home,

@@ -1,7 +1,7 @@
 // Фоновые задачи (скилл background-jobs, D-008): defineJob в modules/<m>/jobs.ts, постановка ctx.jobs.send в
 // транзакции запроса — откат транзакции отменяет и задачу. Выполняет воркер (src/worker.ts).
 import { sql } from 'drizzle-orm'
-import { fromDrizzle, type SendOptions } from 'pg-boss'
+import { fromDrizzle, type PgBoss, type SendOptions } from 'pg-boss'
 import type { z } from 'zod'
 import { boss } from './boss.ts'
 import type { BaseCtx } from './context.ts'
@@ -50,6 +50,15 @@ export const sendOptions = (def: Pick<JobDef, 'retry' | 'timeoutSeconds'>): Send
 	expireInSeconds: def.timeoutSeconds ?? 300,
 })
 
+const ensured = new Set<string>()
+
+/** Очередь задачи (создаётся при первой постановке или старте воркера; DML в pgboss.queue, идемпотентно). */
+export async function ensureQueue(b: PgBoss, job: Pick<JobDef, 'name' | 'retry' | 'timeoutSeconds'>) {
+	if (ensured.has(job.name)) return
+	if (!(await b.getQueue(job.name))) await b.createQueue(job.name, sendOptions(job))
+	ensured.add(job.name)
+}
+
 export interface Jobs {
 	/** Поставить задачу школы в текущей транзакции; `startAfter` — отложенный запуск. Вернёт id или null (дубль singletonKey). */
 	send<D>(job: JobDef<D>, data: D, opts?: { startAfter?: Date | number }): Promise<string | null>
@@ -62,7 +71,9 @@ export function jobsFor(tx: Tx, schoolId: string): Jobs {
 			if (job.scope === 'all-schools') throw new Error(`задача «${job.name}» обходит все школы — её ставит расписание`)
 			const parsed = job.schema.parse(data)
 			const payload: JobPayload = { schoolId, data: parsed }
-			return (await boss()).send(job.name, payload as object, {
+			const b = await boss()
+			await ensureQueue(b, job)
+			return b.send(job.name, payload as object, {
 				...sendOptions(job),
 				...(job.singletonKey ? { singletonKey: `${schoolId}:${job.singletonKey(parsed)}` } : {}),
 				...(opts.startAfter !== undefined ? { startAfter: opts.startAfter } : {}),

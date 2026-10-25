@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import type { PgBoss } from 'pg-boss'
 import { BOSS_SCHEMA, workerBoss } from '#/kernel/boss.ts'
 import { db } from '#/kernel/db/client.ts'
+import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { startWorkers } from '#/kernel/worker-runtime.ts'
 
 let running: { boss: PgBoss; stop: () => Promise<void> } | null = null
@@ -48,4 +49,19 @@ export async function jobStates(name: string) {
 		sql`select state, retry_count from ${sql.raw(BOSS_SCHEMA)}.job where name = ${name} order by created_on`,
 	)
 	return rows.rows
+}
+
+/** Последнее письмо на адрес после выполнения очереди (письма уходят задачами). */
+export async function lastMailTo(to: string) {
+	await drainJobs()
+	const mail = memoryOutbox.findLast((m) => m.to === to)
+	if (!mail) throw new Error(`нет письма на ${to}`)
+	return mail
+}
+
+/** Токен из ссылки приглашения в последнем письме на адрес. */
+export async function inviteToken(to: string) {
+	const token = (await lastMailTo(to)).text.match(/\/invite\/([\w-]+)/)?.[1]
+	if (!token) throw new Error(`в письме на ${to} нет ссылки приглашения`)
+	return token
 }

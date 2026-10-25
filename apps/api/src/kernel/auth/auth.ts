@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { magicLink } from 'better-auth/plugins'
 import { appOrigin, config } from '../config.ts'
 import { db } from '../db/client.ts'
-import { sendMail } from '../mail.ts'
+import { sendMail } from '../mail/transport.ts'
 import { accounts, rateLimits, sessions, users, verifications } from './schema.ts'
 
 const port = config.APP_PUBLIC_PORT ? `:${config.APP_PUBLIC_PORT}` : ''

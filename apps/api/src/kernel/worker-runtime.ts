@@ -5,7 +5,7 @@ import type { JobResult, PgBoss } from 'pg-boss'
 import { ZodError } from 'zod'
 import { withTenant } from './db/tenant.ts'
 import { AppError } from './errors.ts'
-import { type AnyJob, type JobPayload, sendOptions } from './jobs.ts'
+import { type AnyJob, ensureQueue, type JobPayload } from './jobs.ts'
 import { log as rootLog } from './log.ts'
 import { allJobs } from './registry.ts'
 import { activeSchool, forEachSchool, tenantCtx } from './tenant-ctx.ts'
@@ -55,17 +55,11 @@ export async function settle(def: AnyJob, payload: JobPayload, meta: { jobId: st
 	}
 }
 
-/** Очереди всех задач реестра (создание — DML в pgboss.queue, идемпотентно). */
-export async function ensureQueues(b: PgBoss, jobs = allJobs()) {
-	const existing = new Set((await b.getQueues()).map((q) => q.name))
-	for (const job of jobs) if (!existing.has(job.name)) await b.createQueue(job.name, sendOptions(job))
-}
-
 /** Запустить обработчики всех очередей и расписания; вернёт функцию остановки обработчиков. */
 export async function startWorkers(b: PgBoss, opts: { pollingIntervalSeconds?: number } = {}) {
 	const jobs = allJobs()
-	await ensureQueues(b, jobs)
 	for (const job of jobs) {
+		await ensureQueue(b, job)
 		await b.work<JobPayload>(
 			job.name,
 			{ perJobResults: true, batchSize: 1, pollingIntervalSeconds: opts.pollingIntervalSeconds ?? 2 },

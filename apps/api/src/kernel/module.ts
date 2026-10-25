@@ -3,6 +3,7 @@
 // собираются из него.
 import { type Subscriber, subscriberJob } from './events.ts'
 import type { AnyJob } from './jobs.ts'
+import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
 
 export interface ModuleDef<
@@ -20,6 +21,8 @@ export interface ModuleDef<
 	/** Подписчики на события других модулей (`modules/<m>/events.ts`). */
 	// biome-ignore lint/suspicious/noExplicitAny: у каждого события своя схема данных
 	subscribers?: Subscriber<any>[]
+	/** Шаблоны писем модуля (`modules/<m>/emails/*.tsx`); ключ — `<модуль>.<письмо>`. */
+	emails?: AnyEmail[]
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
@@ -28,6 +31,8 @@ export function defineModule<const N extends string, R extends object, P extends
 	if (def.permissions.module !== def.name) {
 		throw new Error(`модуль ${def.name}: разрешения объявлены для «${def.permissions.module}»`)
 	}
+	for (const e of def.emails ?? [])
+		if (!e.key.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: письмо «${e.key}» чужого модуля`)
 	for (const job of def.jobs ?? [])
 		if (!job.name.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: задача «${job.name}» чужого модуля`)
 	return def

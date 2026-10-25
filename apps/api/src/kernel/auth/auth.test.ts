@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '#/app.ts'
 import { db, pool } from '#/kernel/db/client.ts'
-import { memoryOutbox } from '#/kernel/mail.ts'
+import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { TEST_PASSWORD, uniqueEmail } from '#/test/users.ts'
 import { users } from './schema.ts'
 

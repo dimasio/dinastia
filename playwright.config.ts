@@ -22,7 +22,8 @@ export default defineConfig({
 	// Без turbo: он запускает задачи в отдельных группах процессов, и после прогона api/vite оставались висеть.
 	webServer: [
 		{
-			command: 'pnpm --filter @dinastia/api start',
+			// API + воркер задач: письма (приглашения) уходят из очереди
+			command: 'pnpm --filter @dinastia/api start:all',
 			// все входы набора — с 127.0.0.1; лимит по IP (5/мин) иначе роняет сценарии. В production не меняется.
 			env: { AUTH_SIGN_IN_LIMIT: '1000' },
 			url: 'http://localhost:3000/health/live',

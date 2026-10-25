@@ -4,7 +4,7 @@ import pg from 'pg'
 import { PgBoss } from 'pg-boss'
 import { config } from './config.ts'
 
-export const BOSS_SCHEMA = 'pgboss'
+export const BOSS_SCHEMA = config.BOSS_SCHEMA
 
 let sender: Promise<PgBoss> | null = null
 
@@ -40,10 +40,10 @@ export async function stopBoss() {
 }
 
 /** Поставить/обновить схему pg-boss под владельцем и выдать app_user права на данные (без DDL). */
-export async function installBoss(ownerUrl: string) {
+export async function installBoss(ownerUrl: string, schema = BOSS_SCHEMA) {
 	const owner = new PgBoss({
 		connectionString: ownerUrl,
-		schema: BOSS_SCHEMA,
+		schema,
 		max: 1,
 		schedule: false,
 		supervise: false,
@@ -54,13 +54,13 @@ export async function installBoss(ownerUrl: string) {
 	await client.connect()
 	try {
 		await client.query(`
-			GRANT USAGE ON SCHEMA ${BOSS_SCHEMA} TO app_user;
-			GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ${BOSS_SCHEMA} TO app_user;
-			GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ${BOSS_SCHEMA} TO app_user;
-			GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA ${BOSS_SCHEMA} TO app_user;
-			ALTER DEFAULT PRIVILEGES IN SCHEMA ${BOSS_SCHEMA} GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
-			ALTER DEFAULT PRIVILEGES IN SCHEMA ${BOSS_SCHEMA} GRANT USAGE, SELECT ON SEQUENCES TO app_user;
-			ALTER DEFAULT PRIVILEGES IN SCHEMA ${BOSS_SCHEMA} GRANT EXECUTE ON FUNCTIONS TO app_user;
+			GRANT USAGE ON SCHEMA ${schema} TO app_user;
+			GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ${schema} TO app_user;
+			GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ${schema} TO app_user;
+			GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA ${schema} TO app_user;
+			ALTER DEFAULT PRIVILEGES IN SCHEMA ${schema} GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+			ALTER DEFAULT PRIVILEGES IN SCHEMA ${schema} GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+			ALTER DEFAULT PRIVILEGES IN SCHEMA ${schema} GRANT EXECUTE ON FUNCTIONS TO app_user;
 		`)
 	} finally {
 		await client.end()

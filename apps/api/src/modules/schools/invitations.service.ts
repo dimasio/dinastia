@@ -4,17 +4,25 @@ import { type StaffInvite, StaffInvite as StaffInviteSchema } from '@dinastia/co
 import { and, eq } from 'drizzle-orm'
 import { users } from '#/kernel/auth/schema.ts'
 import { appOrigin } from '#/kernel/config.ts'
-import type { SchoolCtx, Tx } from '#/kernel/context.ts'
+import type { BaseCtx, SchoolCtx, Tx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
-import { sendMail } from '#/kernel/mail.ts'
+import { deliverEmail } from '#/kernel/mail/send.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { invitationEmail } from './emails/invitation.tsx'
+import { sendInvitationJob } from './jobs.ts'
 import { invitations } from './schema.ts'
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex')
+/** Хэш случайного значения, которое никто не знает: приглашение не принять, пока задача не выпустит токен. */
+const unusableHash = () => hashToken(randomBytes(32).toString('base64url'))
 
-/** Пригласить сотрудника или продлить действующее приглашение на тот же email. Роль admin выдаёт только владелец. */
+/**
+ * Пригласить сотрудника или продлить действующее приглашение на тот же email. Роль admin выдаёт только владелец.
+ * Письмо уходит задачей schools.send-invitation: она же выпускает токен (здесь — только заглушка хэша), чтобы токен
+ * не лежал в очереди. Откат транзакции — ни приглашения, ни письма.
+ */
 export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 	const { email, role } = StaffInviteSchema.parse(input)
 	if (!ctx.can('schools.members.manage')) fail.forbidden('NO_PERMISSION')
@@ -28,11 +36,10 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 		.limit(1)
 	if (existing) fail.conflict('ALREADY_MEMBER', { email })
 
-	const token = randomBytes(32).toString('base64url')
 	const values = {
 		email,
 		role,
-		tokenHash: hashToken(token),
+		tokenHash: unusableHash(),
 		invitedBy: ctx.member.id,
 		expiresAt: new Date(ctx.now().getTime() + INVITATION_TTL_MS),
 	}
@@ -46,14 +53,47 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 		})
 		.returning({ id: invitations.id, expiresAt: invitations.expiresAt })
 	if (!invitation) throw new Error('приглашение не создано')
+	await ctx.jobs.send(sendInvitationJob, { invitationId: invitation.id })
+	return { invitationId: invitation.id, expiresAt: invitation.expiresAt }
+}
 
-	const url = `${appOrigin(ctx.school.slug)}/invite/${token}`
-	await sendMail({
-		to: email,
-		subject: `Приглашение в школу «${ctx.school.name}»`,
-		text: `${ctx.user.name} приглашает вас в школу «${ctx.school.name}».\n\nПринять приглашение (ссылка действует 7 дней):\n${url}`,
+/**
+ * Задача: выпустить токен и отправить письмо-приглашение. Повтор выпускает новый токен — ссылка из прежнего письма
+ * перестаёт работать; приглашение уже не pending или истекло — ничего не делать.
+ */
+export async function sendInvitation(ctx: BaseCtx, invitationId: string) {
+	const [inv] = await ctx.db
+		.select({
+			email: invitations.email,
+			role: invitations.role,
+			status: invitations.status,
+			expiresAt: invitations.expiresAt,
+			inviterName: users.name,
+		})
+		.from(invitations)
+		.innerJoin(members, eq(members.id, invitations.invitedBy))
+		.innerJoin(users, eq(users.id, members.userId))
+		.where(eq(invitations.id, invitationId))
+		.limit(1)
+	if (!inv || inv.status !== 'pending' || inv.expiresAt <= ctx.now()) {
+		ctx.log.info({ invitationId }, 'invitation is not pending, email skipped')
+		return
+	}
+	if (inv.role === 'owner' || inv.role === 'student') throw new Error(`приглашение с ролью ${inv.role}`)
+	const token = randomBytes(32).toString('base64url')
+	await ctx.db
+		.update(invitations)
+		.set({ tokenHash: hashToken(token) })
+		.where(eq(invitations.id, invitationId))
+	await deliverEmail(ctx.school, invitationEmail, {
+		to: inv.email,
+		data: {
+			inviterName: inv.inviterName,
+			role: inv.role,
+			url: `${appOrigin(ctx.school.slug)}/invite/${token}`,
+			expiresAt: inv.expiresAt,
+		},
 	})
-	return { invitationId: invitation.id, expiresAt: invitation.expiresAt, url }
 }
 
 async function findPending(tx: Tx, token: string, now: Date) {

@@ -32,9 +32,13 @@ export async function resetDatabase(ownerUrl: string) {
 					WHERE n.nspname = 'public' AND t.typtype = 'e' LOOP
 					EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE', r.typname);
 				END LOOP;
+				-- очередь задач: основная схема и схемы тестовых процессов (pgboss_<n>)
+				FOR r IN SELECT nspname FROM pg_namespace
+					WHERE nspname = '${BOSS_SCHEMA}' OR nspname LIKE 'pgboss\\_%' LOOP
+					EXECUTE format('DROP SCHEMA %I CASCADE', r.nspname);
+				END LOOP;
 			END $$;
 			DROP SCHEMA IF EXISTS drizzle CASCADE;
-			DROP SCHEMA IF EXISTS ${BOSS_SCHEMA} CASCADE;
 		`)
 	} finally {
 		await client.end()

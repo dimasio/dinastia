@@ -5,14 +5,16 @@ import { createORPCClient, ORPCError } from '@orpc/client'
 import { RPCLink } from '@orpc/client/fetch'
 import type { ContractRouterClient } from '@orpc/contract'
 import { inArray } from 'drizzle-orm'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db, pool } from '#/kernel/db/client.ts'
-import { memoryOutbox } from '#/kernel/mail.ts'
 import { app, call, host, signUp } from '#/test/http.ts'
+import { inviteToken, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { uniqueSlug } from '#/test/users.ts'
 
 const created: string[] = []
+beforeAll(startTestWorker)
 afterAll(async () => {
+	await stopTestWorker()
 	if (created.length) await db.delete(schools).where(inArray(schools.id, created))
 	await pool.end()
 })
@@ -91,7 +93,7 @@ describe('приглашения через API', () => {
 		const body = await created.json()
 		expect(JSON.stringify(body)).not.toMatch(/token|invite\//)
 
-		const link = memoryOutbox.find((m) => m.to === invitee.email)?.text.match(/\/invite\/(\S+)/)?.[1] ?? ''
+		const link = await inviteToken(invitee.email)
 		const info = await json(await call('GET', `/api/v1/invitations/${link}`, { slug: school.slug }))
 		expect(info).toMatchObject({ role: 'teacher', email: invitee.email, school: { slug: school.slug } })
 
