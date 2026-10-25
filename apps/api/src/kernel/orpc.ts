@@ -2,7 +2,7 @@
 //   pub       — без входа; ctx.host — что за хост (корень / школа / неизвестно)
 //   authed    — нужна сессия; ctx.user
 //   atSchool  — хост школы + транзакция школы (ctx.db), без требования членства (приглашения)
-//   school    — вошедший активный участник школы хоста: полный SchoolCtx (db, school, user, member, now)
+//   school    — вошедший активный участник школы хоста: полный SchoolCtx (db, school, user, member, now, emit, jobs)
 import { type Contract, contract } from '@dinastia/contracts'
 import { schools } from '@dinastia/db'
 import { implement, ORPCError, os } from '@orpc/server'
@@ -17,6 +17,7 @@ import { AppError } from './errors.ts'
 import { type HostTarget, resolveHost } from './host.ts'
 import type { Logger } from './log.ts'
 import { findActiveMember } from './members/members.ts'
+import { tenantCtx } from './tenant-ctx.ts'
 
 /** Контекст, который HTTP-слой передаёт в каждую процедуру. */
 export interface RequestCtx {
@@ -93,7 +94,7 @@ export const mw = { host: hostMw, session: sessionMw, school: schoolMw, tenantTx
 export function schoolCtx(
 	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member']; can: SchoolCtx['can'] },
 ): SchoolCtx {
-	return { db: c.db, school: c.school, user: c.user, member: c.member, can: c.can, now: c.now, log: c.log }
+	return { ...tenantCtx(c.db, c.school, c), user: c.user, member: c.member, can: c.can }
 }
 
 /** AppError сервиса → ORPCError с тем же HTTP-классом и `data.code` (скилл data-access). */

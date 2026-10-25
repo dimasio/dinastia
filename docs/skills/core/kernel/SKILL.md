@@ -27,8 +27,8 @@ description: Устройство и доработка ядра Dinastia (то�
 | права | `kernel/permissions.ts`, `kernel/router-guard.ts`, `permissions.ts` | `definePermissions`, `mergePermissions`, `createCan`, страж «у процедуры участника есть can()» | есть | `permissions` |
 | логи, health | `kernel/log.ts`, `app.ts` | pino с маскированием ПДн, `ctx.log`, `x-request-id`, `/health/live|ready` | есть | `observability` |
 | почта | `kernel/mail.ts` | `sendMail` (SMTP / memory в тестах) | есть (временная); `defineEmail` + очередь — 1.8 | `notifications` |
-| модули | `kernel/module.ts`, `modules/index.ts` | `defineModule`, `collectRouters`; генератор `pnpm gen:module` (`tools/src/gen/`, вставка у маркеров `gen:`) | есть; события, задачи, настройки в модуле — 1.6 | `module` |
-| события, задачи | `kernel/events/*`, `kernel/jobs/*` | outbox, `defineEvent`/`on`, pg-boss, `defineJob`, воркер | фаза 1.6 | `events-automations`, `background-jobs` |
+| модули | `kernel/module.ts`, `modules/index.ts` | `defineModule` (router, permissions, jobs, subscribers), `collectRouters`, `collectJobs` → `kernel/registry.ts`; генератор `pnpm gen:module` (`tools/src/gen/`, вставка у маркеров `gen:`) | есть; настройки в модуле — 1.8+ | `module` |
+| события, задачи | `kernel/{events,jobs,boss,registry,tenant-ctx,worker-runtime}.ts`, `src/worker.ts`, `src/jobs-cli.ts` | `defineEvent`/`on`/`ctx.emit` (outbox = задачи pg-boss, D-045), `defineJob`/`ctx.jobs.send`, `forEachSchool`, `BaseCtx`, воркер, `pnpm jobs:list|run` | есть | `events-automations`, `background-jobs` |
 | файлы, видео | `kernel/storage/*`, `kernel/video/*` | presigned upload, `defineFilePurpose`, signed URL | фаза 1.7 | `files-media` |
 | журнал, http, вебхуки | `kernel/{audit,http,webhooks}.ts` | `ctx.audit`, `ctx.http`, `defineWebhookHandler` | фаза 1.11 | `security-baseline`, `integrations` |
 | документы | `kernel/documents/*` | `defineDocument`, `defineExport` | фаза 4 | `documents` |

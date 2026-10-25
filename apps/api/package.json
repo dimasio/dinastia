@@ -6,8 +6,11 @@
 		"#/*": "./src/*"
 	},
 	"scripts": {
-		"dev": "tsx watch --clear-screen=false src/main.ts",
+		"dev": "tsx watch --clear-screen=false src/dev.ts",
 		"start": "tsx src/main.ts",
+		"worker": "tsx src/worker.ts",
+		"jobs:list": "tsx src/jobs-cli.ts list",
+		"jobs:run": "tsx src/jobs-cli.ts run",
 		"typecheck": "tsc -p .",
 		"test": "vitest run",
 		"db:generate": "drizzle-kit generate",
@@ -29,6 +32,7 @@
 		"hono": "catalog:",
 		"nodemailer": "catalog:",
 		"pg": "catalog:",
+		"pg-boss": "catalog:",
 		"pino": "catalog:",
 		"zod": "catalog:"
 	},

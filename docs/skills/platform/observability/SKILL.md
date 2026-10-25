@@ -44,7 +44,7 @@ ctx.log.error({ err, provider: 'kinescope' }, 'video status failed')
 Ядро экспортирует Prometheus-метрики `/metrics` (закрыт снаружи):
 - `rpc_duration_seconds{procedure,status}`, `rpc_errors_total{procedure,code}`;
 - `jobs_queue_size{name}`, `jobs_failed_total{name}`, `jobs_duration_seconds{name}`;
-- `db_pool_in_use`, `outbox_lag_seconds`;
+- `db_pool_in_use`, `jobs_lag_seconds` (старейшая готовая задача pg-boss);
 - бизнес: `enrollments_created_total`, `submissions_pending` (счётчики без ПДн, без `schoolId` в метках —
   высокая кардинальность).
 
@@ -62,7 +62,7 @@ ctx.log.error({ err, provider: 'kinescope' }, 'video status failed')
 | 5xx API             | > 1 % за 5 мин                                             |
 | p95 процедуры       | > 1 с 10 мин                                               |
 | задачи `failed`     | рост > 10 за 15 мин или любая в `certificates.*`, `mail.*` |
-| outbox lag          | > 2 мин                                                    |
+| jobs lag            | > 2 мин                                                    |
 | диск/подключения БД | > 80 %                                                     |
 
 ## Продуктовая аналитика

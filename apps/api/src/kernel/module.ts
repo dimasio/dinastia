@@ -1,5 +1,8 @@
-// Модуль (скилл module): вертикальный срез — роутер (реализация своего контракта), разрешения, далее события, задачи,
-// настройки (фаза 1.6+). Реестр модулей — src/modules/index.ts; роутер и права приложения собираются из него.
+// Модуль (скилл module): вертикальный срез — роутер (реализация своего контракта), разрешения, фоновые задачи,
+// подписчики событий; далее настройки. Реестр модулей — src/modules/index.ts; роутер, права и задачи приложения
+// собираются из него.
+import { type Subscriber, subscriberJob } from './events.ts'
+import type { AnyJob } from './jobs.ts'
 import type { ModulePermissions } from './permissions.ts'
 
 export interface ModuleDef<
@@ -12,6 +15,11 @@ export interface ModuleDef<
 	/** Процедуры по namespace контракта: { <namespace>: { <procedure>: … } }. */
 	router: R
 	permissions: P
+	/** Фоновые задачи модуля (`modules/<m>/jobs.ts`); имя — `<модуль>.<действие>`. */
+	jobs?: AnyJob[]
+	/** Подписчики на события других модулей (`modules/<m>/events.ts`). */
+	// biome-ignore lint/suspicious/noExplicitAny: у каждого события своя схема данных
+	subscribers?: Subscriber<any>[]
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
@@ -20,6 +28,8 @@ export function defineModule<const N extends string, R extends object, P extends
 	if (def.permissions.module !== def.name) {
 		throw new Error(`модуль ${def.name}: разрешения объявлены для «${def.permissions.module}»`)
 	}
+	for (const job of def.jobs ?? [])
+		if (!job.name.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: задача «${job.name}» чужого модуля`)
 	return def
 }
 
@@ -36,4 +46,24 @@ export function collectRouters<M extends Modules>(modules: M): UnionToIntersecti
 		}
 	}
 	return merged as UnionToIntersection<M[keyof M]['router']>
+}
+
+/** Задачи всех модулей и задачи подписчиков (`<модуль>.on.<событие>`); имя задачи не должно повторяться. */
+export function collectJobs(modules: Modules) {
+	const jobs: AnyJob[] = []
+	const subscribers: { event: string; job: AnyJob }[] = []
+	for (const m of Object.values(modules)) {
+		jobs.push(...(m.jobs ?? []))
+		for (const s of m.subscribers ?? []) {
+			const job = subscriberJob(m.name, s)
+			jobs.push(job)
+			subscribers.push({ event: s.event.name, job })
+		}
+	}
+	const seen = new Set<string>()
+	for (const j of jobs) {
+		if (seen.has(j.name)) throw new Error(`задача «${j.name}» объявлена дважды (для двух подписок — key в on())`)
+		seen.add(j.name)
+	}
+	return { jobs, subscribers }
 }

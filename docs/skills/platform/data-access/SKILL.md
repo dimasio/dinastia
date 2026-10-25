@@ -6,7 +6,7 @@ description: Код доступа к данным и бизнес-логика 
 # Доступ к данным
 
 > Статус: сверено с кодом в фазе 0 (0.3–0.6) и 1 (1.1: lint-запрет глобального клиента; 1.2: `listQuery`/`toPage`);
-> `ctx.emit`/`ctx.jobs` — 1.6.
+> 1.6: `ctx.emit`/`ctx.jobs`, `BaseCtx`.
 
 Контекст запроса — `docs/specs/architecture.md` §4.
 
@@ -43,9 +43,11 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 }
 ```
 
-`SchoolCtx` (`apps/api/src/kernel/context.ts`): `db`, `school`, `user`, `member`, `can`, `now`, `log`; с фазы 1.6 —
-`emit`, `jobs`. В процедуре его собирает `schoolCtx(context)` (скилл `api-endpoints`); в интеграционном тесте — вручную
-внутри `withTenant` (образец — `inSchool` в `apps/api/src/modules/schools/schools.test.ts`).
+Контексты (`apps/api/src/kernel/context.ts`): `BaseCtx` — `db`, `school`, `now`, `log`, `emit`, `jobs` (общий для
+процедуры и фоновой задачи); `SchoolCtx = BaseCtx + user, member, can` (запрос участника). Сервис, которому не нужен
+пользователь, принимает `BaseCtx` — его можно вызвать и из задачи. В процедуре контекст собирает `schoolCtx(context)`
+(скилл `api-endpoints`); в задаче — ядро; в интеграционном тесте — `tenantCtx(tx, school, { now, log })` внутри
+`withTenant` (образец — `inSchool` в `apps/api/src/modules/schools/schools.test.ts`).
 
 Списки с пагинацией, поиском и фильтрами — `listQuery()` + `toPage()` (`#/kernel/db/listing.ts`), раздел ниже.
 
@@ -63,8 +65,8 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
   в памяти; запрос в цикле по строкам запрещён.
 - **Другой модуль** — импорт функции из его `service.ts` (`import { getOrFail as getCourse } from '../courses/service'`);
   его таблицы напрямую не трогать.
-- **События** — `ctx.emit(event, data)`; доставляются после коммита. **Задачи** — `ctx.jobs.send(job, data)` в той же
-  транзакции.
+- **События** — `ctx.emit(event, data)`, **задачи** — `ctx.jobs.send(job, data)`: обе ставятся в транзакции запроса
+  (откат — ни события, ни задачи) и выполняются воркером после коммита (скиллы `events-automations`, `background-jobs`).
 - **Ошибки** — `fail.notFound(code)`, `fail.conflict(code)`, `fail.forbidden(code)`, `fail.invalid(code, data)` из
   `#/kernel/errors.ts` (как они превращаются в ответ API — скилл `api-endpoints` §3);
   `code` — `UPPER_SNAKE`, в i18n есть `errors:<code>`. Не бросать `Error` с текстом для пользователя.

@@ -26,7 +26,7 @@ closed:
 | 1.3 | `@dinastia/db` `blockTable`; реестр блоков, публикация строками, `pnpm gen:block`; демо-блок `callout` | backlog |
 | 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | backlog |
 | 1.5 | `check:registries` | backlog |
-| 1.6 | События (outbox) и задачи (pg-boss), воркер | backlog |
+| 1.6 | События (outbox) и задачи (pg-boss), воркер | done |
 | 1.7 | Файлы: S3, presigned upload, `files` | backlog |
 | 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | backlog |
 | 1.9 | Тест-фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix`, e2e-фикстуры | done |
@@ -40,3 +40,4 @@ closed:
 |---|---|
 | 2026-10-25 | D-043: ресурс-фреймворк на TanStack Table 9, состояние списка в адресе, `ResourceProvider` |
 | 2026-10-25 | D-044: `AUTH_SIGN_IN_LIMIT` вне production — e2e-набор упирался в лимит входов |
+| 2026-10-25 | D-045: outbox событий — задачи pg-boss в транзакции запроса, без отдельной таблицы (решение владельца) |

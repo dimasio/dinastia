@@ -1,74 +1,94 @@
 ---
 name: background-jobs
-description: Фоновые и периодические задачи Dinastia на pg-boss — defineJob в modules/<m>/jobs.ts (имя <модуль>.<действие>, zod-схема данных, handler с тенантным контекстом, retry, timeout, singleton/дедупликация, schedule cron, scope all-schools через forEachSchool), постановка ctx.jobs.send в транзакции, отложенный запуск, идемпотентность, воркер pnpm dev, просмотр и отладка. Использовать для «по расписанию», «раз в час», «в фоне», «рассылка», «пересчитать», «напоминание» — аналог шаблонов задач GaskarFM.
+description: Фоновые и периодические задачи Dinastia на pg-boss 12 — defineJob в modules/<m>/jobs.ts (имя <модуль>.<действие>, zod-схема данных, handler(ctx: BaseCtx, data) в транзакции школы, retry, timeoutSeconds, singletonKey, schedule cron по Москве для scope all-schools через forEachSchool), регистрация в defineModule({ jobs }), постановка ctx.jobs.send в транзакции запроса (откат — задачи нет), отложенный запуск startAfter, fail.* — без повтора, идемпотентность, воркер (src/worker.ts, в pnpm dev вместе с API), pnpm jobs:list / jobs:run, тесты с startTestWorker/drainJobs. Использовать для «по расписанию», «раз в час», «в фоне», «рассылка», «пересчитать», «напоминание» — аналог шаблонов задач GaskarFM.
 ---
 
 # Фоновые задачи
 
-> Статус: целевой — сверить с кодом в фазе 1 (пункт 1.6).
+> Статус: сверено с кодом в фазе 1 (пункт 1.6). Образцы — `apps/api/src/kernel/jobs.test.ts`.
 
-Очередь — pg-boss в той же Postgres (D-008). Воркер — отдельный процесс `apps/api` (`pnpm dev` запускает его);
-в проде масштабируется отдельно от API.
+Очередь — pg-boss в той же Postgres (D-008, схема `pgboss`). Воркер — отдельный процесс `apps/api/src/worker.ts`
+(в проде масштабируется отдельно от API; локально `pnpm dev` запускает его вместе с API).
 
 ## Задача
 
 ```ts
 // apps/api/src/modules/learning/jobs.ts
 import { z } from 'zod'
-import { defineJob } from '#/kernel/jobs'
-import { recalcProgress } from './progress.service'
-import { expireDue } from './enrollment.service'
+import { defineJob } from '#/kernel/jobs.ts'
+import { recalcProgress } from './progress.service.ts'
+import { openDueLessons } from './drip.service.ts'
 
 export const recalcProgressJob = defineJob({
-	name: 'learning.recalc-progress',
-	schema: z.object({ enrollmentId: z.string().uuid() }),
-	singletonKey: (d) => d.enrollmentId, // не ставить дубль, пока предыдущая в очереди
-	retry: { limit: 5, backoff: true },
-	handler: (ctx, d) => recalcProgress(ctx, d.enrollmentId), // ctx — тенантный, как в процедуре
+	name: 'learning.recalc-progress', // <модуль>.<действие>, kebab-case; это имя очереди — не переименовывать
+	schema: z.object({ enrollmentId: z.uuid() }), // данные — идентификаторы, объект перечитывается в handler
+	singletonKey: (d) => d.enrollmentId, // не ставить дубль, пока такая же ждёт (ключ — в пределах школы)
+	retry: { limit: 5, backoff: true }, // по умолчанию 3 с нарастанием
+	handler: (ctx, d) => recalcProgress(ctx, d.enrollmentId), // ctx: BaseCtx — транзакция школы задачи
 })
 
-export const expireEnrollmentsJob = defineJob({
-	name: 'learning.expire-enrollments',
+export const dripJob = defineJob({
+	name: 'learning.open-due-lessons',
 	schema: z.object({}),
-	schedule: '*/15 * * * *', // cron, Europe/Moscow
-	scope: 'all-schools', // ядро вызывает handler в forEachSchool, транзакция на школу
-	timeout: '10m',
-	handler: (ctx) => expireDue(ctx),
+	scope: 'all-schools', // ядро обходит активные школы, своя транзакция на школу (forEachSchool)
+	schedule: '*/15 * * * *', // cron по Москве; расписание — только у all-schools
+	timeoutSeconds: 600, // по умолчанию 300
+	handler: (ctx) => openDueLessons(ctx),
 })
-
-export const jobs = [recalcProgressJob, expireEnrollmentsJob]
 ```
 
-Постановка:
+Регистрация — в модуле: `defineModule({ name: 'learning', router, permissions, jobs: [recalcProgressJob, dripJob] })`
+(имя задачи — с префиксом модуля, иначе ошибка на старте).
+
+Постановка — из сервиса, в транзакции запроса:
 
 ```ts
-await ctx.jobs.send(recalcProgressJob, { enrollmentId }) // в транзакции запроса
-await ctx.jobs.send(deadlineReminderJob, { deadlineId }, { startAfter: dueAt }) // отложенно
+await ctx.jobs.send(recalcProgressJob, { enrollmentId }) // откат транзакции — задачи нет
+await ctx.jobs.send(reminderJob, { deadlineId }, { startAfter: dueAt }) // отложенно: Date или секунды
 ```
 
-`schoolId` добавляется к данным автоматически; в `handler` контекст уже тенантный.
+Школа добавляется к данным сама; в handler `ctx.school` — школа, поставившая задачу (приостановленная или удалённая к
+моменту запуска — задача пропускается). `ctx` — `BaseCtx` (`db`, `school`, `now`, `log`, `emit`, `jobs`): пользователя
+нет, поэтому сервисы для задач принимают `BaseCtx`.
 
 ## Правила
 
-- **Идемпотентность**: задача может выполниться повторно (retry, рестарт) — повтор не должен удваивать эффект
-  (проверяй состояние, используй `singletonKey`, уникальные индексы, «если уже отправлено — выйти»).
-- Данные задачи — **идентификаторы**, не объекты целиком (объект перечитывается в handler).
-- Длинная работа по многим записям — батчами по 500 с отдельной задачей на батч или курсор; одна задача ≤ `timeout`.
+- **Идемпотентность**: задача может выполниться повторно (повтор, рестарт воркера) — повтор не должен удваивать эффект
+  (проверяй состояние, `singletonKey`, уникальные индексы, «уже отправлено — выйти»).
+- Данные — **идентификаторы**, не объекты целиком; секреты (токены) в данные задачи не кладутся — они лежат в БД
+  открытым текстом до очистки.
+- Ошибка бизнес-правила (`fail.*`) и данные не по схеме повтором не исправить — задача сразу `failed`, без повторов;
+  остальные ошибки (сеть, гонка) — повтор по `retry`.
+- Долгая работа по многим записям — батчами по 500 или отдельной задачей на батч; одна попытка ≤ `timeoutSeconds`.
 - Внешние вызовы (почта, видео) — только в задачах, не в запросе пользователя.
-- Ошибка бизнес-правила, которую повтор не исправит, — `fail.*` → задача помечается `failed` без retry
-  (`permanent: true` у ошибки); сетевые ошибки — retry.
-- Тестовое время: `ctx.now()`.
+- Время — `ctx.now()`.
 
 ## Отладка
 
-- `pnpm jobs:list` — очереди и счётчики; `pnpm jobs:run <name> --school <slug> --data '{…}'` — выполнить
-  немедленно локально.
+- `pnpm jobs:list` — задачи реестра, расписания, сколько ждут и выполняются.
+- `pnpm jobs:run <имя> --school <slug> --data '{…}'` — выполнить сейчас в этом процессе (без очереди).
 - Логи задачи — с `job`, `jobId`, `schoolId`.
+
+## Тест
+
+```ts
+import { drainJobs, jobStates, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
+
+beforeAll(startTestWorker) // настоящий воркер pg-boss в процессе теста
+afterAll(stopTestWorker)
+
+it('…', async () => {
+	await withTenant(s.school.id, (tx) => tenantCtx(tx, s.school, { now, log }).jobs.send(recalcProgressJob, { enrollmentId }))
+	await drainJobs() // ждёт, пока выполнятся все готовые задачи, включая поставленные по ходу
+	expect((await jobStates('learning.recalc-progress')).map((j) => j.state)).toEqual(['completed'])
+})
+```
+
+Задачу all-schools проверяют прямым вызовом `runJob(job, { data: {} }, { jobId: 'test' })` (`kernel/worker-runtime.ts`).
 
 ## Готово, когда
 
-Есть тест handler на реальной БД (вызов напрямую с тестовым ctx), повторный запуск не меняет результат,
-`pnpm check` зелёный (`check:registries`: уникальное имя, валидный cron).
+Тест handler на реальной БД, повторный запуск не меняет результат, `pnpm check` зелёный.
 
 ## Остановись и спроси, если
 

@@ -5,7 +5,7 @@ description: Доменный модуль Dinastia — из чего состо
 
 # Модуль
 
-> Статус: сверено с кодом в фазе 1 (пункт 1.1); события, задачи, настройки модуля в `defineModule` — 1.6.
+> Статус: сверено с кодом в фазе 1 (1.1; 1.6: `jobs`, `subscribers` в `defineModule`); настройки модуля — позже.
 
 Архитектура — `docs/specs/architecture.md` §2. Модуль — вертикальный срез: БД + контракт + сервис + права + экраны
 одной части предметной области (`courses`, `learning`…). Список модулей — `docs/specs/domain.md` §1.
@@ -15,13 +15,15 @@ description: Доменный модуль Dinastia — из чего состо
 ```
 packages/contracts/src/<m>.ts           zod-схемы сущностей + контракт oRPC        → api-endpoints
 apps/api/src/modules/<m>/
-  index.ts                              defineModule({ name, router, permissions })
+  index.ts                              defineModule({ name, router, permissions, jobs?, subscribers? })
   schema.ts                             таблицы Drizzle                             → db-schema
   service.ts  (или <часть>.service.ts)  бизнес-логика, публичный API модуля         → data-access
   router.ts                             реализация контракта                        → api-endpoints
   permissions.ts                        definePermissions('<m>', …)                 → permissions
   policies.ts                           ограничения на уровне записи (фаза 2+)      → permissions
-  events.ts, jobs.ts, settings.ts       события, задачи, настройки (фаза 1.6+)      → events-automations, background-jobs, settings
+  events.ts                             defineEvent модуля + подписчики on() на чужие → events-automations
+  jobs.ts                               defineJob — фоновые задачи <m>.<действие>   → background-jobs
+  settings.ts                           настройки школы (позже)                     → settings
   *.test.ts                             тесты                                       → testing
 apps/web/src/features/<m>/
   nav.ts                                пункты меню областей (defineNav)            → web-screens

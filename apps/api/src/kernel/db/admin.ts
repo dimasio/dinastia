@@ -2,10 +2,11 @@ import { fileURLToPath } from 'node:url'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import pg from 'pg'
+import { BOSS_SCHEMA, installBoss } from '../boss.ts'
 
 export const migrationsFolder = fileURLToPath(new URL('../../../drizzle', import.meta.url))
 
-/** Применить миграции под ролью владельца схемы (app_owner). */
+/** Применить миграции под ролью владельца схемы (app_owner) и поставить/обновить схему очереди задач (pg-boss). */
 export async function migrateDatabase(ownerUrl: string) {
 	const client = new pg.Client({ connectionString: ownerUrl })
 	await client.connect()
@@ -14,6 +15,7 @@ export async function migrateDatabase(ownerUrl: string) {
 	} finally {
 		await client.end()
 	}
+	await installBoss(ownerUrl)
 }
 
 /** Удалить все объекты приложения в схеме public и журнал миграций. Только локально и в тестах. */
@@ -32,6 +34,7 @@ export async function resetDatabase(ownerUrl: string) {
 				END LOOP;
 			END $$;
 			DROP SCHEMA IF EXISTS drizzle CASCADE;
+			DROP SCHEMA IF EXISTS ${BOSS_SCHEMA} CASCADE;
 		`)
 	} finally {
 		await client.end()

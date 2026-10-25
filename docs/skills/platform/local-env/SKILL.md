@@ -25,7 +25,7 @@ corepack enable
 pnpm install
 cp .env.example .env        # значения по умолчанию подходят для compose
 pnpm env:up                 # Postgres, SeaweedFS, Mailpit + создание бакета; ждёт healthy
-pnpm dev                    # api + web (воркер задач — с фазы 1)
+pnpm dev                    # api + воркер задач (один процесс, src/dev.ts) + web
 ```
 
 Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (демо-данные).

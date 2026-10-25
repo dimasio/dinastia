@@ -9,6 +9,7 @@ import { AppError } from '#/kernel/errors.ts'
 import { log } from '#/kernel/log.ts'
 import { memoryOutbox } from '#/kernel/mail.ts'
 import { hasPermission } from '#/kernel/permissions.ts'
+import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { permissionMap } from '#/permissions.ts'
 import { createUser, uniqueSlug } from '#/test/users.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
@@ -51,13 +52,10 @@ function inSchool<T>(
 		s.school.id,
 		(tx) =>
 			fn({
-				db: tx,
-				school: s.school,
+				...tenantCtx(tx, s.school, { now, log }),
 				user: who.user,
 				member: who.member,
 				can: (p) => hasPermission(permissionMap, who.member.role, p),
-				now,
-				log,
 			}),
 		{
 			userId: who.user.id,

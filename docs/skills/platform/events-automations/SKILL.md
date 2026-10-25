@@ -1,11 +1,12 @@
 ---
 name: events-automations
-description: Доменные события Dinastia — defineEvent в modules/<m>/events.ts (имя <сущность>.<прошедшее время>, zod-схема), ctx.emit с доставкой после коммита через outbox, подписчики on(event, handler) в других модулях (асинхронно через задачи, идемпотентно), список событий MVP; после MVP — автоматизации школы — каталог триггеров defineTrigger (из событий), условий и действий defineAction (письмо, Telegram, зачислить, назначить тег). Использовать для «когда X — сделать Y», «при завершении урока», «реагировать на событие», «автоматизация», «автоворонка».
+description: Доменные события Dinastia — defineEvent в modules/<m>/events.ts (имя <сущность>.<прошедшее время>, zod-схема), ctx.emit — задачи подписчиков в транзакции запроса (outbox = pg-boss, D-045), подписчики on(event, handler) в других модулях (асинхронно через задачи, идемпотентно), список событий MVP; после MVP — автоматизации школы — каталог триггеров defineTrigger (из событий), условий и действий defineAction (письмо, Telegram, зачислить, назначить тег). Использовать для «когда X — сделать Y», «при завершении урока», «реагировать на событие», «автоматизация», «автоворонка».
 ---
 
 # События и автоматизации
 
-> Статус: целевой — события — фаза 1 (пункт 1.6); автоматизации — релиз R3.
+> Статус: события — сверено с кодом в фазе 1 (пункт 1.6, образец — `apps/api/src/kernel/jobs.test.ts`);
+> автоматизации — релиз R3 (целевое).
 
 События MVP — `docs/specs/domain.md` §4.
 
@@ -14,17 +15,13 @@ description: Доменные события Dinastia — defineEvent в modules
 ```ts
 // apps/api/src/modules/learning/events.ts
 import { z } from 'zod'
-import { defineEvent, on } from '#/kernel/events'
-import { quizGraded } from '../assessments/events'
-import { submissionReviewed } from '../assessments/events'
-import { markBlockGraded } from './progress.service'
+import { defineEvent, on } from '#/kernel/events.ts'
+import { quizGraded, submissionReviewed } from '../assessments/events.ts'
+import { markBlockGraded } from './progress.service.ts'
 
 export const lessonCompleted = defineEvent(
-	'lesson.completed',
-	z.object({
-		enrollmentId: z.string().uuid(),
-		lessonId: z.string().uuid(),
-	}),
+	'lesson.completed', // <сущность>.<прошедшее_время>, snake_case; неизменяемо
+	z.object({ enrollmentId: z.uuid(), lessonId: z.uuid() }),
 )
 
 export const subscribers = [
@@ -33,14 +30,17 @@ export const subscribers = [
 		e.status === 'accepted' ? markBlockGraded(ctx, { submissionId: e.submissionId }) : undefined,
 	),
 ]
+// modules/learning/index.ts: defineModule({ name: 'learning', …, subscribers })
 ```
 
-- Имя — `<сущность>.<что произошло>` в прошедшем времени (`enrollment.created`, `lesson.completed`), неизменяемо.
-- Данные — идентификаторы и факты на момент события (статус), не объекты целиком.
-- `ctx.emit(lessonCompleted, {...})` пишет событие в outbox в той же транзакции; после коммита ядро запускает
-  подписчиков **асинхронно** (каждый — отдельной задачей pg-boss с retry). Откат транзакции — события не было.
-- Подписчик — в модуле, которому нужна реакция (зависимость направлена к источнику события); handler
-  **идемпотентен** (скилл `background-jobs`).
+- Данные — идентификаторы и факты на момент события (статус), не объекты целиком; без секретов.
+- `ctx.emit(lessonCompleted, {...})` проверяет данные схемой и **в той же транзакции** ставит по задаче pg-boss на
+  каждого подписчика (`<модуль>.on.<событие>`, D-045 — это и есть outbox). Откат транзакции — события не было; после
+  коммита воркер выполняет подписчиков асинхронно, с повторами (скилл `background-jobs`).
+- Подписчик — в модуле, которому нужна реакция (зависимость направлена к источнику события); `ctx` — `BaseCtx` школы
+  события; handler **идемпотентен**. Два подписчика модуля на одно событие — `on(event, fn, { key: 'второй' })`.
+- Подписчик может поставить задачу или выпустить своё событие (`ctx.jobs.send`, `ctx.emit`) — цепочка
+  «событие → подписчик → задача».
 - Синхронная реакция внутри той же транзакции — не событие, а вызов сервиса.
 
 ## Когда событие, а когда вызов
@@ -72,8 +72,9 @@ defineAction({ key: 'send_email', schema: z.object({ templateId: Id }), perm: 'a
 
 ## Готово, когда
 
-Тест: действие → событие в outbox → подписчик выполнил реакцию; повтор подписчика не дублирует эффект;
-`pnpm check` зелёный (`check:registries`: уникальные имена, нет подписки на несуществующее событие).
+Тест (`startTestWorker`/`drainJobs`, скилл `background-jobs`): действие → подписчик выполнил реакцию; откат
+транзакции — реакции нет; повтор подписчика не дублирует эффект; `pnpm check` зелёный (дубли имён задач — ошибка на
+старте; `check:registries` — пункт 1.5).
 
 ## Остановись и спроси, если
 

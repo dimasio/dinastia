@@ -9,7 +9,7 @@ status: draft
 той же задаче).
 
 Модель **реляционная** (D-032): структура — таблицы, колонки, FK, enum. JSONB — только непрозрачные данные: тело
-форматированного текста (тип `rich` ниже), `audit_log.diff`, payload outbox/вебхуков.
+форматированного текста (тип `rich` ниже), `audit_log.diff`, payload вебхуков; события в доставке — данные задач pg-boss (D-045).
 
 Общие колонки тенантной таблицы (добавляет `tenantTable`): `id uuid default uuidv7()`, `school_id`, `created_at`,
 `updated_at`; связи между тенантными таблицами — составные FK `(school_id, x_id)` (D-038). Тип `rich` — документ Tiptap в колонке `richText()` (скилл `rich-text`).
@@ -86,7 +86,6 @@ status: draft
 | `audit_log`      | `actor_member_id`, `actor_operator_id?`, `action`, `entity`, `entity_id`, `diff jsonb` (непрозрачный), `ip`, `created_at` — только добавление |
 | `consents`       | `user_id`, `school_id?`, `kind` (`offer`, `privacy`, `pd_processing`, `marketing`), `version`, `ip`, `created_at`                             |
 | `webhook_events` | `provider`, `external_id` (уникален), `payload jsonb` (непрозрачный), `status`, `processed_at`                                                |
-| `outbox`         | `event`, `payload jsonb` (непрозрачный), `created_at`, `dispatched_at`                                                                        |
 
 ## 2. Роли
 
