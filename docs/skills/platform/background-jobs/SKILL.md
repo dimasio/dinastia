@@ -1,6 +1,6 @@
 ---
 name: background-jobs
-description: Фоновые и периодические задачи Dinastia на pg-boss 12 — defineJob в modules/<m>/jobs.ts (имя <модуль>.<действие>, zod-схема данных, handler(ctx: BaseCtx, data) в транзакции школы, retry, timeoutSeconds, singletonKey, schedule cron по Москве для scope all-schools через forEachSchool), регистрация в defineModule({ jobs }), постановка ctx.jobs.send в транзакции запроса (откат — задачи нет), отложенный запуск startAfter, fail.* — без повтора, идемпотентность, воркер (src/worker.ts, в pnpm dev вместе с API), pnpm jobs:list / jobs:run, тесты с startTestWorker/drainJobs. Использовать для «по расписанию», «раз в час», «в фоне», «рассылка», «пересчитать», «напоминание» — аналог шаблонов задач GaskarFM.
+description: Фоновые и периодические задачи Dinastia на pg-boss 12 — defineJob в modules/<m>/jobs.ts (имя <модуль>.<действие>, zod-схема данных, handler(ctx, data) с BaseCtx в транзакции школы, retry, timeoutSeconds, singletonKey, schedule cron по Москве для scope all-schools через forEachSchool), регистрация в defineModule({ jobs }), постановка ctx.jobs.send в транзакции запроса (откат — задачи нет), отложенный запуск startAfter, fail.* — без повтора, идемпотентность, воркер (src/worker.ts, в pnpm dev вместе с API), pnpm jobs:list / jobs:run, тесты с startTestWorker/drainJobs. Использовать для «по расписанию», «раз в час», «в фоне», «рассылка», «пересчитать», «напоминание» — аналог шаблонов задач GaskarFM.
 ---
 
 # Фоновые задачи
