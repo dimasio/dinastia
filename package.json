@@ -29,6 +29,7 @@
 		"e2e": "playwright test",
 		"gen:module": "pnpm --filter @dinastia/tools run gen:module",
 		"gen:resource": "pnpm --filter @dinastia/tools run gen:resource",
+		"gen:block": "pnpm --filter @dinastia/tools run gen:block",
 		"jobs:list": "pnpm --filter @dinastia/api run jobs:list",
 		"jobs:run": "pnpm --filter @dinastia/api run jobs:run",
 		"emails:preview": "pnpm --filter @dinastia/api run emails:preview"

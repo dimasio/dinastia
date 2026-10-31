@@ -21,6 +21,7 @@ export {
 export * from './components/ui/dropdown-menu.tsx'
 export { Input } from './components/ui/input.tsx'
 export { Label } from './components/ui/label.tsx'
+export * from './components/ui/select.tsx'
 export { Separator } from './components/ui/separator.tsx'
 export * from './components/ui/sheet.tsx'
 export { Skeleton } from './components/ui/skeleton.tsx'

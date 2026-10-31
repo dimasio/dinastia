@@ -5,7 +5,7 @@ description: Таблицы и миграции БД Dinastia (только ре
 
 # Схема БД
 
-> Статус: сверено с кодом в фазе 0 (0.3–0.4), `pii()` — в 1.11; `blockTable`/`settingsTable` — 1.3/1.6.
+> Статус: сверено с кодом в фазе 0 (0.3–0.4), `pii()` — в 1.11, `blockTable`/`blockChildTable`/`settingsTable` — в 1.3.
 
 Тенантность и RLS — `docs/specs/architecture.md` §3, реляционная модель и где допустим JSONB — §6 (D-032), модель
 данных — `docs/specs/domain.md`.
@@ -92,6 +92,17 @@ export const sections = tenantTable(
    `pnpm db:generate --custom --name backfill_<что>`: SQL, идемпотентный, батчами по `school_id` для больших таблиц.
 4. Таблицы типов блоков (`packages/blocks/src/<type>/table.ts`) и настроек модулей — такие же таблицы: изменение =
    миграция по этим же правилам (для блоков — данные и `draft`, и `published` строк).
+
+## Особые таблицы (хелперы `@dinastia/db`)
+
+| Хелпер | Таблица | Что добавляет сам |
+| --- | --- | --- |
+| `blockTable('<type>', cols)` | `block_<type>` — данные типа блока (скилл `lesson-blocks`) | PK `block_id`, `school_id`, составной FK на `lesson_blocks` с каскадом, `unique (school_id, block_id)`, RLS |
+| `blockChildTable(parent, '<часть>', cols)` | `block_<type>_<часть>` — список внутри блока | `id`, `school_id`, `block_id` (FK на таблицу типа, каскад), `position`, `item_key` (стабилен между черновиком и публикацией), индекс, RLS |
+| `settingsTable('<модуль>_settings', cols)` | настройки модуля, строка на школу (скилл `settings`) | PK `school_id` (FK на школу, каскад), `updated_at`, RLS; каждая колонка — с default |
+
+`lessonBlocks` (`lesson_blocks`) — таблица ядра в `@dinastia/db`; модули её не правят, а пользуются функциями
+`kernel/blocks`.
 
 Нельзя:
 - править миграцию, которая уже в main;

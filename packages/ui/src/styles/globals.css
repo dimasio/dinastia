@@ -6,6 +6,7 @@
 /* Классы компонентов @dinastia/ui и приложений */
 @source "../";
 @source "../../../../apps/web/src";
+@source "../../../blocks/src";
 
 @custom-variant dark (&:is(.dark *));
 

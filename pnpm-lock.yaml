@@ -229,6 +229,9 @@ importers:
       "@aws-sdk/s3-request-presigner":
         specifier: "catalog:"
         version: 3.1156.0
+      "@dinastia/blocks":
+        specifier: workspace:*
+        version: link:../../packages/blocks
       "@dinastia/contracts":
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -329,6 +332,9 @@ importers:
 
   apps/web:
     dependencies:
+      "@dinastia/blocks":
+        specifier: workspace:*
+        version: link:../../packages/blocks
       "@dinastia/contracts":
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -414,6 +420,55 @@ importers:
       vite:
         specifier: "catalog:"
         version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
+      vitest:
+        specifier: "catalog:"
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/blocks:
+    dependencies:
+      "@dinastia/contracts":
+        specifier: workspace:*
+        version: link:../contracts
+      "@dinastia/db":
+        specifier: workspace:*
+        version: link:../db
+      "@dinastia/ui":
+        specifier: workspace:*
+        version: link:../ui
+      lucide-react:
+        specifier: "catalog:"
+        version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
+      zod:
+        specifier: "catalog:"
+        version: 4.6.7
+    devDependencies:
+      "@dinastia/config":
+        specifier: workspace:*
+        version: link:../config
+      "@types/react":
+        specifier: "catalog:"
+        version: 19.3.0
+      "@types/react-dom":
+        specifier: "catalog:"
+        version: 19.3.0(@types/react@19.3.0)
+      drizzle-orm:
+        specifier: "catalog:"
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.1)
+      i18next:
+        specifier: "catalog:"
+        version: 26.5.10(typescript@7.0.2)
+      react:
+        specifier: "catalog:"
+        version: 19.3.1
+      react-dom:
+        specifier: "catalog:"
+        version: 19.3.1(react@19.3.1)
+      react-i18next:
+        specifier: "catalog:"
+        version: 17.1.8(i18next@26.5.10(typescript@7.0.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)
+      typescript:
+        specifier: "catalog:"
+        version: 7.0.2
       vitest:
         specifier: "catalog:"
         version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))

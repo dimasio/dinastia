@@ -1,6 +1,7 @@
 // Строки интерфейса (скилл i18n). Namespace = модуль/область; ключи — <ns>:<раздел>.<ключ>.
 import i18next, { type i18n } from 'i18next'
 import auth from '../locales/ru/auth.json' with { type: 'json' }
+import blocks from '../locales/ru/blocks.json' with { type: 'json' }
 import common from '../locales/ru/common.json' with { type: 'json' }
 import emails from '../locales/ru/emails.json' with { type: 'json' }
 import errors from '../locales/ru/errors.json' with { type: 'json' }
@@ -18,6 +19,7 @@ export const resources = {
 		nav,
 		home,
 		schools,
+		blocks,
 		// gen:module:entry
 	},
 } as const

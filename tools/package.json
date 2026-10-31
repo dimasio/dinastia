@@ -7,7 +7,8 @@
 		"skills:link": "tsx src/skills-link.ts",
 		"typecheck": "tsc -p .",
 		"gen:module": "tsx src/gen/module.ts",
-		"gen:resource": "tsx src/gen/resource.ts"
+		"gen:resource": "tsx src/gen/resource.ts",
+		"gen:block": "tsx src/gen/block.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

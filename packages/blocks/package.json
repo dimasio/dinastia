@@ -1,0 +1,44 @@
+{
+	"name": "@dinastia/blocks",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./server": "./src/server.ts",
+		"./client": "./src/client.ts",
+		"./tables": "./src/tables.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc -p .",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@dinastia/contracts": "workspace:*",
+		"@dinastia/db": "workspace:*",
+		"@dinastia/ui": "workspace:*",
+		"lucide-react": "catalog:",
+		"zod": "catalog:"
+	},
+	"peerDependencies": {
+		"drizzle-orm": "catalog:",
+		"i18next": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-i18next": "catalog:"
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"drizzle-orm": "catalog:",
+		"i18next": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-i18next": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

@@ -34,6 +34,24 @@ export function tenantColumns() {
 
 type TenantColumns = ReturnType<typeof tenantColumns>
 
+/** Политика RLS «только строки текущей школы» (чтение и запись) — у каждой таблицы с данными школы. */
+export function tenantIsolation(table: string, schoolId: AnyPgColumn) {
+	return pgPolicy(`${table}_tenant_isolation`, {
+		as: 'permissive',
+		for: 'all',
+		to: appUser,
+		using: sql`${schoolId} = ${currentSchoolId}`,
+		withCheck: sql`${schoolId} = ${currentSchoolId}`,
+	})
+}
+
+/** `school_id` из контекста транзакции, удаляется вместе со школой. */
+export const schoolIdColumn = () =>
+	uuid('school_id')
+		.notNull()
+		.default(currentSchoolId)
+		.references(() => schools.id, { onDelete: 'cascade' })
+
 /**
  * Тенантная таблица (D-006, D-038): колонки `tenantColumns()` добавляются сами, RLS включён, политика пускает только
  * строки текущей школы (чтение и запись), `unique (school_id, id)` — цель составных внешних ключей `tenantRef`.
@@ -47,13 +65,7 @@ export function tenantTable<TName extends string, TColumns extends Record<string
 ) {
 	return pgTable(name, { ...tenantColumns(), ...columns } as TColumns & TenantColumns, (t) => [
 		unique(`${name}_school_id_id_key`).on(t.schoolId, t.id),
-		pgPolicy(`${name}_tenant_isolation`, {
-			as: 'permissive',
-			for: 'all',
-			to: appUser,
-			using: sql`${t.schoolId} = ${currentSchoolId}`,
-			withCheck: sql`${t.schoolId} = ${currentSchoolId}`,
-		}),
+		tenantIsolation(name, t.schoolId),
 		...(extraConfig?.(t as never) ?? []),
 	]).enableRLS()
 }

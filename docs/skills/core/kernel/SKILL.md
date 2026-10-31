@@ -17,7 +17,7 @@ description: Устройство и доработка ядра Dinastia (то�
 
 | Часть | Где | Что | Состояние | Скилл |
 |---|---|---|---|---|
-| хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `pii`/`isPii`, `appUser` | есть; `blockTable`, `settingsTable` — 1.3/1.6 | `db-schema` |
+| хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `pii`/`isPii`, `appUser`, `lessonBlocks`, `blockTable`, `blockChildTable`, `settingsTable`, `tenantIsolation` | есть | `db-schema` |
 | БД | `kernel/db/{client,tenant,admin,cli,rls-coverage,listing}.ts` | пул `app_user`, `withTenant`, `withUser`, миграции/reset под `app_owner`, проверка покрытия RLS, списки `listQuery`/`toPage` | есть; `forEachSchool` — 1.6 | `data-access` |
 | конфиг | `kernel/config.ts` | zod-схема env, `.env` локально, `appOrigin()` | есть | `settings` |
 | ошибки | `kernel/errors.ts` | `AppError`, `fail.*` | есть | `data-access` |
@@ -36,8 +36,9 @@ description: Устройство и доработка ядра Dinastia (то�
 | документы | `kernel/documents/*` | `defineDocument`, `defineExport` | фаза 4 | `documents` |
 | тест-хелперы | `test/{users,http,global-setup}.ts` | `createUser`, `uniqueEmail/Slug`, `call`, `signUp`, чистая `dinastia_test` | есть; `withTestSchool`, `callAs`, `expectPermissionMatrix` — 1.9 | `testing` |
 | UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState`; ресурс-фреймворк `@dinastia/ui/resource` (`defineResource`, `ResourcePage`, `ResourceTable`, `ResourceForm`, `ResourceProvider`) | есть | `ui-kit`, `admin-resource` |
-| реестры блоков/вопросов | `packages/{blocks,questions}` | `defineBlock`, `defineQuestion`, хосты | фаза 1.3–1.4 | `lesson-blocks`, `question-types` |
-| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module,resource}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module`, `pnpm gen:resource` (маркеры `gen:<вид>:<место>`, разделы JSON — `jsonSection`) | есть; `gen:block/question`, `check:registries` — 1.3–1.5 | `skill-authoring`, `module`, `admin-resource` |
+| блоки уроков | `packages/blocks` (`.`, `/server`, `/tables`, `/client`), `kernel/blocks/blocks.ts`, `tools/src/gen/block.ts` | `defineBlock`, `defineBlockStorage`, `blockStorageIssues`; хранение и публикация: `createBlock`/`updateBlock`/`removeBlock`/`reorderBlocks`/`listBlocks`/`publishBlocks`/`listPublicBlocks`; `BlockEditorHost`/`BlockViewerHost`/`BlockPalette`; `pnpm gen:block` | есть | `lesson-blocks` |
+| реестр вопросов | `packages/questions` | `defineQuestion`, хосты | фаза 1.4 | `question-types` |
+| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module,resource,block}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module`, `pnpm gen:resource`, `pnpm gen:block` (маркеры `gen:<вид>:<место>`, разделы JSON — `jsonSection`) | есть; `gen:question`, `check:registries` — 1.3–1.5 | `skill-authoring`, `module`, `admin-resource` |
 
 ## Инварианты (ломать нельзя)
 

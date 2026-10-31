@@ -24,6 +24,7 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "catalog:",
 		"@aws-sdk/s3-request-presigner": "catalog:",
+		"@dinastia/blocks": "workspace:*",
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@dinastia/i18n": "workspace:*",

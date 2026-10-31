@@ -10,6 +10,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@dinastia/blocks": "workspace:*",
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/i18n": "workspace:*",
 		"@dinastia/ui": "workspace:*",
