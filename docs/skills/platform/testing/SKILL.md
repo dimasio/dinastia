@@ -71,7 +71,7 @@ it('приглашать сотрудников могут owner и admin', asyn
 | `startTestWorker()` / `stopTestWorker()`, `drainJobs()`, `jobStates(name)` (`test/jobs.ts`) | настоящий воркер pg-boss в тесте; дождаться выполнения задач и подписчиков; состояния задач очереди (скилл `background-jobs`). Очередь — своя схема `pgboss_<n>` у каждого процесса (`test/setup.ts`): файлы идут параллельно, чужие задачи не выполняются |
 | `lastMailTo(email)`, `inviteToken(email)` (`test/jobs.ts`) | выполнить очередь и взять последнее письмо на адрес (`memoryOutbox`) / токен приглашения из него |
 | `createUser()`, `uniqueEmail()`, `uniqueSlug()` (`test/users.ts`) | данные с уникальными значениями |
-| `memoryOutbox` (`kernel/mail.ts`) | письма в тестах (`MAIL_TRANSPORT=memory`) |
+| `memoryOutbox` (`kernel/mail/transport.ts`) | письма в тестах (`MAIL_TRANSPORT=memory`) |
 | `withTenant(schoolId, fn, { userId })` | прямой доступ к БД школы — для подготовки данных и проверки сервисов без HTTP |
 
 Сервис без HTTP (правила, гонки) — вызов функции с `SchoolCtx`, собранным внутри `withTenant` (образец — `inSchool` в

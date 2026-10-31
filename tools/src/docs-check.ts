@@ -71,6 +71,49 @@ for (const file of [...mdFiles(join(root, 'docs')), join(root, 'AGENTS.md'), joi
 	}
 }
 
+// Утверждения о репозитории (проверка реальности, пункт 1.13): команды `pnpm …` и пути в inline-коде скиллов
+// (кроме продуктовых — они о будущих модулях — и помеченных «целевой») и AGENTS.md существуют. Блоки кода — примеры.
+const scripts = new Set(Object.keys(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts ?? {}))
+const PNPM_BUILTIN = new Set([
+	'install',
+	'add',
+	'exec',
+	'dlx',
+	'run',
+	'why',
+	'audit',
+	'view',
+	'outdated',
+	'update',
+	'remove',
+	'list',
+	'store',
+	'i',
+	'up',
+])
+const claimFiles = [
+	join(root, 'AGENTS.md'),
+	...skills.filter((s) => !s.dir.startsWith('docs/skills/product/')).map((s) => join(root, s.file)),
+]
+for (const file of claimFiles) {
+	const text = readFileSync(file, 'utf8').replace(/```[\s\S]*?```/g, '')
+	if (/^> Статус: целевой/m.test(text)) continue
+	const where = relative(root, file)
+	for (const [, code] of text.matchAll(/`([^`\n]+)`/g)) {
+		if (!code) continue
+		for (const [, cmd] of code.matchAll(/(?:^|[\s;&|(])pnpm\s+(?:-s\s+)?([a-z][\w:-]*)/g)) {
+			if (!cmd || PNPM_BUILTIN.has(cmd) || scripts.has(cmd) || cmd.endsWith(':')) continue
+			fail(`${where}: команды \`pnpm ${cmd}\` нет в package.json`)
+		}
+		const path = /^((?:apps|packages|tools|tests|docker|\.github)\/[\w./@-]+|kernel\/[\w./-]+)$/.exec(code.trim())?.[1]
+		if (!path) continue
+		const full = path.startsWith('kernel/')
+			? join(root, 'apps/api/src', path)
+			: join(root, path.replace(/[.,:;]+$/, ''))
+		if (!existsSync(full)) fail(`${where}: пути \`${path}\` нет в репозитории`)
+	}
+}
+
 if (errors.length) {
 	for (const e of errors) console.error(`✗ ${e}`)
 	console.error(`docs:check — ошибок: ${errors.length}`)

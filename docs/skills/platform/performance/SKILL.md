@@ -21,7 +21,7 @@ description: Производительность Dinastia — бюджеты (p
 ## БД
 
 - Каждому фильтру/сортировке списка — индекс `(school_id, …)`; проверяй `EXPLAIN (ANALYZE, BUFFERS)` на сиде
-  `large` (`pnpm db:explain "<sql>" --school large`): нет `Seq Scan` по большим таблицам.
+  `large` (`EXPLAIN ANALYZE` в psql под `app_user` с `set_config('app.school_id', …)` — команда в скилле `debugging`): нет `Seq Scan` по большим таблицам.
 - Только нужные колонки (`select({ … })`), особенно мимо тяжёлых колонок (`richText` в списках не нужен; блоки урока в списке уроков не грузятся).
 - N+1 — запрещён (скилл `data-access`).
 - `count(*)` по большим выборкам — в списке (`listQuery`/`toPage`) с ограничением/оценкой (`total` ≥ 10 000 → «10 000+»).
