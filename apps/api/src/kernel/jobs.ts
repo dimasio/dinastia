@@ -6,6 +6,7 @@ import type { z } from 'zod'
 import { boss } from './boss.ts'
 import type { BaseCtx } from './context.ts'
 import type { Tx } from './db/client.ts'
+import type { Logger } from './log.ts'
 
 export interface JobDef<D = unknown> {
 	/** `<модуль>.<действие>` (kebab-case), неизменяемо: это имя очереди. */
@@ -21,8 +22,21 @@ export interface JobDef<D = unknown> {
 	singletonKey?: (data: D) => string
 	/** Cron по Москве — периодическая задача (данные — `{}`). */
 	schedule?: string
-	/** 'school' (по умолчанию) — задача одной школы; 'all-schools' — ядро обходит школы, транзакция на школу. */
+	/** 'school' (по умолчанию) — задача одной школы; 'all-schools' — ядро обходит школы, транзакция на школу;
+	 * 'global' — задача ядра без школы (`GlobalJobDef`). */
 	scope?: 'school' | 'all-schools'
+}
+
+/** Контекст задачи ядра без школы (scope 'global'): таблицы ядра без тенанта — глобальным клиентом БД. */
+export interface GlobalCtx {
+	now: () => Date
+	log: Logger
+}
+
+/** Задача ядра без школы (очистка глобальных таблиц). Модулям недоступна: у них всё — в школе. */
+export interface GlobalJobDef<D = unknown> extends Omit<JobDef<D>, 'handler' | 'scope'> {
+	scope: 'global'
+	handler: (ctx: GlobalCtx, data: D) => unknown
 }
 
 /** Данные задачи в очереди: школа + данные по схеме (для all-schools — без школы). */
@@ -33,14 +47,22 @@ export interface JobPayload {
 
 /** Задача с любыми данными — для реестров и исполнителя (у каждой задачи своя схема). */
 // biome-ignore lint/suspicious/noExplicitAny: вариантность: JobDef<{ id }> должен попадать в общий список
-export type AnyJob = JobDef<any>
+export type AnyJob = JobDef<any> | GlobalJobDef<any>
+
+/** Задача школы с любыми данными — её можно поставить из запроса (подписчики событий). */
+// biome-ignore lint/suspicious/noExplicitAny: см. AnyJob
+export type SchoolJob = JobDef<any>
 
 export const JOB_NAME = /^[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9.-]*$/
 
-export function defineJob<D>(def: JobDef<D>): JobDef<D> {
+export function defineJob<D>(def: GlobalJobDef<D>): GlobalJobDef<D>
+export function defineJob<D>(def: JobDef<D>): JobDef<D>
+export function defineJob<D>(def: JobDef<D> | GlobalJobDef<D>): JobDef<D> | GlobalJobDef<D> {
 	if (!JOB_NAME.test(def.name)) throw new Error(`задача «${def.name}»: имя — <модуль>.<действие> в kebab-case`)
 	if (def.schedule && (def.scope ?? 'school') === 'school')
-		throw new Error(`задача «${def.name}»: расписание только у scope 'all-schools' — у задачи школы нет школы`)
+		throw new Error(
+			`задача «${def.name}»: расписание только у scope 'all-schools' или 'global' — у задачи школы нет школы`,
+		)
 	return def
 }
 

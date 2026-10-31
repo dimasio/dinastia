@@ -77,7 +77,7 @@ export async function sendInvitation(ctx: BaseCtx, invitationId: string) {
 		.innerJoin(users, eq(users.id, members.userId))
 		.where(eq(invitations.id, invitationId))
 		.limit(1)
-	if (!inv || inv.status !== 'pending' || inv.expiresAt <= ctx.now()) {
+	if (inv?.status !== 'pending' || inv.expiresAt <= ctx.now()) {
 		ctx.log.info({ invitationId }, 'invitation is not pending, email skipped')
 		return
 	}

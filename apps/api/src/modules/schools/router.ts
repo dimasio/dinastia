@@ -2,6 +2,7 @@ import { appOrigin } from '#/kernel/config.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
@@ -11,6 +12,7 @@ export const schoolsRouter = {
 	create: impl.schools.create
 		.use(mw.host)
 		.use(mw.session)
+		.use(rateLimit({ name: 'schools.create', max: 5, windowSeconds: 3600, by: 'user' }))
 		.handler(async ({ input, context }) => {
 			if (context.host.kind !== 'root') fail.notFound('NOT_ON_ROOT_DOMAIN')
 			const { school } = await createSchool(input, { userId: context.user.id, ip: context.ip })
@@ -75,6 +77,7 @@ export const invitationsRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('schools.members.manage'))
+		.use(rateLimit({ name: 'schools.invite', max: 30, windowSeconds: 3600, by: 'member' }))
 		.handler(async ({ input, context }) => {
 			const inv = await inviteStaff(schoolCtx(context), input)
 			return { id: inv.invitationId, expiresAt: inv.expiresAt }

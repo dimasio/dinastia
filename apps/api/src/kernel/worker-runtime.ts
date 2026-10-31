@@ -24,6 +24,10 @@ export async function runJob(def: AnyJob, payload: JobPayload, meta: { jobId: st
 	})
 	const data = def.schema.parse(payload.data)
 
+	if (def.scope === 'global') {
+		await def.handler({ now, log }, data)
+		return
+	}
 	if (def.scope === 'all-schools') {
 		const errors = await forEachSchool((ctx) => def.handler(ctx, data), { now, log })
 		const retryable = errors.find((e) => !permanent(e.error))

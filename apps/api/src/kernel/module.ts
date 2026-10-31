@@ -2,7 +2,7 @@
 // подписчики событий; далее настройки. Реестр модулей — src/modules/index.ts; роутер, права и задачи приложения
 // собираются из него.
 import { type Subscriber, subscriberJob } from './events.ts'
-import type { AnyJob } from './jobs.ts'
+import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
 import type { FilePurpose } from './storage/files.ts'
@@ -42,8 +42,10 @@ export function defineModule<const N extends string, R extends object, P extends
 			throw new Error(`модуль ${def.name}: назначение файла «${f.key}» чужого модуля`)
 	for (const e of def.emails ?? [])
 		if (!e.key.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: письмо «${e.key}» чужого модуля`)
-	for (const job of def.jobs ?? [])
+	for (const job of def.jobs ?? []) {
 		if (!job.name.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: задача «${job.name}» чужого модуля`)
+		if (job.scope === 'global') throw new Error(`модуль ${def.name}: задача «${job.name}» без школы — только в ядре`)
+	}
 	return def
 }
 
@@ -65,7 +67,7 @@ export function collectRouters<M extends Modules>(modules: M): UnionToIntersecti
 /** Задачи всех модулей и задачи подписчиков (`<модуль>.on.<событие>`); имя задачи не должно повторяться. */
 export function collectJobs(modules: Modules) {
 	const jobs: AnyJob[] = []
-	const subscribers: { event: string; job: AnyJob }[] = []
+	const subscribers: { event: string; job: SchoolJob }[] = []
 	for (const m of Object.values(modules)) {
 		jobs.push(...(m.jobs ?? []))
 		for (const s of m.subscribers ?? []) {

@@ -4,7 +4,7 @@
 import type { z } from 'zod'
 import type { BaseCtx } from './context.ts'
 import type { Tx } from './db/client.ts'
-import { type AnyJob, type JobDef, jobsFor } from './jobs.ts'
+import { type JobDef, jobsFor, type SchoolJob } from './jobs.ts'
 import { subscribersOf } from './registry.ts'
 
 export interface EventDef<D = unknown> {
@@ -39,7 +39,7 @@ export function on<D>(
 
 /** Задача подписчика модуля (собирает реестр модулей). */
 // biome-ignore lint/suspicious/noExplicitAny: подписчик любого события
-export function subscriberJob(module: string, s: Subscriber<any>): AnyJob {
+export function subscriberJob(module: string, s: Subscriber<any>): SchoolJob {
 	return {
 		name: `${module}.on.${s.event.name.replaceAll('_', '-')}${s.key ? `.${s.key}` : ''}`,
 		schema: s.event.schema,

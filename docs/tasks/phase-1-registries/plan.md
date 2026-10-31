@@ -19,6 +19,7 @@
 | 2026-10-25 | 1.7 | находки: внешние ключи `members ↔ files` в обе стороны замыкали вывод типов Drizzle → у `files.owner_member_id` FK нет, владельца проверяет код; меню пользователя брало `me` из контекста маршрута и не обновлялось после смены аватара → из кэша запроса; e2e-проверка «картинка видна» проходила на аватаре прошлого прогона до окончания загрузки → сценарий начинает с удаления и ждёт конец загрузки; сервер не разбирает содержимое файла — тип заявляет клиент, поэтому исполняемые типы в назначения не включаются |
 | 2026-10-31 | 1.11 | `pii()`/`isPii` в `@dinastia/db` (флаг в config колонки), помечены ПДн-колонки ядра и `schools`, тест-страж «ключ pii-колонки маскируется в логах». **Миграция `0003_audit_webhooks`**: `audit_log` (REVOKE UPDATE/DELETE/TRUNCATE у `app_user`) и `webhook_events`. `ctx.audit` (актор — участник запроса, в задаче — система) — смена роли, блокировка, приглашение. `ctx.http` (`createHttp`) на `node:http(s)` с проверкой адреса в `lookup`, редиректы ≤ 3, таймаут, повторы идемпотентных. Вебхуки: `defineWebhookProvider`/`defineWebhookHandler`, `defineModule({ webhooks })`, `POST /api/webhooks/<provider>/<schoolId>`, задача `webhooks.process`, фейк с HMAC. `embedService` — согласованный список. D-048. Тесты: api 138 (+ журнал 5, pii 2, http 21, вебхуки 4, встраивания 20), e2e 12 |
 | 2026-10-31 | 1.11 | находки: `drizzle-kit` под Node 22 не понимает импорты `#/…` (`ERR_INVALID_MODULE_SPECIFIER`) — генерировать под Node 24 из `.nvmrc` (`nvm use`); новые тестовые файлы с `withTestSchool` выявили гонку — процессы vitest слали регистрации с одних и тех же «IP» и упирались в общий лимит better-auth (429) → у каждого процесса свой /16 в `test/http.ts` |
+| 2026-10-31 | 1.11+ | долг 1.11 — rate limit процедур: **миграция `0004_request_limits`**, `rateLimit({ name, max, windowSeconds, by: ip/user/member })` → 429 `RATE_LIMITED` + `retryAfter`; лимиты на `schools.create`, `invitations.create`, `files.createUpload`; scope задач `global` (`GlobalJobDef`, только ядро) и `rate-limit.cleanup`; D-049. Заодно убраны старые предупреждения линтера (`mail.test.ts`, `invitations.service.ts`). api 142, e2e 12 |
 
 ## План 1.11
 
@@ -43,8 +44,7 @@
    Google Forms; только https.
 7. Тесты, сверка скиллов `security-baseline`, `integrations`, `personal-data`, `core-kernel`, `db-schema`.
 
-Вне пункта: `rateLimit` middleware (в `security-baseline` отнесён к 1.11, в роадмапе его нет) — отдельным пунктом;
-экран журнала — с консолью/настройками школы; срок хранения `webhook_events`.
+Вне пункта: `rateLimit` middleware — сделан сразу следом (строка «1.11+» в ходе); экран журнала — с консолью/настройками школы; срок хранения `webhook_events`.
 
 ## План 1.7
 

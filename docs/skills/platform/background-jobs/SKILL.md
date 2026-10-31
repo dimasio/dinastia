@@ -32,7 +32,7 @@ export const dripJob = defineJob({
 	name: 'learning.open-due-lessons',
 	schema: z.object({}),
 	scope: 'all-schools', // ядро обходит активные школы, своя транзакция на школу (forEachSchool)
-	schedule: '*/15 * * * *', // cron по Москве; расписание — только у all-schools
+	schedule: '*/15 * * * *', // cron по Москве; расписание — только у all-schools (и у global задач ядра)
 	timeoutSeconds: 600, // по умолчанию 300
 	handler: (ctx) => openDueLessons(ctx),
 })
@@ -85,7 +85,9 @@ it('…', async () => {
 })
 ```
 
-Задачу all-schools проверяют прямым вызовом `runJob(job, { data: {} }, { jobId: 'test' })` (`kernel/worker-runtime.ts`).
+Задачи ядра без школы — `scope: 'global'` (`GlobalJobDef`, ctx — только `now` и `log`, таблицы — глобальным
+клиентом БД; пример — `rate-limit.cleanup` в `kernel/rate-limit/rate-limit.ts`); модулю такую задачу объявить нельзя
+(`defineModule` — ошибка). Задачу all-schools проверяют прямым вызовом `runJob(job, { data: {} }, { jobId: 'test' })` (`kernel/worker-runtime.ts`).
 
 ## Готово, когда
 

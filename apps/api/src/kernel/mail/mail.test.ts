@@ -23,13 +23,16 @@ describe.each(allEmails().map((e) => [e.key, e] as const))('письмо %s', (_
 	})
 })
 
+/** Первый пример письма приглашения — данные по схеме для проверок. */
+function example() {
+	const e = invitationEmail.examples[0]
+	if (!e) throw new Error('у письма приглашения нет примера')
+	return e
+}
+
 describe('рендер', () => {
 	it('данные экранируются, ссылка — в кнопке и в тексте', async () => {
-		const out = await renderEmail(
-			invitationEmail,
-			{ ...invitationEmail.examples[0]!, inviterName: '<script>alert(1)</script>' },
-			school,
-		)
+		const out = await renderEmail(invitationEmail, { ...example(), inviterName: '<script>alert(1)</script>' }, school)
 		expect(out.html).not.toContain('<script>alert(1)</script>')
 		expect(out.html).toContain('&lt;script&gt;')
 		expect(out.html).toContain('href="http://demo.dinastia.localhost:5173/invite/')
@@ -43,8 +46,8 @@ describe('рендер', () => {
 	it('незарегистрированное письмо в очередь не ставится', async () => {
 		expect(emailByKey('schools.invitation')).toBe(invitationEmail)
 		const mail = mailFor({ send: async () => null })
-		await expect(
-			mail.send({ ...invitationEmail }, { to: 'x@test.local', data: invitationEmail.examples[0]! }),
-		).rejects.toThrow(/не зарегистрировано/)
+		await expect(mail.send({ ...invitationEmail }, { to: 'x@test.local', data: example() })).rejects.toThrow(
+			/не зарегистрировано/,
+		)
 	})
 })

@@ -1,14 +1,14 @@
 // Реестр приложения: задачи (модулей, подписчиков, ядра), письма, назначения файлов и обработчики вебхуков. Заполняет modules/index.ts при импорте; читают
 // воркер (очереди, расписания), ctx.emit (кому доставить событие), ctx.mail и задача mail.send (шаблон по ключу).
-import type { AnyJob } from './jobs.ts'
+import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { FilePurpose } from './storage/files.ts'
 import type { AnyWebhookHandler } from './webhooks/define.ts'
 
 const jobs = new Map<string, AnyJob>()
-const byEvent = new Map<string, AnyJob[]>()
+const byEvent = new Map<string, SchoolJob[]>()
 
-export function registerJobs(list: AnyJob[], subscribers: { event: string; job: AnyJob }[]) {
+export function registerJobs(list: AnyJob[], subscribers: { event: string; job: SchoolJob }[]) {
 	for (const job of list) {
 		if (jobs.has(job.name) && jobs.get(job.name) !== job) throw new Error(`задача «${job.name}» объявлена дважды`)
 		jobs.set(job.name, job)
@@ -21,7 +21,7 @@ export function registerJobs(list: AnyJob[], subscribers: { event: string; job: 
 
 export const allJobs = (): AnyJob[] => [...jobs.values()]
 export const jobByName = (name: string): AnyJob | undefined => jobs.get(name)
-export const subscribersOf = (event: string): AnyJob[] => byEvent.get(event) ?? []
+export const subscribersOf = (event: string): SchoolJob[] => byEvent.get(event) ?? []
 
 const emails = new Map<string, AnyEmail>()
 

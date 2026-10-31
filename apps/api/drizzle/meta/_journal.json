@@ -29,6 +29,13 @@
       "when": 1793464292731,
       "tag": "0003_audit_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793466724975,
+      "tag": "0004_request_limits",
+      "breakpoints": true
     }
   ]
 }
