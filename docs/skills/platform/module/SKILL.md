@@ -28,7 +28,7 @@ apps/api/src/modules/<m>/
   *.test.ts                             тесты                                       → testing
 apps/web/src/features/<m>/
   nav.ts                                пункты меню областей (defineNav)            → web-screens
-  resources/*.ts                        defineResource (фаза 1.2)                   → admin-resource
+  resources/*.ts                        defineResource                              → admin-resource
   <экран>/, components/                 продуктовые экраны                          → web-screens, ui-kit
 apps/web/src/routes/admin/<m>/…         маршруты                                    → web-screens
 packages/i18n/locales/ru/<m>.json       строки (namespace — camelCase имени)        → i18n

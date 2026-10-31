@@ -73,7 +73,7 @@ pnpm dev                    # api + воркер задач (один проце
 | `pnpm dev` | api (tsx watch) + web (vite) |
 | `pnpm e2e` | e2e-сценарии Playwright (нужны `env:up` и `db:seed`) |
 | `pnpm db:migrate` / `db:reset` / `db:seed` / `db:studio` / `db:generate --name <что>` | миграции (под `app_owner`), сброс локальной БД, демо-данные, Drizzle Studio, новая миграция |
-| фаза 1: `pnpm jobs:list` | очереди задач |
+| `pnpm jobs:list` / `jobs:run <имя>` | очереди задач / выполнить задачу сейчас (скилл `background-jobs`) |
 
 ## Проверить, что всё работает
 
