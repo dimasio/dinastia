@@ -1,6 +1,6 @@
 ---
 name: local-env
-description: Локальное окружение Dinastia — требования (Node 24 через nvm и .nvmrc, pnpm через corepack, Docker), docker/compose.yml (PostgreSQL 18 с базами dinastia и dinastia_test и ролями app_owner/app_user, SeaweedFS как S3 с бакетом dinastia, Mailpit для почты), .env из .env.example, команды pnpm env:up/down/reset/logs/ps, pnpm dev (api :3000, web :5173), адреса и доступы, проверка сервисов, типичные проблемы; демо-данные pnpm db:seed. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу/окружение», «демо-данные», «где письма», «где файлы».
+description: Локальное окружение Dinastia — требования (Node 24 через nvm и .nvmrc, pnpm через corepack, Docker), docker/compose.yml (PostgreSQL 18 с базами dinastia и dinastia_test и ролями app_owner/app_user, SeaweedFS как S3 с бакетом dinastia, Mailpit для почты), .env из .env.example, проверка готовности окружения pnpm env:check (версии, сервисы, миграции, демо-данные, порты — с командами исправления), команды pnpm env:up/down/reset/logs/ps, pnpm dev (api :3000, web :5173), адреса и доступы, проверка сервисов, типичные проблемы; демо-данные pnpm db:seed. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу/окружение», «демо-данные», «где письма», «где файлы».
 ---
 
 # Локальное окружение
@@ -17,6 +17,14 @@ description: Локальное окружение Dinastia — требован
 | pnpm 10 | `corepack enable` (версия — `packageManager` в `package.json`) |
 | Docker | Docker Desktop / OrbStack, запущен |
 
+## Начало сессии
+
+`pnpm env:check` — одна команда: Node и pnpm нужных версий (Node из `.nvmrc`; под другой версией
+`drizzle-kit` не понимает импорты `#/…`), `.env` полон, Docker и сервисы healthy, миграции применены, демо-данные
+есть, порты 3000/5173 свободны, Chrome для e2e. На каждую проблему печатает команду исправления; код 1 — есть
+блокеры. Запускать в начале работы и когда «что-то не стартует». В оболочке агента Node по умолчанию может быть не
+тот: `source ~/.nvm/nvm.sh && nvm use` в той же команде, что и `pnpm …`.
+
 ## Первый запуск
 
 ```bash
@@ -28,7 +36,7 @@ pnpm env:up                 # Postgres, SeaweedFS, Mailpit + создание б
 pnpm dev                    # api + воркер задач (один процесс, src/dev.ts) + web
 ```
 
-Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (демо-данные).
+Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (демо-данные); `pnpm env:check` — всё ли готово.
 
 ## Сервисы
 
@@ -57,6 +65,7 @@ pnpm dev                    # api + воркер задач (один проце
 
 | Команда | Что |
 |---|---|
+| `pnpm env:check` | готово ли окружение (версии, `.env`, сервисы, миграции, демо-данные, порты) — с командами исправления |
 | `pnpm env:up` | поднять сервисы и дождаться healthy; создать бакет (идемпотентно) |
 | `pnpm env:down` | остановить (данные сохраняются) |
 | `pnpm env:reset` | **удалить данные** (тома) и поднять заново — только локально |
@@ -69,6 +78,7 @@ pnpm dev                    # api + воркер задач (один проце
 ## Проверить, что всё работает
 
 ```bash
+pnpm env:check                                        # всё сразу, с подсказками
 pnpm env:ps                                           # все (healthy)
 curl -s localhost:3000/health/live                    # {"status":"ok"} (при pnpm dev)
 docker exec -e PGPASSWORD=app_user dinastia-postgres-1 psql -h localhost -U app_user -d dinastia -tAc 'select uuidv7()'

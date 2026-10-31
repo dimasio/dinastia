@@ -116,5 +116,14 @@ describe('single_choice', () => {
 		expect(review.match(/data-correct="true"/g)).toHaveLength(1)
 		expect(review.match(/data-wrong-choice="true"/g)).toHaveLength(1) // выбран «3»
 		expect(review).toContain('Два плюс два — четыре.')
+		const noExplanation = renderToStaticMarkup(
+			<SingleChoiceViewer
+				testId="q"
+				data={pub}
+				response={null}
+				review={singleChoice.review({ ...ex, explanation: emptyDoc() })}
+			/>,
+		)
+		expect(noExplanation).not.toContain('q-explanation') // пустое пояснение не показываем
 	})
 })

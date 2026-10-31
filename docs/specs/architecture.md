@@ -207,6 +207,6 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | `pnpm e2e [-- <сценарий>]`                                                | Playwright                                                                                         |
 | `pnpm skills:link`                                                        | ссылки `.claude/skills/*` на `docs/skills/**`                                                      |
 | `pnpm docs:check`                                                         | шапки, ссылки, таблица скиллов в `AGENTS.md`                                                       |
-| `pnpm db:psql --as app_user --school <slug>` / `db:explain` / `db:studio` | отладка запросов под ролью приложения                                                              |
+| `pnpm env:check` / `db:studio` / psql под `app_user` (скилл `debugging`) | отладка запросов под ролью приложения                                                              |
 | `pnpm jobs:list` / `jobs:run`                                             | очереди задач                                                                                      |
 | `pnpm emails:preview` / `documents:preview`                               | предпросмотр шаблонов                                                                              |

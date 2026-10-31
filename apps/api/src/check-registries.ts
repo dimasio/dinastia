@@ -48,14 +48,18 @@ const questions = await load('@dinastia/questions', () => import('@dinastia/ques
 if (questions) issues.push(...questionIssues(questions.questionTypes, resources.ru.questions))
 issues.push(...errorCodeIssues([...sources('apps/api/src'), ...sources('packages/contracts/src')], resources.ru.errors))
 
-if (!issues.length) {
-	console.log('check:registries — ok')
-	process.exit(0)
+// exitCode, а не exit(): при выводе в pipe (pnpm, CI) exit() обрывает недописанный вывод
+if (!issues.length) console.log('check:registries — ok')
+else report()
+
+function report() {
+	const areas = [...new Set(issues.map((i) => i.area))]
+	for (const area of areas) {
+		console.error(`\n${area}:`)
+		for (const i of issues.filter((x) => x.area === area)) console.error(`  ✗ ${i.where} — ${i.message}`)
+	}
+	console.error(`\ncheck:registries — нарушений: ${issues.length} (скилл core-kernel, «check:registries»)`)
+	process.exitCode = 1
 }
-const areas = [...new Set(issues.map((i) => i.area))]
-for (const area of areas) {
-	console.error(`\n${area}:`)
-	for (const i of issues.filter((x) => x.area === area)) console.error(`  ✗ ${i.where} — ${i.message}`)
-}
-console.error(`\ncheck:registries — нарушений: ${issues.length} (скилл core-kernel, «check:registries»)`)
-process.exit(1)
+// открытые подключения (пул БД из модулей) не должны держать процесс
+setTimeout(() => process.exit(), 100).unref()

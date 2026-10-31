@@ -9,7 +9,10 @@
 		"gen:module": "tsx src/gen/module.ts",
 		"gen:resource": "tsx src/gen/resource.ts",
 		"gen:block": "tsx src/gen/block.ts",
-		"gen:question": "tsx src/gen/question.ts"
+		"gen:question": "tsx src/gen/question.ts",
+		"env:check": "tsx src/env-check.ts",
+		"gen:probe": "tsx src/gen-probe.ts",
+		"test:repeat": "tsx src/test-repeat.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

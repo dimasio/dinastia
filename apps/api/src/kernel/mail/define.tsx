@@ -33,7 +33,7 @@ export function defineEmail<D>(def: EmailDef<D>): EmailDef<D> {
 	return def
 }
 
-const i18n = createI18n('ru')
+const i18n = createI18n('ru', { markMissing: process.env.NODE_ENV !== 'production' })
 export const t: T = (key, options) => (i18n.t as unknown as T)(key, options)
 
 /** Макет письма: название школы сверху, подвал — почему пришло письмо. */

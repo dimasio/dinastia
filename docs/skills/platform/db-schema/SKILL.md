@@ -92,6 +92,10 @@ export const sections = tenantTable(
    `pnpm db:generate --custom --name backfill_<что>`: SQL, идемпотентный, батчами по `school_id` для больших таблиц.
 4. Таблицы типов блоков (`packages/blocks/src/<type>/table.ts`) и настроек модулей — такие же таблицы: изменение =
    миграция по этим же правилам (для блоков — данные и `draft`, и `published` строк).
+5. **Переделать миграцию до мержа** (ещё не в `main`): удалить `apps/api/drizzle/<NNNN>_*.sql`,
+   `meta/<NNNN>_snapshot.json` и запись в `meta/_journal.json` → `pnpm db:generate --name <что>` заново. Локальная
+   dev-база уже с прежней версией: проще всего `pnpm db:reset && pnpm db:migrate && pnpm db:seed`. Тестовую базу
+   global-setup пересоздаёт сам. `pnpm env:check` предупредит, если в dev-базе миграций больше, чем файлов.
 
 ## Особые таблицы (хелперы `@dinastia/db`)
 

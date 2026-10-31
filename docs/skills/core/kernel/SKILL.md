@@ -38,7 +38,7 @@ description: Устройство и доработка ядра Dinastia (то�
 | UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState`; ресурс-фреймворк `@dinastia/ui/resource` (`defineResource`, `ResourcePage`, `ResourceTable`, `ResourceForm`, `ResourceProvider`) | есть | `ui-kit`, `admin-resource` |
 | блоки уроков | `packages/blocks` (`.`, `/server`, `/tables`, `/client`), `kernel/blocks/blocks.ts`, `tools/src/gen/block.ts` | `defineBlock`, `defineBlockStorage`, `blockStorageIssues`; хранение и публикация: `createBlock`/`updateBlock`/`removeBlock`/`reorderBlocks`/`listBlocks`/`publishBlocks`/`listPublicBlocks`; `BlockEditorHost`/`BlockViewerHost`/`BlockPalette`; `pnpm gen:block` | есть | `lesson-blocks` |
 | вопросы | `packages/questions` (`.`, `/client`), `kernel/questions/questions.ts`, `tools/src/gen/question.ts` | `defineQuestion`, `questionDefIssues`; банк: `createQuestion`/`getQuestion(s)`/`listQuestions`/`updateQuestion`/`reviseQuestion`/`archiveQuestion`, `publicQuestion`/`reviewQuestion`/`gradeAnswer`; `QuestionEditorHost`/`QuestionViewerHost`; `pnpm gen:question` | есть | `question-types` |
-| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module,resource,block,question}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module`, `pnpm gen:resource`, `pnpm gen:block`, `pnpm gen:question`, `pnpm check:registries` (`apps/api/src/check-registries.ts`; маркеры `gen:<вид>:<место>`, разделы JSON — `jsonSection`) | есть; `check:registries` — 1.3–1.5 | `skill-authoring`, `module`, `admin-resource` |
+| инструменты | `tools/src/{docs-check,skills-link}.ts`, `tools/src/gen/{markers,module,resource,block,question}.ts` | `pnpm docs:check`, `pnpm skills:link`, `pnpm gen:module`, `pnpm gen:resource`, `pnpm gen:block`, `pnpm gen:question`, `pnpm gen:probe` (все генераторы в временном worktree), `pnpm env:check`, `pnpm test:repeat`, `pnpm check:registries` (`apps/api/src/check-registries.ts`; маркеры `gen:<вид>:<место>`, разделы JSON — `jsonSection`) | есть; `check:registries` — 1.3–1.5 | `skill-authoring`, `module`, `admin-resource` |
 
 ## Инварианты (ломать нельзя)
 
@@ -85,7 +85,8 @@ description: Устройство и доработка ядра Dinastia (то�
    `@dinastia/db`) и сверка схемы с колонками.
 3. `registry.ts` (сервер) и при необходимости `registry.client.ts`; авто-регистрация генератором.
 4. Правила в `check:registries` (раздел выше): ключ = тип, сверка схемы с хранением, секреты, строки.
-5. Генератор `tools/gen/<name>` с шаблоном, вывод которого сразу проходит `pnpm check`.
+5. Генератор `tools/gen/<name>` с шаблоном, вывод которого сразу проходит `pnpm check`; шаг в `tools/src/gen-probe.ts`
+   (два вызова подряд) и в CI; проверка — `pnpm gen:probe`.
 6. Скилл `docs/skills/platform/<name>/SKILL.md`, строка в `AGENTS.md`, таблица реестров в `architecture.md` §5.
 7. Решение `D-NNN`.
 

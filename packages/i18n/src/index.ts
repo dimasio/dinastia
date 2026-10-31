@@ -28,7 +28,10 @@ export const resources = {
 export const defaultNS = 'common'
 export type Resources = (typeof resources)['ru']
 
-export function createI18n(lng: 'ru' = 'ru'): i18n {
+/** Метка пропущенного ключа вне production: `⟦blocks:callout.title⟧` вместо тихого показа ключа (скилл visual-review). */
+export const MISSING_KEY_MARK = '⟦'
+
+export function createI18n(lng: 'ru' = 'ru', opts: { markMissing?: boolean } = {}): i18n {
 	const instance = i18next.createInstance()
 	void instance.init({
 		lng,
@@ -38,6 +41,7 @@ export function createI18n(lng: 'ru' = 'ru'): i18n {
 		ns: Object.keys(resources.ru),
 		interpolation: { escapeValue: false }, // React экранирует сам
 		initAsync: false,
+		...(opts.markMissing ? { parseMissingKeyHandler: (key: string) => `${MISSING_KEY_MARK}${key}⟧` } : {}),
 	})
 	return instance
 }

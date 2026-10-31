@@ -1,3 +1,4 @@
+import { isEmptyDoc } from '@dinastia/contracts/common'
 import { cn } from '@dinastia/ui'
 import { RichTextView } from '@dinastia/ui/rich-text'
 import { Check, X } from 'lucide-react'
@@ -57,7 +58,7 @@ export default function SingleChoiceViewer({
 					)
 				})}
 			</div>
-			{review?.explanation && (
+			{review?.explanation && !isEmptyDoc(review.explanation) && (
 				<div className="rounded-md bg-muted p-3" data-testid={`${testId}-explanation`}>
 					<p className="mb-1 font-medium text-sm">{t('host.explanation')}</p>
 					<RichTextView doc={review.explanation} />

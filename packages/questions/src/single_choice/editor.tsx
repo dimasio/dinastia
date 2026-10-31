@@ -1,4 +1,4 @@
-import { emptyDoc } from '@dinastia/contracts/common'
+import { emptyDoc, isEmptyDoc } from '@dinastia/contracts/common'
 import { Button, Field, Input } from '@dinastia/ui'
 import { RichTextEditor } from '@dinastia/ui/rich-text'
 import { Plus, Trash2 } from 'lucide-react'
@@ -96,7 +96,7 @@ export default function SingleChoiceEditor({
 					id={`${testId}-explanation`}
 					profile="compact"
 					value={value.explanation ?? emptyDoc()}
-					onChange={(explanation) => onChange({ ...value, explanation })}
+					onChange={(explanation) => onChange({ ...value, explanation: isEmptyDoc(explanation) ? null : explanation })}
 					aria-label={t('fields.explanation')}
 					disabled={readOnly === true}
 					testId={`${testId}-explanation`}

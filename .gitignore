@@ -13,3 +13,6 @@ test-results/
 *.dump
 *.sql.gz
 .emails/
+
+# Снимки экранов для просмотра (pnpm e2e:shots, скилл visual-review)
+/screens/
