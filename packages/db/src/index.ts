@@ -2,6 +2,14 @@
 export { blockChildTable, blockState, blockTable, lessonBlocks } from './blocks.ts'
 export { opaqueJson, type RichTextDoc, richText } from './json.ts'
 export { isPii, pii } from './pii.ts'
+export {
+	QUESTION_ITEM_KINDS,
+	QUESTION_SCORING,
+	questionItemKind,
+	questionItems,
+	questionScoring,
+	questions,
+} from './questions.ts'
 export { appUser } from './roles.ts'
 export { schoolStatus, schools } from './schools.ts'
 export { settingsTable } from './settings.ts'

@@ -30,6 +30,8 @@ description: Добавление и обновление npm-зависимос
 2. Версия — проверь актуальную (`pnpm view <pkg> version`), не по памяти.
 3. Общая для нескольких пакетов — в `pnpm-workspace.yaml → catalog:` и `"<pkg>": "catalog:"` в package.json.
 4. `pnpm --filter <app> add <pkg>`; dev-зависимость — `-D`.
+   `pnpm-lock.yaml` biome не проверяет (файл pnpm, исключён в `biome.json`); `pnpm add` переписывает кавычки в
+   `pnpm-workspace.yaml` — после него `pnpm exec biome check --write pnpm-workspace.yaml`.
 5. `pnpm check`; для клиента — размер бандла (`pnpm --filter web build` → отчёт).
 6. Библиотека, чьи **типы** передаются между workspace-пакетами (`drizzle-orm`, `zod`, `react`), в пакете-библиотеке
    (`packages/*`) — `peerDependencies` + `devDependencies`, а не `dependencies`: иначе pnpm может поставить вторую

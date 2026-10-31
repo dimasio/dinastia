@@ -28,6 +28,7 @@
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@dinastia/i18n": "workspace:*",
+		"@dinastia/questions": "workspace:*",
 		"@hono/node-server": "catalog:",
 		"@orpc/contract": "catalog:",
 		"@orpc/openapi": "catalog:",

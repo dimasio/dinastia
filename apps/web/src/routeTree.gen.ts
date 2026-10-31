@@ -17,6 +17,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminProfileRouteImport } from './routes/admin/profile'
 import { Route as DevBlocksRouteImport } from './routes/dev.blocks'
+import { Route as DevQuestionsRouteImport } from './routes/dev.questions'
 import { Route as DevRichTextRouteImport } from './routes/dev.rich-text'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
@@ -63,6 +64,11 @@ const DevBlocksRoute = DevBlocksRouteImport.update({
   path: '/dev/blocks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevQuestionsRoute = DevQuestionsRouteImport.update({
+  id: '/dev/questions',
+  path: '/dev/questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevRichTextRoute = DevRichTextRouteImport.update({
   id: '/dev/rich-text',
   path: '/dev/rich-text',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
   '/dev/blocks': typeof DevBlocksRoute
+  '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
   '/dev/blocks': typeof DevBlocksRoute
+  '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
   '/dev/blocks': typeof DevBlocksRoute
+  '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/profile'
     | '/dev/blocks'
+    | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/profile'
     | '/dev/blocks'
+    | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/profile'
     | '/dev/blocks'
+    | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
@@ -186,6 +198,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   DevBlocksRoute: typeof DevBlocksRoute
+  DevQuestionsRoute: typeof DevQuestionsRoute
   DevRichTextRoute: typeof DevRichTextRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/dev/blocks'
       fullPath: '/dev/blocks'
       preLoaderRoute: typeof DevBlocksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/questions': {
+      id: '/dev/questions'
+      path: '/dev/questions'
+      fullPath: '/dev/questions'
+      preLoaderRoute: typeof DevQuestionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/rich-text': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   DevBlocksRoute: DevBlocksRoute,
+  DevQuestionsRoute: DevQuestionsRoute,
   DevRichTextRoute: DevRichTextRoute,
   InviteTokenRoute: InviteTokenRoute,
 }

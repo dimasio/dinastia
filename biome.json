@@ -6,7 +6,15 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!**/dist", "!**/.turbo", "!**/routeTree.gen.ts", "!apps/api/drizzle", "!**/*.md"]
+		"includes": [
+			"**",
+			"!**/dist",
+			"!**/.turbo",
+			"!**/routeTree.gen.ts",
+			"!apps/api/drizzle",
+			"!**/*.md",
+			"!pnpm-lock.yaml"
+		]
 	},
 	"formatter": {
 		"indentStyle": "tab",

@@ -8,7 +8,8 @@
 		"typecheck": "tsc -p .",
 		"gen:module": "tsx src/gen/module.ts",
 		"gen:resource": "tsx src/gen/resource.ts",
-		"gen:block": "tsx src/gen/block.ts"
+		"gen:block": "tsx src/gen/block.ts",
+		"gen:question": "tsx src/gen/question.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

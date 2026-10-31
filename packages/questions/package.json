@@ -1,0 +1,39 @@
+{
+	"name": "@dinastia/questions",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./client": "./src/client.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc -p .",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@dinastia/contracts": "workspace:*",
+		"@dinastia/ui": "workspace:*",
+		"lucide-react": "catalog:",
+		"zod": "catalog:"
+	},
+	"peerDependencies": {
+		"i18next": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-i18next": "catalog:"
+	},
+	"devDependencies": {
+		"@dinastia/config": "workspace:*",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"i18next": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"react-i18next": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

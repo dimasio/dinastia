@@ -5,101 +5,143 @@ description: Реестр типов вопросов теста Dinastia (packa
 
 # Типы вопросов
 
-> Статус: целевой — сверить с кодом в фазе 1 (пункт 1.4).
+> Статус: сверено с кодом в 1.4 (реестр, хранение и ревизии в ядре, хосты, генератор, тип `single_choice`).
+> Банк вопросов курса (процедуры, теги) — 3.1; остальные типы MVP — 3.2; попытки, снимки, ответы (`quiz_answers`) — 3.3.
 
-Модель — реляционная (D-032, D-035), `docs/specs/domain.md` §1 «Тесты и задания». **Все типы MVP хранятся в общих
-таблицах**; тип определяет, какие колонки и какие виды элементов он использует:
+Модель — реляционная (D-032, D-035, D-052), `docs/specs/domain.md` §1 «Тесты и задания». **Все типы хранятся в общих
+таблицах ядра** (`@dinastia/db`: `questions`, `question_items`); тип объявляет, какие колонки и виды элементов он
+использует. `course_id` до пункта 2.1 без внешнего ключа (его добавит модуль `courses`).
 
 ```
-questions (type, prompt, explanation, points, scoring, case_sensitive, number_answer, number_tolerance, revision_of, is_current)
-  └─< question_items (kind option|order_item|match_left|match_right|accepted_text, body|text, position, is_correct, correct_position, match_key)
-ответ: quiz_answers (text_value, number_value, score, is_correct) ─< quiz_answer_items (item_id, position, matched_item_id)
+questions (course_id, type, prompt, explanation, points, scoring, case_sensitive, number_answer, number_tolerance,
+           revision_of, is_current, archived_at)
+  └─< question_items (kind option|order_item|match_left|match_right|accepted_text, body|text, position, is_correct,
+                      correct_position, match_key)
 ```
 
-| Тип               | Элементы                                                     | Ответ ученика                         |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------- |
-| `single_choice`   | `option` (+ `is_correct`, ровно один)                        | один `quiz_answer_items.item_id`      |
-| `multiple_choice` | `option` (+ `is_correct`, ≥1)                                | несколько `item_id`                   |
-| `text_input`      | `accepted_text` (варианты верного), колонка `case_sensitive` | `text_value`                          |
-| `number`          | — ; колонки `number_answer`, `number_tolerance`              | `number_value`                        |
-| `ordering`        | `order_item` (+ `correct_position`)                          | `item_id` + `position`                |
-| `matching`        | `match_left`, `match_right` (пары по `match_key`)            | `item_id` (левый) + `matched_item_id` |
-| `open_text`       | — ; `manual: true`                                           | `text_value`; оценивает проверяющий   |
+| Колонки и элементы | Кто использует |
+| --- | --- |
+| `prompt`, `explanation`, `points` | все типы (общие поля, обязательны в схеме) |
+| `scoring`, `caseSensitive`, `numberAnswer`, `numberTolerance` | тип по `uses.columns`; у остальных ядро держит значения по умолчанию |
+| вид элемента → поля: `option` → `body`, `isCorrect`; `order_item` → `body`, `correctPosition`; `match_left`/`match_right` → `body`, `matchKey`; `accepted_text` → `text` | тип по `uses.items` и `items` (поле-массив схемы → вид); у элемента в API ещё `id` |
 
-Новый тип, которому хватает этих колонок и видов элементов, — **без миграции**. Нужна новая колонка/вид элемента —
-миграция (`db-schema`): enum `kind` или колонка в `questions` с default.
+Новый тип, которому хватает этих колонок и видов, — **без миграции**. Нужна новая колонка или вид — миграция
+(`db-schema`) и согласование: колонка в `questions` с default или значение enum `question_item_kind`.
+
+## Пакет `@dinastia/questions`
+
+| Вход | Что | Кто импортирует |
+| --- | --- | --- |
+| `@dinastia/questions` | `defineQuestion`, `questionTypes`, `questionDef(type)`, `questionDefIssues`, типы пропсов | api и web |
+| `@dinastia/questions/client` | `QuestionEditorHost`, `QuestionViewerHost`, `clientQuestions` (иконка, ленивые редактор/просмотр) | только web |
+
+```
+packages/questions/src/<type>/
+  definition.ts   defineQuestion
+  editor.tsx      редактор в банке вопросов (default export)
+  viewer.tsx      просмотр в попытке и в разборе (default export)
+packages/i18n/locales/ru/questions.json → "<type>": { "title", "description", … }; коды ошибок схемы — "errors"
+```
+
+`pnpm gen:question <type> [--title "Название"] [--dry-run]` — заготовка (ответ текстом по допустимым вариантам:
+`uses: { columns: ['caseSensitive'], items: ['accepted_text'] }`, без миграции), регистрация у маркеров
+`gen:question:*`, раздел `questions.json`. Вывод проходит `pnpm check` (CI проверяет пробным типом).
 
 ## definition.ts
 
 ```ts
+import { CompactText, emptyDoc, Id, RichText } from '@dinastia/contracts/common'
 import { z } from 'zod'
-import { defineQuestion } from '../define'
-import { Id, RichText, CompactText, emptyDoc } from '@dinastia/contracts/common'
+import { defineQuestion } from '../define.ts'
 
-export const multipleChoice = defineQuestion({
-	type: 'multiple_choice',
-	icon: 'ListChecks',
-	uses: { columns: ['scoring'], items: ['option'] }, // check:registries: тип не трогает чужие колонки
+export const singleChoice = defineQuestion({
+	type: 'single_choice',
+	uses: { columns: [], items: ['option'] }, // тип не трогает чужие колонки — ядро держит их по умолчанию
 	schema: z.object({
 		prompt: RichText,
 		explanation: RichText.nullable(),
 		points: z.number().int().min(1).max(100),
-		scoring: z.enum(['all_or_nothing', 'partial']),
 		options: z
 			.array(z.object({ id: Id.optional(), body: CompactText, isCorrect: z.boolean() }))
 			.min(2)
 			.max(20)
-			.refine((o) => o.some((x) => x.isCorrect), { message: 'NEED_CORRECT_OPTION' }),
+			.refine((o) => o.filter((x) => x.isCorrect).length === 1, { message: 'NEED_ONE_CORRECT' }),
 	}),
 	items: { options: 'option' }, // поле схемы → question_items.kind
-	defaults: () => ({ prompt: emptyDoc(), explanation: null, points: 1, scoring: 'all_or_nothing', options: [] }),
+	defaults: () => ({ prompt: emptyDoc(), explanation: null, points: 1, options: [/* два пустых, первый верный */] }),
+	example: () => ({ /* готовый вопрос: проходит схему, у вариантов — id */ }),
 	secretKeys: ['options.*.isCorrect', 'explanation'],
-	toPublic: ({ prompt, points, options }) => ({ prompt, points, options: options.map(({ isCorrect, ...o }) => o) }),
-	responseSchema: z.object({ selected: z.array(Id).max(20) }), // → quiz_answer_items.item_id
+	toPublic: ({ prompt, points, options }) => ({ prompt, points, options: options.map(({ isCorrect: _, ...o }) => o) }),
+	responseSchema: z.object({ selected: Id.nullable() }),
 	grade: (q, r) => {
-		const correct = new Set(q.options.filter((o) => o.isCorrect).map((o) => o.id))
-		const hits = r.selected.filter((id) => correct.has(id)).length
-		const wrong = r.selected.length - hits
-		const isCorrect = hits === correct.size && wrong === 0
-		const score =
-			q.scoring === 'partial' ? Math.max(0, (hits - wrong) / correct.size) * q.points : isCorrect ? q.points : 0
-		return { score, max: q.points, isCorrect }
+		const correct = q.options.find((o) => o.isCorrect)?.id
+		const isCorrect = r.selected !== null && r.selected === correct
+		return { score: isCorrect ? q.points : 0, max: q.points, isCorrect }
 	},
 	review: (q) => ({ correct: q.options.filter((o) => o.isCorrect).map((o) => o.id), explanation: q.explanation }),
-	shuffle: 'items', // порядок вариантов перемешивается в attempt_question_items
+	shuffle: 'items',
 })
 ```
 
-| Поле             | Смысл                                                                            |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `uses`           | какие колонки `questions` и виды `question_items` использует тип                 |
-| `items`          | поле-массив схемы → строки `question_items` с этим `kind` (load/save ядро)       |
-| `toPublic`       | что видит ученик в попытке — **без** правильных ответов; убрать все `secretKeys` |
-| `responseSchema` | ответ ученика; ядро раскладывает его в `quiz_answers`/`quiz_answer_items`        |
-| `grade`          | чистая детерминированная функция, только на сервере; `score` ∈ [0, max]          |
-| `manual: true`   | ручная проверка: `grade` не вызывается, ответ ждёт проверяющего                  |
-| `review`         | разбор, отдаётся только по правилу `show_correct` блока `quiz`                   |
-| `shuffle`        | `'items'` — перемешивать элементы при снимке попытки; `false` — нет              |
+| Поле | Смысл |
+| --- | --- |
+| `uses` | колонки `questions` (`uses.columns`) и виды элементов (`uses.items`) типа |
+| `items` | поле-массив схемы → вид элемента; поля элемента — только колонки этого вида (+ `id`) |
+| `defaults` | заготовка для редактора (может ещё не проходить схему) |
+| `example` | готовый вопрос, проходит схему: по нему `defineQuestion` проверяет `toPublic`, по нему — тесты и генератор |
+| `toPublic` | что видит ученик в попытке — **без** верных ответов и пояснения; убирает все `secretKeys` |
+| `responseSchema` | ответ ученика (хранение — `quiz_answers`, 3.3) |
+| `grade` | чистая детерминированная функция, только на сервере (`gradeAnswer` ядра); `score` ∈ [0, max] |
+| `manual: true` | ручная проверка (`open_text`): `grade` не нужен, `gradeAnswer` вернёт `null` |
+| `review` | разбор — отдаётся только по правилу `show_correct` блока `quiz` |
+| `shuffle` | `'items'` — перемешивать элементы при снимке попытки; `false` — нет |
 
-## Ревизии
+`defineQuestion` проверяет при объявлении: тип `snake_case`; `grade` есть или `manual`; общие поля на месте; каждое
+поле схемы — общая колонка, колонка из `uses.columns` или поле `items`; поля элементов — колонки своего вида;
+`example()` проходит схему; `toPublic(example)` не содержит ни одного `secretKeys`. Код ошибки в `refine`
+(`NEED_ONE_CORRECT`) показывается в редакторе текстом `questions:errors.<код>`.
 
-Вопрос, у которого есть ответы (`attempt_questions`), при сохранении правки **не меняется**: сервис создаёт копию
-(`revision_of` = старый id, `is_current = true`, у старого — `false`), блоки `quiz` с `fixed`-списком переключаются на
-новую ревизию. Попытки остаются со своей ревизией. Тип ничего для этого не делает — это ядро банка вопросов.
+## Хранение и ревизии (ядро, `apps/api/src/kernel/questions/questions.ts`)
+
+Функции — от `BaseCtx` (транзакция школы, RLS); вызывает их сервис модуля `assessments`.
+
+| Функция | Что |
+| --- | --- |
+| `createQuestion(ctx, { courseId, type, data })` | вопрос в банке; данные — по схеме типа (`ZodError` → 400) |
+| `getQuestion(s)(ctx, id/ids)` | вопросы любых ревизий с данными, пачкой (без N+1) |
+| `listQuestions(ctx, courseId)` | банк курса: текущие ревизии без архивных |
+| `updateQuestion(ctx, id, data)` | правка на месте — **пока на вопрос нет ответов**; элементы сохраняют свои `id` (чужие `id` не принимаются) |
+| `reviseQuestion(ctx, id, data)` | правка вопроса **с ответами** (D-035): новая ревизия (`revision_of`), у прежней `is_current = false`, элементы — с новыми `id`; попытки остаются со своей ревизией |
+| `archiveQuestion(ctx, id)` | убрать из банка (ревизии и попытки остаются) |
+| `publicQuestion(q)`, `reviewQuestion(q)`, `gradeAnswer(q, response)` | данные ученику, разбор, проверка ответа |
+
+Ошибки: `QUESTION_TYPE_UNKNOWN`, `QUESTION_NOT_FOUND`, `QUESTION_NOT_CURRENT` (правка прежней ревизии),
+`QUESTION_ARCHIVED`. **Что вызывать — `updateQuestion` или `reviseQuestion` — решает сервис `assessments`** по
+наличию ответов (`attempt_questions`, 3.3): ядро про попытки не знает (D-052).
 
 ## editor.tsx / viewer.tsx
 
-- `Editor({ value, onChange })` — в банке вопросов; помогает отметить правильный ответ, показывает ошибки схемы.
-- `Viewer({ data, response, onChange, review? })` — в попытке (`data` публичные) и в разборе (`review` передан).
+```tsx
+export default function SingleChoiceEditor({ value, onChange, readOnly, testId }: QuestionEditorProps<typeof singleChoice>) { … }
+export default function SingleChoiceViewer({ data, response, onChange, review, testId }: QuestionViewerProps<typeof singleChoice>) { … }
+```
+
+- `QuestionEditorHost` — в банке: полные данные; правка → проверка схемой (коды `refine` — текстом) → `onChange` с
+  задержкой (`delayMs`, 500).
+- `QuestionViewerHost` — в попытке (`data` публичные, `onChange` есть) и в разборе (`review` передан, `onChange` нет):
+  разбор подсвечивает верный вариант и выбранный неверный (не только цветом — значок с подписью).
+- Иконка — в `registry.client.ts` (по умолчанию `DEFAULT_QUESTION_ICON`); строки — `t('questions:<type>.…')`;
+  классы Tailwind из `packages/questions` сканируются (`@source` в `packages/ui/src/styles/globals.css`).
+- Песочница `/dev/questions` (только dev) и e2e `tests/e2e/questions.spec.ts`: составить → пройти → проверить → разбор.
 
 ## Шаги
 
 1. `pnpm gen:question <type>` (`snake_case`, неизменяем после релиза).
 2. Хватает ли общих колонок и видов элементов? Нет — миграция и согласование (`db-schema`).
-3. `uses`, `schema`, `items`, `toPublic`, `responseSchema`, `grade`, `review`; тесты на правильный, неправильный,
+3. `uses`, `schema`, `items`, `example`, `toPublic`, `responseSchema`, `grade`, `review`; тесты на верный, неверный,
    частичный, пустой ответ и на `toPublic`.
 4. Editor и Viewer, строки `packages/i18n/locales/ru/questions.json`.
-5. `pnpm check`; e2e: создать вопрос в банке, пройти тест.
+5. `pnpm check`; e2e: составить вопрос, пройти, проверить.
 
 ## Изменение проверки существующего типа
 

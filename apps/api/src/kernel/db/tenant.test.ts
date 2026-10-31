@@ -1,29 +1,10 @@
-// Изоляция школ (D-006, D-038): тест строит DDL пробных таблиц теми же хелперами, что и боевые таблицы.
-import { appUser, schoolStatus, schools, tenantRef, tenantTable } from '@dinastia/db'
-import { generateDrizzleJson, generateMigration } from 'drizzle-kit/api'
+// Изоляция школ (D-006, D-038): пробные таблицы (test/probes.ts) построены теми же хелперами, что и боевые.
+import { schools } from '@dinastia/db'
 import { eq, sql } from 'drizzle-orm'
-import { text, uuid } from 'drizzle-orm/pg-core'
-import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { probeChildren as children, probeParents as parents } from '#/test/probes.ts'
 import { db, pool } from './client.ts'
 import { withTenant } from './tenant.ts'
-
-const parents = tenantTable('kernel_probe_parents', { title: text('title').notNull() })
-const children = tenantTable('kernel_probe_children', { parentId: uuid('parent_id').notNull() }, (t) => [
-	tenantRef(t, t.parentId, parents, 'cascade'),
-])
-
-const owner = () => new pg.Client({ connectionString: process.env.DATABASE_URL_OWNER })
-
-async function asOwner(statements: string[]) {
-	const client = owner()
-	await client.connect()
-	try {
-		for (const s of statements) await client.query(s)
-	} finally {
-		await client.end()
-	}
-}
 
 /** SQLSTATE ошибки Postgres (Drizzle кладёт исходную ошибку в cause). */
 async function pgCode(promise: Promise<unknown>): Promise<string | undefined> {
@@ -40,9 +21,6 @@ let schoolA: string
 let schoolB: string
 
 beforeAll(async () => {
-	const base = { schools, schoolStatus, appUser }
-	const ddl = await generateMigration(generateDrizzleJson(base), generateDrizzleJson({ ...base, parents, children }))
-	await asOwner(ddl)
 	const [a, b] = await db
 		.insert(schools)
 		.values([
@@ -56,7 +34,6 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-	await asOwner(['DROP TABLE IF EXISTS kernel_probe_children, kernel_probe_parents CASCADE'])
 	await db.delete(schools).where(sql`${schools.id} in (${schoolA}, ${schoolB})`)
 	await pool.end()
 })

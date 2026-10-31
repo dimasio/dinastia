@@ -7,6 +7,7 @@ import emails from '../locales/ru/emails.json' with { type: 'json' }
 import errors from '../locales/ru/errors.json' with { type: 'json' }
 import home from '../locales/ru/home.json' with { type: 'json' }
 import nav from '../locales/ru/nav.json' with { type: 'json' }
+import questions from '../locales/ru/questions.json' with { type: 'json' }
 import schools from '../locales/ru/schools.json' with { type: 'json' }
 // gen:module:import
 
@@ -20,6 +21,7 @@ export const resources = {
 		home,
 		schools,
 		blocks,
+		questions,
 		// gen:module:entry
 	},
 } as const

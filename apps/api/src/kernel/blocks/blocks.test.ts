@@ -1,15 +1,13 @@
 // Блоки урока в БД (D-033, D-034): create → save → load → publish, стабильные block_key/item_key, toPublic, черновик
-// правится, публикация — нет, изоляция школ, каскад. Пробный тип с дочерней таблицей и секретом строит тест.
+// правится, публикация — нет, изоляция школ, каскад. Пробный тип с дочерней таблицей и секретом — test/probes.ts.
 import { randomUUID } from 'node:crypto'
 import { defineBlock } from '@dinastia/blocks'
 import { blockCallout, defineBlockStorage, registerProbeBlock } from '@dinastia/blocks/server'
-import { appUser, blockChildTable, blockState, blockTable, lessonBlocks, schoolStatus, schools } from '@dinastia/db'
-import { generateDrizzleJson, generateMigration } from 'drizzle-kit/api'
+import { schools } from '@dinastia/db'
 import { eq, inArray } from 'drizzle-orm'
-import { boolean, text } from 'drizzle-orm/pg-core'
-import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ZodError, z } from 'zod'
+import { probeBlockItems as probeItems, probeBlock as probeTable } from '#/test/probes.ts'
 import type { BaseCtx } from '../context.ts'
 import { db, pool } from '../db/client.ts'
 import { withTenant } from '../db/tenant.ts'
@@ -26,12 +24,7 @@ import {
 	updateBlock,
 } from './blocks.ts'
 
-// Пробный интерактивный тип: список с секретом в дочерней таблице.
-const probeTable = blockTable('kernel_probe_cards', { shuffle: boolean('shuffle').notNull().default(false) })
-const probeItems = blockChildTable(probeTable, 'items', {
-	front: text('front').notNull(),
-	isCorrect: boolean('is_correct').notNull(),
-})
+// Пробный интерактивный тип: список с секретом в дочерней таблице (таблицы — test/probes.ts, global-setup).
 const probe = defineBlock({
 	type: 'kernel_probe_cards',
 	category: 'interactive',
@@ -52,16 +45,6 @@ const probe = defineBlock({
 })
 registerProbeBlock(defineBlockStorage(probe, probeTable, { items: probeItems }))
 
-async function asOwner(statements: string[]) {
-	const client = new pg.Client({ connectionString: process.env.DATABASE_URL_OWNER })
-	await client.connect()
-	try {
-		for (const s of statements) await client.query(s)
-	} finally {
-		await client.end()
-	}
-}
-
 let schoolA: { id: string; slug: string; name: string }
 let schoolB: { id: string; slug: string; name: string }
 const inSchool = <T>(school: typeof schoolA, fn: (ctx: BaseCtx) => Promise<T>) =>
@@ -73,11 +56,6 @@ const doc = (text: string) => ({
 })
 
 beforeAll(async () => {
-	const base = { schools, schoolStatus, appUser, lessonBlocks, blockState }
-	await asOwner([
-		'DROP TABLE IF EXISTS block_kernel_probe_cards_items, block_kernel_probe_cards CASCADE',
-		...(await generateMigration(generateDrizzleJson(base), generateDrizzleJson({ ...base, probeTable, probeItems }))),
-	])
 	const rows = await db
 		.insert(schools)
 		.values([
@@ -91,7 +69,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
 	await db.delete(schools).where(inArray(schools.id, [schoolA.id, schoolB.id]))
-	await asOwner(['DROP TABLE IF EXISTS block_kernel_probe_cards_items, block_kernel_probe_cards CASCADE'])
 	await pool.end()
 })
 

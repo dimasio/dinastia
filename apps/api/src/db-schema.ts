@@ -1,6 +1,16 @@
 // Все таблицы приложения — для drizzle-kit (миграции) и типизированного клиента. Модуль добавляет строку экспорта.
 export * from '@dinastia/blocks/tables'
-export { appUser, blockState, lessonBlocks, schoolStatus, schools } from '@dinastia/db'
+export {
+	appUser,
+	blockState,
+	lessonBlocks,
+	questionItemKind,
+	questionItems,
+	questionScoring,
+	questions,
+	schoolStatus,
+	schools,
+} from '@dinastia/db'
 export * from './kernel/audit/schema.ts'
 export * from './kernel/auth/schema.ts'
 export * from './kernel/members/schema.ts'

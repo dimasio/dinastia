@@ -1,5 +1,6 @@
 // Реестр блоков урока (скилл lesson-blocks, D-034): defineBlock — контракт типа блока. Конструктор, плеер и ядро
 // (хранение, публикация) знают только этот контракт, а не конкретные блоки.
+import { hasPath } from '@dinastia/contracts/common'
 import type { z } from 'zod'
 
 export type BlockCategory = 'content' | 'media' | 'interactive' | 'layout'
@@ -52,26 +53,6 @@ export const BLOCK_TYPE = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
 
 type Input<T extends string, S extends z.ZodObject, P, R> = Omit<BlockDef<T, S, P, R>, 'toPublic'> & {
 	toPublic?: (data: z.output<S>) => P
-}
-
-/** Значения по пути `a.*.b` (звёздочка — каждый элемент массива). */
-export function valuesAt(value: unknown, path: string): unknown[] {
-	let current: unknown[] = [value]
-	for (const part of path.split('.')) {
-		current = current.flatMap((v) => {
-			if (part === '*') return Array.isArray(v) ? v : []
-			return v !== null && typeof v === 'object' && part in v ? [(v as Record<string, unknown>)[part]] : []
-		})
-	}
-	return current
-}
-
-/** Есть ли путь хотя бы у одного элемента (для проверки, что toPublic убрал секрет). */
-export function hasPath(value: unknown, path: string): boolean {
-	const parts = path.split('.')
-	const last = parts.pop() as string
-	const parents = parts.length ? valuesAt(value, parts.join('.')) : [value]
-	return parents.some((p) => p !== null && typeof p === 'object' && last in p)
 }
 
 export function defineBlock<const T extends string, S extends z.ZodObject, P = z.output<S>, R = unknown>(

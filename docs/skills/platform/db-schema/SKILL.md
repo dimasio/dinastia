@@ -101,8 +101,9 @@ export const sections = tenantTable(
 | `blockChildTable(parent, '<часть>', cols)` | `block_<type>_<часть>` — список внутри блока | `id`, `school_id`, `block_id` (FK на таблицу типа, каскад), `position`, `item_key` (стабилен между черновиком и публикацией), индекс, RLS |
 | `settingsTable('<модуль>_settings', cols)` | настройки модуля, строка на школу (скилл `settings`) | PK `school_id` (FK на школу, каскад), `updated_at`, RLS; каждая колонка — с default |
 
-`lessonBlocks` (`lesson_blocks`) — таблица ядра в `@dinastia/db`; модули её не правят, а пользуются функциями
-`kernel/blocks`.
+`lessonBlocks` (`lesson_blocks`), `questions` и `question_items` — таблицы ядра в `@dinastia/db`; модули их не правят
+напрямую, а пользуются функциями `kernel/blocks` и `kernel/questions`. Ссылка на себя (ревизия `revision_of`) —
+`tenantRef(t, t.revisionOf, t, 'no action')`: `restrict` проверяется сразу и ломает каскадное удаление школы.
 
 Нельзя:
 - править миграцию, которая уже в main;

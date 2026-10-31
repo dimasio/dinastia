@@ -25,7 +25,7 @@ closed:
 | 1.1 | `defineModule`, реестр модулей, меню из фич (`nav.ts`), `pnpm gen:module`, lint-запрет глобального клиента БД в модулях | done |
 | 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `listQuery`/`toPage`, `pnpm gen:resource`; экран «Сотрудники школы» | done |
 | 1.3 | `@dinastia/db` `blockTable`; реестр блоков, публикация строками, `pnpm gen:block`; демо-блок `callout` | done |
-| 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | backlog |
+| 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | done |
 | 1.5 | `check:registries` | backlog |
 | 1.6 | События (outbox) и задачи (pg-boss), воркер | done |
 | 1.7 | Файлы: S3, presigned upload, `files` | done |
@@ -40,6 +40,7 @@ closed:
 
 | Дата | Решение |
 |---|---|
+| 2026-10-31 | D-052: `questions`/`question_items` — таблицы ядра, FK на курсы — в 2.1; ревизию или правку на месте выбирает `assessments` (решения владельца) |
 | 2026-10-31 | D-051: `lesson_blocks` — таблица ядра, FK на `lessons` — в 2.1; `item_key` у элементов блока; пункт 1.14 «Настройки школы» добавлен в роадмап (решения владельца) |
 | 2026-10-31 | D-050: rich text — Tiptap только в редакторе, валидатор/рендеры — свой обход JSON; демо 1.12 — песочница и тесты, «описание курса» — с курсами в фазе 2 (решение владельца) |
 | 2026-10-31 | D-049: rate limit процедур — своя таблица `request_limits`, фиксированное окно; scope задач `global` |

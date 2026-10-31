@@ -13,6 +13,7 @@
 		"@dinastia/blocks": "workspace:*",
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/i18n": "workspace:*",
+		"@dinastia/questions": "workspace:*",
 		"@dinastia/ui": "workspace:*",
 		"@hookform/resolvers": "catalog:",
 		"@orpc/client": "catalog:",

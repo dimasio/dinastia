@@ -1,4 +1,6 @@
 // Реестр блоков (скилл lesson-blocks): контракт defineBlock, сверка схемы с таблицами, согласованность реестров.
+
+import { hasPath } from '@dinastia/contracts/common'
 import { blockChildTable, blockTable } from '@dinastia/db'
 import { boolean, integer, text } from 'drizzle-orm/pg-core'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -6,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import blocksI18n from '../../i18n/locales/ru/blocks.json' with { type: 'json' }
 import CalloutViewer from './callout/viewer.tsx'
-import { defineBlock, hasPath } from './define.ts'
+import { defineBlock } from './define.ts'
 import { clientBlocks } from './registry.client.ts'
 import { blocks } from './registry.ts'
 import { blockStorageIssues, blockStorages, defineBlockStorage } from './server.ts'
