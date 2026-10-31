@@ -1,6 +1,6 @@
 // Хелперы схемы Drizzle (ядро, скилл db-schema). Модули импортируют их отсюда, а не из drizzle-orm напрямую.
 export { blockChildTable, blockState, blockTable, lessonBlocks } from './blocks.ts'
-export { opaqueJson, type RichTextDoc, richText } from './json.ts'
+export { jsonKind, opaqueJson, type RichTextDoc, richText } from './json.ts'
 export { isPii, pii } from './pii.ts'
 export {
 	QUESTION_ITEM_KINDS,

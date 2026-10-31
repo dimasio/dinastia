@@ -113,6 +113,7 @@ export const flashcards = defineBlock({
 	}),
 	children: { cards: 'cards' }, // поле схемы → block_flashcards_cards
 	defaults: () => ({ shuffle: false, cards: [] }),
+	example: () => ({ shuffle: false, cards: [{ front: 'Кот', isCorrect: true }] }), // обязателен при secretKeys
 	completion: 'interaction',
 	secretKeys: ['cards.*.isCorrect'],
 	toPublic: (d) => ({ shuffle: d.shuffle, cards: d.cards.map(({ isCorrect: _, ...c }) => c) }),
@@ -125,7 +126,8 @@ export const flashcards = defineBlock({
 ```
 
 `defineBlock` проверяет при объявлении: тип `snake_case`; `defaults()` проходит схему; при `secretKeys` есть
-`toPublic` и он убирает каждый секрет; `children` ссылаются на поля схемы; `completion: 'interaction'` — с
+`toPublic` и `example()` (заполненный пример — в `defaults()` список обычно пуст), в примере есть каждый секрет, а
+`toPublic(example)` его убирает; `children` ссылаются на поля схемы; `completion: 'interaction'` — с
 `responseSchema` и `evaluate`. Регистрация хранения — `defineBlockStorage(def, table, children)` в `server.ts`:
 сверяет поля схемы с колонками таблиц (`blockStorageIssues`) и падает на расхождении.
 
@@ -184,7 +186,7 @@ export default function CalloutViewer({ data, state, onInteract, testId }: Block
 ## Готово, когда
 
 `pnpm check` зелёный (тест `packages/blocks`: реестры согласованы — у типа есть хранение, клиентские компоненты,
-строки `title`/`description`, ключ = `type`, поля схемы = колонки; с 1.5 — `check:registries`); тест ядра на
+строки `title`/`description`, ключ = `type`, поля схемы = колонки, секреты на `example()` — `check:registries`); тест ядра на
 хранение для нестандартного типа; блок добавляется из палитры и виден в просмотре после публикации (e2e).
 
 ## Остановись и спроси, если

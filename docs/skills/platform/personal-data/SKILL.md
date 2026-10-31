@@ -26,8 +26,9 @@ description: Персональные данные в Dinastia по 152-ФЗ —
 3. **Пометка** в схеме: колонки ПДн — `pii()` из `@dinastia/db` (`email: pii(text('email').notNull())`; пометка
    в config колонки, читает `isPii(column)`). Помечены `users.name/email/image`, `sessions.ip_address/user_agent`,
    `consents.ip`, `invitations.email`, `files.name`, `audit_log.ip`. Пометка нужна для маскирования, экспорта и
-   удаления (`check:registries`, пункт 1.5, потребует решения «pii / не pii» для колонок с подозрительными именами
-   `email|phone|name|address|birth`).
+   удаления. `check:registries` требует решения «pii / не pii» для колонок с подозрительными именами
+   `email|phone|name|address|birth`: `pii()` или запись в `NOT_PII` (`apps/api/src/kernel/registry-check.ts`) с
+   причиной — например, `schools.name` (название организации).
 4. **Логи**: pino маскирует ключи `SECRET_KEYS` (`kernel/log.ts`: `email`, `phone`, `name`, `password`, `token`,
    `ip`…) на глубине до 2. Ключ каждой `pii()`-колонки обязан быть в этом списке — тест `kernel/pii.test.ts` падает
    на новой колонке с немаскируемым ключом. Не логировать тела запросов и строки таблиц целиком; в журнал действий

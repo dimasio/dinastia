@@ -104,7 +104,7 @@ describe('удаление', () => {
 		expect(await headObject(row?.key ?? '')).toBeNull()
 		const me = await c.schools.updateMyAvatar({ fileId: null })
 		expect(me.member.avatarUrl).toBeNull()
-	}, 15_000) // две загрузки в S3 и задача удаления объекта — под нагрузкой параллельных файлов дольше 5 с
+	})
 
 	it('незавершённые загрузки старше суток удаляет задача', async () => {
 		const u = await a

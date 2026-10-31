@@ -77,7 +77,8 @@ questionTags: {
 
 - интеграционный: создать, дубль → 409, список фильтруется по курсу;
 - матрица прав: `bank.manage` у owner/admin/teacher, curator/student — 403;
-- изоляция школ — автоматически (`check:registries`);
+- изоляция школ: RLS и политику проверяют `check:registries` и `rls-coverage.test`; в тесте сервиса — запись другой
+  школы не видна (`withTestSchool` × 2);
 - e2e: преподаватель создаёт тег в курсе и видит его в списке.
 
 ## 8. Сид — `local-env`

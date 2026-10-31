@@ -74,7 +74,7 @@ defineAction({ key: 'send_email', schema: z.object({ templateId: Id }), perm: 'a
 
 Тест (`startTestWorker`/`drainJobs`, скилл `background-jobs`): действие → подписчик выполнил реакцию; откат
 транзакции — реакции нет; повтор подписчика не дублирует эффект; `pnpm check` зелёный (дубли имён задач — ошибка на
-старте; `check:registries` — пункт 1.5).
+старте и в `check:registries`).
 
 ## Остановись и спроси, если
 

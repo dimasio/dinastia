@@ -8,6 +8,9 @@ export default defineConfig({
 	test: {
 		globalSetup: ['./src/test/global-setup.ts'],
 		setupFiles: ['./src/test/setup.ts'],
+		// Интеграционные тесты ходят в настоящие Postgres, S3 и очередь задач: под нагрузкой pnpm check (turbo гоняет
+		// тесты всех пакетов и typecheck параллельно) сценарий из нескольких запросов и задачи не укладывался в 5 с.
+		testTimeout: 15_000,
 		env: {
 			NODE_ENV: 'test',
 			DATABASE_URL: process.env.DATABASE_URL_TEST ?? '',

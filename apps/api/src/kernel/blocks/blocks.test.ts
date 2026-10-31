@@ -34,6 +34,7 @@ const probe = defineBlock({
 	}),
 	children: { items: 'items' },
 	defaults: () => ({ shuffle: false, items: [] }),
+	example: () => ({ shuffle: false, items: [{ front: 'A', isCorrect: true }] }),
 	completion: 'interaction',
 	secretKeys: ['items.*.isCorrect'],
 	toPublic: (d) => ({ shuffle: d.shuffle, items: d.items.map(({ isCorrect: _, ...i }) => i) }),

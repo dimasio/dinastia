@@ -26,7 +26,7 @@ closed:
 | 1.2 | Ресурс-фреймворк `defineResource` + `ResourceTable/Form/Page`, `listQuery`/`toPage`, `pnpm gen:resource`; экран «Сотрудники школы» | done |
 | 1.3 | `@dinastia/db` `blockTable`; реестр блоков, публикация строками, `pnpm gen:block`; демо-блок `callout` | done |
 | 1.4 | Реестр вопросов поверх `questions`/`question_items`, ревизии, `pnpm gen:question`; демо `single_choice` | done |
-| 1.5 | `check:registries` | backlog |
+| 1.5 | `check:registries` | done |
 | 1.6 | События (outbox) и задачи (pg-boss), воркер | done |
 | 1.7 | Файлы: S3, presigned upload, `files` | done |
 | 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | done |

@@ -31,6 +31,9 @@ export interface BlockDef<
 	schema: S
 	/** Данные нового блока (проходят `schema`). */
 	defaults: () => z.output<S>
+	/** Пример заполненного блока (проходит `schema`): на нём проверяется, что toPublic убирает секреты. Обязателен при
+	 * `secretKeys` — в defaults() секретов обычно нет (пустой список). По умолчанию — defaults(). */
+	example?: () => z.output<S>
 	completion: BlockCompletion
 	/** Поле-массив схемы → часть имени дочерней таблицы (`cards` → `block_<type>_cards`). У элементов — поле `key`. */
 	children?: Readonly<Record<string, string>>
@@ -60,6 +63,8 @@ export function defineBlock<const T extends string, S extends z.ZodObject, P = z
 ): BlockDef<T, S, P, R> {
 	if (!BLOCK_TYPE.test(def.type) || def.type.length > 40) throw new Error(`блок «${def.type}»: тип — snake_case`)
 	if (def.secretKeys?.length && !def.toPublic) throw new Error(`блок «${def.type}»: есть secretKeys — нужен toPublic`)
+	if (def.secretKeys?.length && !def.example)
+		throw new Error(`блок «${def.type}»: есть secretKeys — нужен example() с заполненными секретами`)
 	if (def.category === 'interactive' && def.completion === 'interaction' && !(def.evaluate && def.responseSchema))
 		throw new Error(`блок «${def.type}»: completion interaction — нужны responseSchema и evaluate`)
 	const parsed = def.schema.safeParse(def.defaults())
@@ -68,7 +73,12 @@ export function defineBlock<const T extends string, S extends z.ZodObject, P = z
 	for (const field of Object.keys(def.children ?? {}))
 		if (!(field in shape)) throw new Error(`блок «${def.type}»: children.${field} — нет поля в schema`)
 	const toPublic = def.toPublic ?? ((d: z.output<S>) => d as unknown as P)
-	for (const path of def.secretKeys ?? [])
-		if (hasPath(toPublic(parsed.data), path)) throw new Error(`блок «${def.type}»: toPublic не убирает ${path}`)
+	const example = def.schema.safeParse((def.example ?? def.defaults)())
+	if (!example.success) throw new Error(`блок «${def.type}»: example() не проходит schema — ${example.error.message}`)
+	for (const path of def.secretKeys ?? []) {
+		if (!hasPath(example.data, path))
+			throw new Error(`блок «${def.type}»: в example() нет секрета ${path} — нечего проверять`)
+		if (hasPath(toPublic(example.data), path)) throw new Error(`блок «${def.type}»: toPublic не убирает ${path}`)
+	}
 	return { ...def, toPublic }
 }

@@ -75,7 +75,7 @@ packages/
   questions/                   реестр типов вопросов: src/<type>/{definition.ts, editor.tsx, viewer.tsx}
   i18n/                        локали ru (en позже), типы ключей
   config/                      tsconfig, biome, общие настройки
-tools/                         генераторы (pnpm gen:*), проверки (check:registries, docs:check), skills:link
+tools/                         генераторы (pnpm gen:*), docs:check, skills:link; check:registries — apps/api (нужны реестры)
 tests/e2e/                     сценарии Playwright
 docs/                          документация (docs/README.md)
 docker/                        compose для локального окружения
