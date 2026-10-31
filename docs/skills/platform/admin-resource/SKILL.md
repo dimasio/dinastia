@@ -98,7 +98,7 @@ export const Route = createFileRoute('/admin/staff/')({
 | `columns[].labels`, `filters[].labels`, `fields.<поле>.labels` | префикс подписей значений (`common:roles`); по умолчанию `<ns>:<key>.values.<поле>.<значение>`, нет строки — само значение |
 | `filters[]` | `{ field, options }` — выбор одного значения (select «все / …») |
 | `create` | `schema`, `fields`, `layout`, `initial`, `submit(values)`, `perm` (по умолчанию `perms.write`), `mode: 'sheet' \| 'dialog'` |
-| виджет поля (`fields.<поле>.widget`) | по типу zod: string→`input`, email (в т.ч. `pipe(z.email())`)→`email`, enum→`select`, boolean→`switch`, number→`number`, `RichText`/`CompactText`/`CommentText`→`richtext` (редактор профиля схемы, скилл `rich-text`); явно: `textarea`, `select` с `options` |
+| виджет поля (`fields.<поле>.widget`) | по типу zod: string→`input`, email (в т.ч. `pipe(z.email())`)→`email`, enum→`select`, boolean→`switch`, number→`number`, `RichText`/`CompactText`/`CommentText`→`richtext` (редактор профиля схемы, скилл `rich-text`); явно: `textarea` (компонент `Textarea` из `@dinastia/ui` — его же брать в редакторах блоков и вопросов), `select` с `options` |
 | `fields.<поле>` | `hint: true` (строка `hints.<поле>`), `visibleIf: (values) => boolean` — поле должно быть необязательным в схеме (скрытое не отправляется) |
 | `layout` | строки полей: `[['firstName', 'lastName'], ['email']]` |
 | `actions[]` | `key`, `perm` (по умолчанию `perms.write`), `visible(row, viewer)`, `variant: 'destructive'`, `confirm: true` (подтверждение) или `form` (диалог с формой, `initial(row)`), `run(row, values)`; после успеха — тост и перезагрузка списка |

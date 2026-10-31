@@ -1,5 +1,6 @@
 // pnpm docs:check — шапки скиллов и спек, уникальность имён, таблица скиллов в AGENTS.md, ссылки .claude/skills,
 // относительные ссылки в markdown.
+import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, readlinkSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import matter from 'gray-matter'
@@ -73,6 +74,10 @@ for (const file of [...mdFiles(join(root, 'docs')), join(root, 'AGENTS.md'), joi
 
 // Утверждения о репозитории (проверка реальности, пункт 1.13): команды `pnpm …` и пути в inline-коде скиллов
 // (кроме продуктовых — они о будущих модулях — и помеченных «целевой») и AGENTS.md существуют. Блоки кода — примеры.
+// Путь существует, только если он в git: файл из .gitignore (сборка, превью) есть не у всех — чистая копия и CI.
+const gitFiles = execFileSync('git', ['ls-files'], { cwd: root }).toString().split('\n').filter(Boolean)
+const gitPaths = new Set(gitFiles.flatMap((f) => f.split('/').map((_, i, parts) => parts.slice(0, i + 1).join('/'))))
+const tracked = (full: string) => gitPaths.has(relative(root, full).replace(/\/$/, ''))
 const scripts = new Set(Object.keys(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts ?? {}))
 const PNPM_BUILTIN = new Set([
 	'install',
@@ -110,13 +115,13 @@ for (const file of claimFiles) {
 		const full = path.startsWith('kernel/')
 			? join(root, 'apps/api/src', path)
 			: join(root, path.replace(/[.,:;]+$/, ''))
-		if (!existsSync(full)) fail(`${where}: пути \`${path}\` нет в репозитории`)
+		if (!tracked(full)) fail(`${where}: пути \`${path}\` нет в репозитории (в git)`)
 	}
 }
 
 if (errors.length) {
 	for (const e of errors) console.error(`✗ ${e}`)
 	console.error(`docs:check — ошибок: ${errors.length}`)
-	process.exit(1)
-}
-console.log(`docs:check — ok (скиллов: ${skills.length})`)
+	// exitCode, а не exit(): при выводе в pipe exit() обрывает недописанный вывод
+	process.exitCode = 1
+} else console.log(`docs:check — ok (скиллов: ${skills.length})`)

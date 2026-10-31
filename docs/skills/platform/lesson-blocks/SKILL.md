@@ -176,6 +176,27 @@ export default function CalloutViewer({ data, state, onInteract, testId }: Block
 - Классы Tailwind из `packages/blocks` сканируются (`@source` в `packages/ui/src/styles/globals.css`).
 - Песочница `/dev/blocks` (только dev) и e2e `tests/e2e/blocks.spec.ts` — палитра → черновик → публикация → просмотр.
 
+## Обязательные и необязательные поля
+
+- `defaults()` проходит схему — новый блок пустой. Поэтому схема описывает **форму** данных (тип, длина), а не
+  «заполнено»: `z.string().max(500)` без `min(1)` — иначе `defineBlock` упадёт на `defaults()`. Пустой текст до
+  публикации — нормальное состояние черновика; проверка «блок готов к публикации» — пункт 2.5 (публикация урока).
+- **Необязательное** поле: в схеме `.nullish()` (или `.nullable()`), колонка — без `.notNull()`; сверка «поле =
+  колонка» снимает optional/nullable сама (`packages/blocks/src/storage.ts`). **Обязательное** — колонка
+  `.notNull().default(…)`, в схеме — без `optional`.
+
+```ts
+// definition.ts                                   // table.ts
+schema: z.object({                                 export const blockQuote = blockTable('quote', {
+	text: z.string().max(500),                     	text: text('text').notNull().default(''),
+	author: z.string().max(100).nullish(),         	author: text('author'), // может быть пустой
+}),                                                })
+defaults: () => ({ text: '', author: null }),
+```
+
+- Генератор создаёт миграцию по заготовке (одно поле `text`). Поля меняешь сразу — `pnpm gen:block <type>
+  --no-migration`, правка `table.ts`/`definition.ts`, затем `pnpm db:generate --name block_<type>`.
+
 ## Изменить существующий блок
 
 Данные блока — колонки, поэтому изменение = миграция БД (скилл `db-schema`):

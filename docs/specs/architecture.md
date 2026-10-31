@@ -4,8 +4,9 @@ status: draft
 
 # Архитектура Dinastia
 
-Устройство Dinastia. Документ `draft` до конца фазы 1: §1–4 и §7 сверены с кодом в фазе 0 (действуют), §5–6 и §8 —
-целевые до фазы 1 (`docs/plan/roadmap.md`). Решения — `D-NNN` в `decisions.md`.
+Устройство Dinastia. Документ `draft` до приёмки фазы 1 человеком: §1–4 и §7 сверены с кодом в фазе 0, §5–6 и §8 — в
+фазе 1 (реестры, реляционная модель, сквозные механизмы; сверка — пункт 1.13), кроме строк с пометкой фазы 2+.
+Решения — `D-NNN` в `decisions.md`.
 
 ## 1. Стек
 
@@ -141,6 +142,8 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | триггеры/действия автоматизаций (пост-MVP) | `modules/automations/catalog/*`                      | `defineTrigger`, `defineAction` | —                                | `events-automations` |
 | настройки школы                            | `modules/<m>/settings.ts` (+ таблица `<m>_settings`) | `defineSettings`                | —                                | `settings`           |
 | шаблоны писем                              | `modules/<m>/emails/*.tsx`                           | `defineEmail`                   | —                                | `notifications`      |
+| назначения файлов                          | `modules/<m>/files.ts`                               | `defineFilePurpose`             | —                                | `files-media`        |
+| обработчики вебхуков (провайдеры — ядро)   | `modules/<m>/webhooks.ts`                            | `defineWebhookHandler`          | —                                | `integrations`       |
 
 Общее у всех `define*`: уникальный ключ, zod-схема данных для API, заголовок и иконка для UI. Если реестр хранит
 данные — у записи реестра есть **своя таблица** (D-034), а не JSON.

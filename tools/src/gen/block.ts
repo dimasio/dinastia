@@ -153,4 +153,4 @@ console.log(`
   2. редактор и просмотр — ${dir}/editor.tsx, viewer.tsx; строки — packages/i18n/locales/ru/blocks.json → ${type}
   3. иконка — packages/blocks/src/registry.client.ts (lucide-react)
   4. секреты ученика — secretKeys + toPublic; интерактив — responseSchema + evaluate
-  5. pnpm db:migrate && pnpm check`)
+  5. pnpm check (тесты сами пересоздают тестовую базу); чтобы увидеть блок в pnpm dev — ещё pnpm db:migrate`)

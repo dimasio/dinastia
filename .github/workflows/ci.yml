@@ -50,18 +50,10 @@ jobs:
       - name: E2E
         run: pnpm e2e
 
-      # Последним: меняет рабочую копию (в CI она одноразовая). Генераторы не должны выдавать код, который не проходит проверки.
+      # Генераторы не должны выдавать код, который не проходит проверки: каждый — дважды (разные имена) во временном
+      # git worktree, затем typecheck, lint, тесты, check:registries, docs:check — как локально (tools/src/gen-probe.ts).
       - name: Генераторы выдают рабочий код
-        run: |
-          pnpm gen:module ci-probe --title "Проверка генератора"
-          pnpm gen:resource schools ci-probe --row StaffMember --api members --perm schools.members.read
-          pnpm gen:block ci_probe --title "Проверка генератора"
-          pnpm gen:question ci_probe --title "Проверка генератора"
-          pnpm typecheck
-          pnpm lint
-          pnpm --filter @dinastia/api test
-          pnpm --filter @dinastia/blocks test
-          pnpm --filter @dinastia/questions test
+        run: pnpm gen:probe
           pnpm --filter @dinastia/web test
 
       - name: Артефакты упавших e2e

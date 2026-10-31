@@ -16,6 +16,8 @@ const png = Buffer.from(
 )
 
 test('демо фазы 1', async ({ page }) => {
+	// шесть шагов по всем механизмам фазы: под нагрузкой полного e2e дольше стандартных 30 с
+	test.setTimeout(90_000)
 	await test.step('владелец регистрирует школу', async () => {
 		await page.goto('/register')
 		await page.getByLabel('Ваше имя').fill('Вера Владелец')

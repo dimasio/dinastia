@@ -9,6 +9,7 @@ import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select.tsx'
 import { Switch } from '#/components/ui/switch.tsx'
+import { Textarea } from '#/components/ui/textarea.tsx'
 import { RichTextEditor } from '#/rich-text/lazy.tsx'
 import { useResourceEnv, useResourceT } from './context.tsx'
 import { type FieldInfo, fieldsFromSchema } from './fields.ts'
@@ -111,9 +112,8 @@ export function ResourceForm({
 						)
 					case 'textarea':
 						return (
-							<textarea
+							<Textarea
 								{...common}
-								className="min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 								value={(field.value as string | undefined) ?? ''}
 								onChange={field.onChange}
 								onBlur={field.onBlur}

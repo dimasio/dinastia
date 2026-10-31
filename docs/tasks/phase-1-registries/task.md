@@ -1,5 +1,5 @@
 ---
-status: active
+status: review
 area: core
 phase: 1
 created: 2026-10-24
@@ -34,7 +34,7 @@ closed:
 | 1.11 | `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний | done |
 | 1.12 | Rich text: `RichText`, профили, редактор/просмотр | done |
 | 1.14 | Настройки школы: `defineSettings`, `ctx.settings` (экран — с первой настройкой) | done |
-| 1.13 | Сверка скиллов фазы 1 | backlog |
+| 1.13 | Сверка скиллов фазы 1 | done |
 
 ## Решения
 

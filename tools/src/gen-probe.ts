@@ -52,6 +52,7 @@ const steps: [string, string[]][] = [
 	['линтер', ['lint']],
 	['тесты', ['test']],
 	['реестры', ['check:registries']],
+	['документация', ['docs:check']],
 ]
 
 function step(name: string, args: string[]) {

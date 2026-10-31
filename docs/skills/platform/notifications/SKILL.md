@@ -54,7 +54,7 @@ await ctx.mail.send(submissionReviewedEmail, { to: student.email, data: { lesson
 
 ## Предпросмотр и проверка
 
-- `pnpm emails:preview` — HTML и текст всех писем по `examples` в `apps/api/.emails/` (открыть в браузере).
+- `pnpm emails:preview` — HTML и текст всех писем по `examples` в папку `.emails` внутри `apps/api` (создаёт команда, в git не хранится; открыть в браузере).
 - Локально письма падают в Mailpit: http://localhost:8025 (воркер запущен — `pnpm dev`).
 - Тест `apps/api/src/kernel/mail/mail.test.ts` рендерит каждый пример каждого письма: нет пропущенных строк i18n.
 - В интеграционном тесте: `await lastMailTo(email)` (`#/test/jobs.ts`) — выполнит очередь и вернёт письмо.

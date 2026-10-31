@@ -13,7 +13,8 @@ const command = sep >= 0 ? argv.slice(sep + 1) : ['pnpm', '--filter', '@dinastia
 const n = Number(own[own.indexOf('-n') + 1] ?? 5) || 5
 if (!command.length) {
 	console.error('Использование: pnpm test:repeat [-n 5] [-- <команда>]   (по умолчанию — тесты api)')
-	process.exit(1)
+	process.exitCode = 1
+	throw new Error('нет команды')
 }
 
 /** Цвета терминала в выводе vitest/Playwright. */

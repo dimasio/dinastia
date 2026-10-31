@@ -65,7 +65,7 @@ export const questionTagsContract = {
 ```
 
 Подключение — в `packages/contracts/src/index.ts` (маркер `gen:module:entry`); новые пути попадут в OpenAPI — тест
-`app.test.ts` сверяет список.
+`apps/api/src/router.test.ts` сверяет список.
 
 ## 3. Сервис — `data-access`
 

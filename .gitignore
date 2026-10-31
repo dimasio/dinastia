@@ -16,3 +16,6 @@ test-results/
 
 # Снимки экранов для просмотра (pnpm e2e:shots, скилл visual-review)
 /screens/
+
+# Временные worktree агентов (Claude Code, isolation: worktree)
+.claude/worktrees/
