@@ -8,6 +8,7 @@ import { schools } from '@dinastia/db'
 import { implement, ORPCError, os } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 import { ZodError } from 'zod'
+import { auditFor } from './audit/audit.ts'
 import { auth } from './auth/auth.ts'
 import { config } from './config.ts'
 import type { SchoolCtx } from './context.ts'
@@ -94,7 +95,13 @@ export const mw = { host: hostMw, session: sessionMw, school: schoolMw, tenantTx
 export function schoolCtx(
 	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member']; can: SchoolCtx['can'] },
 ): SchoolCtx {
-	return { ...tenantCtx(c.db, c.school, c), user: c.user, member: c.member, can: c.can }
+	return {
+		...tenantCtx(c.db, c.school, c),
+		audit: auditFor(c.db, { memberId: c.member.id, requestId: c.requestId, ip: c.ip }),
+		user: c.user,
+		member: c.member,
+		can: c.can,
+	}
 }
 
 /** AppError сервиса → ORPCError с тем же HTTP-классом и `data.code` (скилл data-access). */

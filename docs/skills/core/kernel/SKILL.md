@@ -17,7 +17,7 @@ description: Устройство и доработка ядра Dinastia (то�
 
 | Часть | Где | Что | Состояние | Скилл |
 |---|---|---|---|---|
-| хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `appUser` | есть; `blockTable`, `settingsTable` — 1.3/1.6, `pii` — 1.11 | `db-schema` |
+| хелперы схемы | `packages/db` (`@dinastia/db`) | `schools`, `tenantTable`, `tenantRef`, `currentSchoolId`, `richText`, `opaqueJson`, `pii`/`isPii`, `appUser` | есть; `blockTable`, `settingsTable` — 1.3/1.6 | `db-schema` |
 | БД | `kernel/db/{client,tenant,admin,cli,rls-coverage,listing}.ts` | пул `app_user`, `withTenant`, `withUser`, миграции/reset под `app_owner`, проверка покрытия RLS, списки `listQuery`/`toPage` | есть; `forEachSchool` — 1.6 | `data-access` |
 | конфиг | `kernel/config.ts` | zod-схема env, `.env` локально, `appOrigin()` | есть | `settings` |
 | ошибки | `kernel/errors.ts` | `AppError`, `fail.*` | есть | `data-access` |
@@ -30,7 +30,7 @@ description: Устройство и доработка ядра Dinastia (то�
 | модули | `kernel/module.ts`, `modules/index.ts` | `defineModule` (router, permissions, jobs, subscribers), `collectRouters`, `collectJobs` → `kernel/registry.ts`; генератор `pnpm gen:module` (`tools/src/gen/`, вставка у маркеров `gen:`) | есть; настройки в модуле — 1.8+ | `module` |
 | события, задачи | `kernel/{events,jobs,boss,registry,tenant-ctx,worker-runtime}.ts`, `src/worker.ts`, `src/jobs-cli.ts` | `defineEvent`/`on`/`ctx.emit` (outbox = задачи pg-boss, D-045), `defineJob`/`ctx.jobs.send`, `forEachSchool`, `BaseCtx`, воркер, `pnpm jobs:list|run` | есть | `events-automations`, `background-jobs` |
 | файлы, видео | `kernel/storage/{schema,s3,files,router,module}.ts`, `kernel/video/*` | таблица `files`, `defineFilePurpose`, presigned upload (`files.createUpload/complete`), `ctx.files` (signedUrl, get, remove), `signFileKey`, задачи `files.delete-object`, `files.cleanup-pending`; модуль ядра `files` в реестре модулей | файлы — есть; видео — с блоком video | `files-media` |
-| журнал, http, вебхуки | `kernel/{audit,http,webhooks}.ts` | `ctx.audit`, `ctx.http`, `defineWebhookHandler` | фаза 1.11 | `security-baseline`, `integrations` |
+| журнал, http, вебхуки, встраивания | `kernel/audit/{schema,audit}.ts`, `kernel/http.ts`, `kernel/webhooks/{schema,define,receive}.ts`, `kernel/webhooks/providers/*`, `kernel/embed-allowlist.ts` | `ctx.audit` (`audit_log`, без UPDATE/DELETE у `app_user`), `ctx.http` (`createHttp`: проверка адреса при соединении, редиректы, таймаут, повторы), `defineWebhookProvider`/`defineWebhookHandler` → `defineModule({ webhooks })`, маршрут `POST /api/webhooks/<provider>/<schoolId>`, `webhook_events`, задача `webhooks.process`, фейк `fake`; `embedService`/`isAllowedEmbed` | есть; rate limit — отдельный пункт | `security-baseline`, `integrations` |
 | документы | `kernel/documents/*` | `defineDocument`, `defineExport` | фаза 4 | `documents` |
 | тест-хелперы | `test/{users,http,global-setup}.ts` | `createUser`, `uniqueEmail/Slug`, `call`, `signUp`, чистая `dinastia_test` | есть; `withTestSchool`, `callAs`, `expectPermissionMatrix` — 1.9 | `testing` |
 | UI | `packages/ui` | компоненты shadcn, тема, `Field`, `PageHeader`, `EmptyState`; ресурс-фреймворк `@dinastia/ui/resource` (`defineResource`, `ResourcePage`, `ResourceTable`, `ResourceForm`, `ResourceProvider`) | есть | `ui-kit`, `admin-resource` |

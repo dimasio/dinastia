@@ -17,6 +17,34 @@
 | 2026-10-25 | 1.8 | находки: очередь создавал только воркер — API упал бы на постановке до старта воркера → очередь создаётся при первой постановке (`ensureQueue`); тестовые процессы делили одну очередь — задачу файла A выполнял воркер файла B, письмо уходило в чужой `memoryOutbox` → своя схема `pgboss_<n>` на процесс (`BOSS_SCHEMA`, `test/setup.ts`), файлы снова параллельно (19 с вместо 49 с при последовательном прогоне); дата в письме — в часовом поясе Москвы, а не сервера |
 | 2026-10-25 | 1.7 | `kernel/storage`: таблица `files` (миграция `0002_files_avatars`, + `members.avatar_file_id`), S3 на AWS SDK v3 (D-047), `defineFilePurpose` + `defineModule({ files })`, `files.createUpload` (лимиты до ссылки; подписаны тип и длина) → PUT → `files.complete` (HEAD-сверка), `ctx.files` (signedUrl, get, remove → задача `files.delete-object`), `signFileKey`, очистка `pending` > 24 ч; модуль ядра `files` (право `files.upload`, право назначения — в сервисе). Аватар участника: `schools.updateMyAvatar`, `avatarUrl` в `me` и в списке сотрудников; UI — `ImageInput`, `UserAvatar`, `uploadFile` (XHR с прогрессом), экран «Профиль» в обеих областях, аватар в меню (me — из кэша запроса), колонка `avatar` в ресурсе. Тесты: 6 интеграционных на SeaweedFS (api 86), e2e 12 |
 | 2026-10-25 | 1.7 | находки: внешние ключи `members ↔ files` в обе стороны замыкали вывод типов Drizzle → у `files.owner_member_id` FK нет, владельца проверяет код; меню пользователя брало `me` из контекста маршрута и не обновлялось после смены аватара → из кэша запроса; e2e-проверка «картинка видна» проходила на аватаре прошлого прогона до окончания загрузки → сценарий начинает с удаления и ждёт конец загрузки; сервер не разбирает содержимое файла — тип заявляет клиент, поэтому исполняемые типы в назначения не включаются |
+| 2026-10-31 | 1.11 | `pii()`/`isPii` в `@dinastia/db` (флаг в config колонки), помечены ПДн-колонки ядра и `schools`, тест-страж «ключ pii-колонки маскируется в логах». **Миграция `0003_audit_webhooks`**: `audit_log` (REVOKE UPDATE/DELETE/TRUNCATE у `app_user`) и `webhook_events`. `ctx.audit` (актор — участник запроса, в задаче — система) — смена роли, блокировка, приглашение. `ctx.http` (`createHttp`) на `node:http(s)` с проверкой адреса в `lookup`, редиректы ≤ 3, таймаут, повторы идемпотентных. Вебхуки: `defineWebhookProvider`/`defineWebhookHandler`, `defineModule({ webhooks })`, `POST /api/webhooks/<provider>/<schoolId>`, задача `webhooks.process`, фейк с HMAC. `embedService` — согласованный список. D-048. Тесты: api 138 (+ журнал 5, pii 2, http 21, вебхуки 4, встраивания 20), e2e 12 |
+| 2026-10-31 | 1.11 | находки: `drizzle-kit` под Node 22 не понимает импорты `#/…` (`ERR_INVALID_MODULE_SPECIFIER`) — генерировать под Node 24 из `.nvmrc` (`nvm use`); новые тестовые файлы с `withTestSchool` выявили гонку — процессы vitest слали регистрации с одних и тех же «IP» и упирались в общий лимит better-auth (429) → у каждого процесса свой /16 в `test/http.ts` |
+
+## План 1.11
+
+Согласован владельцем 2026-10-31 (вместе с белым списком встраиваний).
+
+1. `pii()` в `@dinastia/db`: пометка колонки (флаг в config колонки), `isPii(column)`. Помечены: `users.name/email/image`,
+   `sessions.ip_address/user_agent`, `consents.ip`, `invitations.email`, `files.name`, `audit_log.ip`. Тест-страж:
+   ключ каждой pii-колонки маскируется в логах.
+2. **Миграция**: `audit_log` (tenantTable; кто — участник или система, действие `<модуль>.<сущность>.<действие>`,
+   сущность и id, `diff` opaqueJson, requestId, IP); `app_user` — без UPDATE/DELETE (REVOKE в миграции).
+   `ctx.audit(action, { entity, id, diff? })` — в транзакции запроса; в задаче — актор «система».
+3. Журнал в `schools`: смена роли, блокировка/разблокировка, приглашение сотрудника.
+4. `ctx.http` (`kernel/http.ts`): node:http(s) с проверкой адреса при соединении (`lookup` — без окна DNS rebinding),
+   IP-литералы и редиректы (до 3) — тоже; таймаут 10 с; повторы — только идемпотентные методы или с ключом
+   идемпотентности, сеть/5xx/429; лог — метод, хост, статус, время.
+5. **Миграция**: `webhook_events` (tenantTable, уникальны `school_id + provider + external_id`). Ядро: провайдер
+   вебхуков `defineWebhookProvider` (подпись, разбор), обработчики модулей `defineWebhookHandler` →
+   `defineModule({ webhooks })`; маршрут `POST /api/webhooks/<provider>/<schoolId>` → подпись (401) → запись (дубль —
+   200) → задача `webhooks.process` → обработчик в транзакции школы, отметка processed. Фейковый провайдер (HMAC) —
+   вне production.
+6. `kernel/embed-allowlist.ts`: `embedProvider(url)` — YouTube, Rutube, VK Видео, Kinescope, Vimeo, Яндекс Формы,
+   Google Forms; только https.
+7. Тесты, сверка скиллов `security-baseline`, `integrations`, `personal-data`, `core-kernel`, `db-schema`.
+
+Вне пункта: `rateLimit` middleware (в `security-baseline` отнесён к 1.11, в роадмапе его нет) — отдельным пунктом;
+экран журнала — с консолью/настройками школы; срок хранения `webhook_events`.
 
 ## План 1.7
 

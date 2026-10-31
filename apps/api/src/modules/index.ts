@@ -2,8 +2,9 @@
 
 import { mailSendJob } from '#/kernel/mail/send.ts'
 import { collectJobs } from '#/kernel/module.ts'
-import { registerEmails, registerFilePurposes, registerJobs } from '#/kernel/registry.ts'
+import { registerEmails, registerFilePurposes, registerJobs, registerWebhookHandlers } from '#/kernel/registry.ts'
 import files from '#/kernel/storage/module.ts'
+import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
 import schools from './schools/index.ts'
 // gen:module:import
 
@@ -13,8 +14,10 @@ export const modules = {
 	// gen:module:entry
 }
 
-// Задачи, подписчики, письма и назначения файлов модулей — в реестр ядра (воркер, ctx.emit, ctx.mail, ctx.files).
+// Задачи, подписчики, письма, назначения файлов и обработчики вебхуков модулей — в реестр ядра (воркер, ctx.emit,
+// ctx.mail, ctx.files, webhooks.process).
 const { jobs, subscribers } = collectJobs(modules)
-registerJobs([mailSendJob, ...jobs], subscribers)
+registerJobs([mailSendJob, processWebhookJob, ...jobs], subscribers)
 registerEmails(Object.values(modules).flatMap((m) => m.emails ?? []))
 registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
+registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))

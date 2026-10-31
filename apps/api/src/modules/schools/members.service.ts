@@ -72,6 +72,11 @@ export async function changeStaffRole(ctx: SchoolCtx, input: { id: string; role:
 	const target = await getStaffOrFail(ctx, input.id)
 	assertCanManage(ctx, target, input.role)
 	await ctx.db.update(members).set({ role: input.role }).where(eq(members.id, input.id))
+	await ctx.audit('schools.member.role-changed', {
+		entity: 'member',
+		id: input.id,
+		diff: { role: { from: target.role, to: input.role } },
+	})
 	ctx.log.info({ targetMemberId: input.id, from: target.role, to: input.role }, 'member role changed')
 	return { ...target, role: input.role }
 }
@@ -80,6 +85,11 @@ export async function setStaffStatus(ctx: SchoolCtx, input: { id: string; status
 	const target = await getStaffOrFail(ctx, input.id)
 	assertCanManage(ctx, target)
 	await ctx.db.update(members).set({ status: input.status }).where(eq(members.id, input.id))
+	await ctx.audit('schools.member.status-changed', {
+		entity: 'member',
+		id: input.id,
+		diff: { status: { from: target.status, to: input.status } },
+	})
 	ctx.log.info({ targetMemberId: input.id, status: input.status }, 'member status changed')
 	return { ...target, status: input.status }
 }

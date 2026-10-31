@@ -1,4 +1,4 @@
-import { tenantRef, tenantTable } from '@dinastia/db'
+import { pii, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
 import { pgEnum, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { users } from '#/kernel/auth/schema.ts'
@@ -10,7 +10,7 @@ export const invitationStatus = pgEnum('invitation_status', ['pending', 'accepte
 export const invitations = tenantTable(
 	'invitations',
 	{
-		email: text('email').notNull(),
+		email: pii(text('email').notNull()),
 		role: memberRole('role').notNull(),
 		tokenHash: text('token_hash').notNull().unique(),
 		status: invitationStatus('status').notNull().default('pending'),

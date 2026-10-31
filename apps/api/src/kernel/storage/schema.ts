@@ -1,4 +1,4 @@
-import { tenantTable } from '@dinastia/db'
+import { pii, tenantTable } from '@dinastia/db'
 import { index, integer, pgEnum, text, uuid } from 'drizzle-orm/pg-core'
 
 export const fileStatus = pgEnum('file_status', ['pending', 'ready'])
@@ -15,7 +15,7 @@ export const files = tenantTable(
 		/** Назначение (`defineFilePurpose`): лимиты, типы, право. */
 		purpose: text('purpose').notNull(),
 		/** Имя файла у пользователя — для скачивания (может содержать ПДн; в логи не пишется). */
-		name: text('name').notNull(),
+		name: pii(text('name').notNull()),
 		mime: text('mime').notNull(),
 		/** Байты; лимит назначения ≤ 2 ГБ. */
 		size: integer('size').notNull(),

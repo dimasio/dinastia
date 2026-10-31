@@ -5,7 +5,8 @@ description: Интеграции Dinastia с внешними сервисам�
 
 # Интеграции
 
-> Статус: целевой — первые провайдеры (почта, хранилище, видео) — фаза 1; платёжки — R2, мессенджеры — R3.
+> Статус: `ctx.http` и вебхуки сверены с кодом в 1.11; провайдеры видео — с блоком video, платёжки — R2,
+> мессенджеры — R3.
 
 ## Провайдер
 
@@ -30,25 +31,65 @@ export interface VideoProvider {
 
 ## Исходящие вызовы
 
-- Только через `ctx.http` (ядро): таймаут (по умолчанию 10 с), запрет приватных сетей, логирование метода/хоста/
-  статуса/времени без тел и секретов.
+`ctx.http` (ядро, `kernel/http.ts`) — единственный путь наружу:
+
+```ts
+// пример будущего провайдера видео (ProviderError и KINESCOPE_TOKEN появятся вместе с ним)
+const res = await ctx.http.request('https://api.kinescope.io/v1/videos', {
+	method: 'POST',
+	headers: { authorization: `Bearer ${config.KINESCOPE_TOKEN}`, 'content-type': 'application/json' },
+	body: JSON.stringify({ title }),
+	idempotencyKey: `video:${lessonBlockId}`, // заголовок Idempotency-Key; без него POST не повторяется
+	timeoutMs: 5_000, // по умолчанию 10 с на весь запрос с редиректами
+})
+if (res.status !== 200) throw new ProviderError('kinescope', res.status >= 500)
+const video = VideoResponse.parse(res.json()) // ответ провайдера — через zod
+```
+
+- **Приватные сети закрыты**: loopback, 10/8, 172.16/12, 192.168/16, 169.254/16 (метаданные облака), CGNAT, IPv6
+  ULA/link-local, IPv4-mapped. Адрес проверяется в момент соединения (свой `lookup`) — DNS rebinding не проходит;
+  редиректы (до 3) — так же. Нарушение — `HttpError` с кодом `HTTP_BLOCKED_ADDRESS`; другие коды —
+  `HTTP_BAD_URL` (не http/https), `HTTP_TIMEOUT`, `HTTP_TOO_MANY_REDIRECTS`, `HTTP_NETWORK` (`retryable`).
+- **Повторы** (по умолчанию 2, `retries`): сеть, 5xx, 429 (с `Retry-After`) — только для GET/HEAD/PUT/DELETE или
+  запроса с `idempotencyKey`. Остальной ответ возвращается как есть: статус проверяет вызывающий.
+- **Лог** — метод, хост, статус, время, номер попытки; тела и заголовки не пишутся. Ответ — до 10 МБ.
 - Только в **фоновой задаче** (скилл `background-jobs`), не в запросе пользователя. Исключение — синхронно нужный
   результат (`createUpload`), с таймаутом ≤ 5 с.
 - Мутации у провайдера — с **идемпотентным ключом** (платёж, письмо): повтор задачи не создаёт дубль.
-- Ретраи — только для `retryable` (сеть, 5xx, 429 с учётом `Retry-After`).
+- Тест с локальным сервером: `createHttp({ log, allowAddresses: ['127.0.0.1'] })` — разрешение только в тесте.
 
 ## Входящие вебхуки
 
 ```
-POST /api/webhooks/<provider>[/<schoolId>]
-  → проверить подпись (секрет провайдера)       неверная — 401, лог
-  → записать событие в webhook_events (provider, external_id уникален)   дубль — 200 и выход
-  → поставить задачу обработки, ответить 200 быстро (< 1 с)
-задача: разобрать parseWebhook → вызвать сервис модуля в тенантном ctx
+POST /api/webhooks/<provider>/<schoolId>                 (kernel/webhooks/receive.ts, маршрут — app.ts)
+  → провайдер и активная школа                           нет — 404
+  → тело > 1 МБ                                          413
+  → provider.verify (подпись по байтам тела)             неверная — 401, лог
+  → provider.parse → { externalId, type, payload }       не разобрать — 400
+  → webhook_events (school_id + provider + external_id уникальны)   дубль — 200 { duplicate: true }
+  → задача webhooks.process в той же транзакции, 200 { duplicate: false }
+задача: обработчик модуля по (provider, type) → handle(ctx школы, данные по схеме) → status processed
+        в одной транзакции (сбой — повтор, после успеха — ничего); нет обработчика — ignored
 ```
 
-Маршруты вебхуков — в ядре (`kernel/webhooks.ts`), обработчики — функции модулей, регистрируемые
-`defineWebhookHandler(provider, eventType, handler)`.
+Провайдер — ядро (`kernel/webhooks/providers/<key>.ts`, `defineWebhookProvider`, список — `webhookProviders` в
+`receive.ts`); фейк `fake` (HMAC-SHA256 тела в `x-fake-signature: sha256=…`, секрет `WEBHOOK_FAKE_SECRET`) — только
+вне production. Обработчик — модуль:
+
+```ts
+// modules/<m>/webhooks.ts
+export const videoReady = defineWebhookHandler({
+	provider: 'kinescope',
+	type: 'video.ready',
+	schema: z.object({ videoId: z.string() }), // ошибка схемы — без повтора (deadletter)
+	async handle(ctx, data, event) {
+		await markVideoReady(ctx, data.videoId) // идемпотентно: повтор задачи после сбоя придёт сюда снова
+	},
+})
+// modules/<m>/index.ts: defineModule({ …, webhooks: [videoReady] })
+```
+
+Тест — `kernel/webhooks/webhooks.test.ts` (подписать тело `fakeSignature(body)`, `drainJobs()`).
 
 ## Ключи школы
 

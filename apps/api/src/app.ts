@@ -12,6 +12,7 @@ import { config } from './kernel/config.ts'
 import { db } from './kernel/db/client.ts'
 import { type Logger, log } from './kernel/log.ts'
 import type { RequestCtx } from './kernel/orpc.ts'
+import { MAX_WEBHOOK_BODY, receiveWebhook } from './kernel/webhooks/receive.ts'
 import { router } from './router.ts'
 
 const rpc = new RPCHandler(router)
@@ -89,6 +90,22 @@ export function createApp() {
 		if (ip) headers.set(CLIENT_IP_HEADER, ip)
 		else headers.delete(CLIENT_IP_HEADER)
 		return auth.handler(new Request(c.req.raw, { headers }))
+	})
+
+	// Вебхуки провайдеров (скилл integrations): не oRPC — тело нужно байт в байт для проверки подписи.
+	app.post('/api/webhooks/:provider/:schoolId', async (c) => {
+		if (Number(c.req.header('content-length') ?? 0) > MAX_WEBHOOK_BODY)
+			return c.json({ code: 'WEBHOOK_TOO_LARGE' }, 413)
+		const result = await receiveWebhook({
+			provider: c.req.param('provider'),
+			schoolId: c.req.param('schoolId'),
+			headers: c.req.raw.headers,
+			body: await c.req.text(),
+			log: c.var.log,
+		})
+		return result.status === 200
+			? c.json({ ok: true, duplicate: result.duplicate })
+			: c.json({ code: result.code }, result.status)
 	})
 
 	app.get('/api/openapi.json', async (c) =>

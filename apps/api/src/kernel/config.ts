@@ -41,6 +41,9 @@ const Env = z.object({
 	SMTP_HOST: z.string().default('localhost'),
 	SMTP_PORT: z.coerce.number().int().default(1025),
 	SMTP_FROM: z.string().min(1),
+
+	/** Секрет подписи фейкового провайдера вебхуков (только вне production; скилл integrations). */
+	WEBHOOK_FAKE_SECRET: z.string().min(16).default('fake-webhook-secret-local'),
 })
 
 export type Config = z.infer<typeof Env>

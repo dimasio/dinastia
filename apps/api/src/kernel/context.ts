@@ -1,7 +1,9 @@
 import type { MemberRole } from '@dinastia/contracts/schools'
 import type { Permission } from '../permissions.ts'
+import type { Audit } from './audit/audit.ts'
 import type { Tx } from './db/client.ts'
 import type { Emit } from './events.ts'
+import type { Http } from './http.ts'
 import type { Jobs } from './jobs.ts'
 import type { MailApi } from './mail/send.ts'
 import type { Files } from './storage/files.ts'
@@ -29,6 +31,10 @@ export interface BaseCtx {
 	mail: MailApi
 	/** Файлы школы: подписанная ссылка, удаление (скилл files-media). */
 	files: Files
+	/** Запись в журнал действий в этой же транзакции; в задаче актор — система (скилл security-baseline). */
+	audit: Audit
+	/** Исходящие запросы наружу: таймаут, без приватных сетей, лог без тел (скилл integrations). */
+	http: Http
 }
 
 /** Контекст запроса участника школы. */

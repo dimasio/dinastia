@@ -5,6 +5,8 @@ import { TEST_PASSWORD, uniqueEmail } from './users.ts'
 export const app = createApp()
 export const host = (slug?: string) => (slug ? `${slug}.dinastia.localhost:5173` : 'dinastia.localhost:5173')
 let ip = 0
+// Свой /16 на тестовый процесс: лимиты better-auth общие в БД, и процессы с одинаковыми адресами мешали бы друг другу.
+const subnet = `10.${100 + Number(process.env.VITEST_POOL_ID ?? 0)}`
 
 export function call(method: string, path: string, opts: { slug?: string; cookie?: string; body?: unknown } = {}) {
 	const h = host(opts.slug)
@@ -13,7 +15,7 @@ export function call(method: string, path: string, opts: { slug?: string; cookie
 		headers: {
 			host: h,
 			origin: `http://${h}`,
-			'x-forwarded-for': `10.77.${Math.floor(++ip / 250)}.${ip % 250}`,
+			'x-forwarded-for': `${subnet}.${Math.floor(++ip / 250)}.${ip % 250}`,
 			...(opts.body !== undefined ? { 'content-type': 'application/json' } : {}),
 			...(opts.cookie ? { cookie: opts.cookie } : {}),
 		},

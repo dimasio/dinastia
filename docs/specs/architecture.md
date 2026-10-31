@@ -186,11 +186,11 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 
 | Механизм                    | Где                                                                                       | Скилл               |
 | --------------------------- | ----------------------------------------------------------------------------------------- | ------------------- |
-| журнал действий `audit_log` | `kernel/audit.ts`                                                                         | `security-baseline` |
+| журнал действий `audit_log` | `kernel/audit/`                                                                           | `security-baseline` |
 | rate limit                  | `kernel/rate-limit.ts` (middleware oRPC и auth)                                           | `security-baseline` |
 | белый список встраиваний    | `kernel/embed-allowlist.ts`                                                               | `security-baseline` |
 | исходящие запросы           | `kernel/http.ts`                                                                          | `integrations`      |
-| входящие вебхуки            | `kernel/webhooks.ts`, `defineWebhookHandler`, `webhook_events`                            | `integrations`      |
+| входящие вебхуки            | `kernel/webhooks/`, `defineWebhookHandler`, `webhook_events`                              | `integrations`      |
 | ПДн                         | `pii()` в схеме, редактор логов, `consents`, `exportMemberData`/`anonymizeMember` модулей | `personal-data`     |
 | rich text                   | `packages/contracts/src/common/rich-text.ts`, `packages/ui/src/rich-text`                 | `rich-text`         |
 | метрики и health            | `kernel/metrics.ts`, `/health/*`, `/metrics`                                              | `observability`     |

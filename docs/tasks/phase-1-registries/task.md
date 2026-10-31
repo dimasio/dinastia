@@ -30,7 +30,7 @@ closed:
 | 1.7 | Файлы: S3, presigned upload, `files` | done |
 | 1.8 | Почта: `defineEmail`, очередь (приглашение — через неё) | done |
 | 1.9 | Тест-фикстуры `withTestSchool`/`callAs`/`expectPermissionMatrix`, e2e-фикстуры | done |
-| 1.11 | `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний | backlog |
+| 1.11 | `audit`, `http`, `webhooks`, `pii()`, белый список встраиваний | done |
 | 1.12 | Rich text: `RichText`, профили, редактор/просмотр | backlog |
 | 1.13 | Сверка скиллов фазы 1 | backlog |
 
@@ -38,6 +38,7 @@ closed:
 
 | Дата | Решение |
 |---|---|
+| 2026-10-31 | D-048: журнал — REVOKE UPDATE/DELETE у `app_user`; `ctx.http` — проверка адреса при соединении; вебхук всегда адресован школе |
 | 2026-10-25 | D-043: ресурс-фреймворк на TanStack Table 9, состояние списка в адресе, `ResourceProvider` |
 | 2026-10-25 | D-044: `AUTH_SIGN_IN_LIMIT` вне production — e2e-набор упирался в лимит входов |
 | 2026-10-25 | D-047: файлы — AWS SDK v3, только подписанные ссылки, аватар у участника школы (решения владельца) |

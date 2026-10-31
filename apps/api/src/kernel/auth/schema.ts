@@ -1,5 +1,5 @@
 // Таблицы better-auth (D-007): глобальные, без RLS — человек один на все школы. Членство в школе — modules/schools.
-import { schools } from '@dinastia/db'
+import { pii, schools } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
 import { bigint, boolean, index, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
@@ -16,10 +16,10 @@ export const platformRole = pgEnum('platform_role', ['operator'])
 
 export const users = pgTable('users', {
 	id: id(),
-	name: text('name').notNull(),
-	email: text('email').notNull().unique(),
+	name: pii(text('name').notNull()),
+	email: pii(text('email').notNull().unique()),
 	emailVerified: boolean('email_verified').notNull().default(false),
-	image: text('image'),
+	image: pii(text('image')),
 	platformRole: platformRole('platform_role'),
 	createdAt: createdAt(),
 	updatedAt: updatedAt(),
@@ -34,8 +34,8 @@ export const sessions = pgTable(
 			.references(() => users.id, { onDelete: 'cascade' }),
 		token: text('token').notNull().unique(),
 		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-		ipAddress: text('ip_address'),
-		userAgent: text('user_agent'),
+		ipAddress: pii(text('ip_address')),
+		userAgent: pii(text('user_agent')),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
 	},
@@ -97,7 +97,7 @@ export const consents = pgTable(
 		schoolId: uuid('school_id').references(() => schools.id, { onDelete: 'cascade' }),
 		kind: consentKind('kind').notNull(),
 		version: text('version').notNull(),
-		ip: text('ip'),
+		ip: pii(text('ip')),
 		createdAt: createdAt(),
 	},
 	(t) => [index().on(t.userId)],

@@ -53,6 +53,8 @@ export async function inviteStaff(ctx: SchoolCtx, input: StaffInvite) {
 		})
 		.returning({ id: invitations.id, expiresAt: invitations.expiresAt })
 	if (!invitation) throw new Error('приглашение не создано')
+	// email — ПДн: в журнале только роль, адрес — в строке приглашения
+	await ctx.audit('schools.invitation.sent', { entity: 'invitation', id: invitation.id, diff: { role } })
 	await ctx.jobs.send(sendInvitationJob, { invitationId: invitation.id })
 	return { invitationId: invitation.id, expiresAt: invitation.expiresAt }
 }

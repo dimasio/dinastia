@@ -2,8 +2,11 @@
 import pino, { type Logger } from 'pino'
 import { config } from './config.ts'
 
-/** Ключи, значения которых никогда не попадают в лог (любой уровень вложенности до 2). */
-const SECRET_KEYS = [
+/**
+ * Ключи, значения которых никогда не попадают в лог (любой уровень вложенности до 2). Ключ каждой колонки `pii()`
+ * должен быть здесь — проверяет тест kernel/pii.test.ts.
+ */
+export const SECRET_KEYS = [
 	'password',
 	'token',
 	'secret',
@@ -14,6 +17,9 @@ const SECRET_KEYS = [
 	'authorization',
 	'set-cookie',
 	'ip',
+	'ipAddress',
+	'userAgent',
+	'image',
 ]
 export const REDACT_PATHS = SECRET_KEYS.flatMap((k) => [k, `*.${k}`, `*.*.${k}`])
 

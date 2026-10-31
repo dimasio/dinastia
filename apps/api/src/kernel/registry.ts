@@ -1,8 +1,9 @@
-// Реестр приложения: задачи (модулей, подписчиков, ядра), письма и назначения файлов. Заполняет modules/index.ts при импорте; читают
+// Реестр приложения: задачи (модулей, подписчиков, ядра), письма, назначения файлов и обработчики вебхуков. Заполняет modules/index.ts при импорте; читают
 // воркер (очереди, расписания), ctx.emit (кому доставить событие), ctx.mail и задача mail.send (шаблон по ключу).
 import type { AnyJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { FilePurpose } from './storage/files.ts'
+import type { AnyWebhookHandler } from './webhooks/define.ts'
 
 const jobs = new Map<string, AnyJob>()
 const byEvent = new Map<string, AnyJob[]>()
@@ -45,3 +46,17 @@ export function registerFilePurposes(list: FilePurpose[]) {
 }
 
 export const filePurpose = (key: string): FilePurpose | undefined => purposes.get(key)
+
+const webhookHandlers = new Map<string, AnyWebhookHandler>()
+
+export function registerWebhookHandlers(list: AnyWebhookHandler[]) {
+	for (const h of list) {
+		const key = `${h.provider}:${h.type}`
+		if (webhookHandlers.has(key) && webhookHandlers.get(key) !== h)
+			throw new Error(`обработчик вебхука «${key}» объявлен дважды`)
+		webhookHandlers.set(key, h)
+	}
+}
+
+export const webhookHandler = (provider: string, type: string): AnyWebhookHandler | undefined =>
+	webhookHandlers.get(`${provider}:${type}`)

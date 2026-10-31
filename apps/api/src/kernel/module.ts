@@ -6,6 +6,7 @@ import type { AnyJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
 import type { FilePurpose } from './storage/files.ts'
+import type { AnyWebhookHandler } from './webhooks/define.ts'
 
 export interface ModuleDef<
 	N extends string = string,
@@ -26,6 +27,8 @@ export interface ModuleDef<
 	emails?: AnyEmail[]
 	/** Назначения файлов модуля (`defineFilePurpose`); ключ — `<модуль>.<назначение>`. */
 	files?: FilePurpose[]
+	/** Обработчики входящих вебхуков (`defineWebhookHandler`): провайдер + тип события. */
+	webhooks?: AnyWebhookHandler[]
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
