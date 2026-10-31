@@ -1,0 +1,109 @@
+/* Форматированный текст (скилл rich-text): общая типографика просмотра и редактора — класс .rt. */
+@layer components {
+	.rt {
+		@apply text-sm leading-relaxed break-words;
+	}
+	.rt > * + * {
+		@apply mt-3;
+	}
+	.rt h2 {
+		@apply text-xl font-semibold tracking-tight;
+	}
+	.rt h3 {
+		@apply text-lg font-semibold;
+	}
+	.rt h4 {
+		@apply text-base font-semibold;
+	}
+	.rt ul {
+		@apply list-disc ps-6;
+	}
+	.rt ol {
+		@apply list-decimal ps-6;
+	}
+	.rt li > * + * {
+		@apply mt-1;
+	}
+	.rt ul[data-type="taskList"] {
+		@apply list-none ps-0;
+	}
+	.rt ul[data-type="taskList"] li {
+		@apply flex items-start gap-2;
+	}
+	.rt ul[data-type="taskList"] li > label {
+		@apply mt-0.5;
+	}
+	.rt ul[data-type="taskList"] li > div {
+		@apply flex-1;
+	}
+	.rt blockquote {
+		@apply border-s-4 ps-4 text-muted-foreground;
+	}
+	.rt code {
+		@apply rounded bg-muted px-1 py-0.5 font-mono text-[0.9em];
+	}
+	.rt pre {
+		@apply overflow-x-auto rounded-md bg-muted p-3 font-mono text-[0.9em];
+	}
+	.rt pre code {
+		@apply bg-transparent p-0;
+	}
+	.rt a {
+		@apply text-primary underline underline-offset-2;
+	}
+	.rt mark {
+		@apply rounded-sm bg-yellow-200 px-0.5 text-inherit dark:bg-yellow-500/40;
+	}
+	.rt hr {
+		@apply border-border;
+	}
+	.rt .rt-image,
+	.rt img {
+		@apply h-auto max-w-full rounded-md;
+	}
+	.rt .rt-table,
+	.rt .tableWrapper {
+		@apply overflow-x-auto;
+	}
+	.rt table {
+		@apply w-full border-collapse;
+	}
+	.rt th,
+	.rt td {
+		@apply border px-2 py-1 align-top;
+	}
+	.rt th {
+		@apply bg-muted font-semibold;
+	}
+	.rt .selectedCell {
+		@apply bg-accent;
+	}
+	.rt-editor {
+		@apply min-h-32 px-3 py-2 outline-none;
+	}
+	.rt-editor p.is-editor-empty:first-child::before {
+		@apply pointer-events-none float-start h-0 text-muted-foreground;
+		content: attr(data-placeholder);
+	}
+	.rt-editor .ProseMirror-selectednode {
+		@apply outline-2 outline-ring;
+	}
+	.rt-color-gray {
+		@apply text-gray-500 dark:text-gray-400;
+	}
+	.rt-color-red {
+		@apply text-red-600 dark:text-red-400;
+	}
+	.rt-color-orange {
+		@apply text-orange-600 dark:text-orange-400;
+	}
+	.rt-color-green {
+		@apply text-green-600 dark:text-green-400;
+	}
+	.rt-color-blue {
+		@apply text-blue-600 dark:text-blue-400;
+	}
+	.rt-color-purple {
+		@apply text-purple-600 dark:text-purple-400;
+	}
+}

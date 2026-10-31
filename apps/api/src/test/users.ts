@@ -13,4 +13,5 @@ export async function createUser(prefix = 'user', name = 'Тест Тестов'
 	return { id: res.user.id, email, name }
 }
 
-export const uniqueSlug = (prefix = 's') => `${prefix}-${Date.now().toString(36)}-${++seq}`
+/** Уникальный slug: pid — процессы vitest идут параллельно, и в одну миллисекунду счётчики совпадают. */
+export const uniqueSlug = (prefix = 's') => `${prefix}-${process.pid.toString(36)}-${Date.now().toString(36)}-${++seq}`

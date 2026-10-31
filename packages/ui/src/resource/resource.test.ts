@@ -1,3 +1,4 @@
+import { CommentText, RichText } from '@dinastia/contracts/common'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { action, defineResource, resourceSearch, toListInput } from './define.ts'
@@ -25,6 +26,19 @@ describe('поля формы из zod', () => {
 		])
 		expect(rows[1]?.[0]?.options).toEqual(['admin', 'teacher'])
 		expect(rows[4]?.[0]?.hint).toBe(true)
+	})
+
+	it('rich text — редактор с профилем схемы, в том числе необязательное поле', () => {
+		const schema = z.object({ description: RichText, note: CommentText.nullable().optional(), title: z.string() })
+		expect(
+			fieldsFromSchema({ schema })
+				.flat()
+				.map((f) => [f.name, f.widget, f.richText ?? null, f.required]),
+		).toEqual([
+			['description', 'richtext', 'lesson', true],
+			['note', 'richtext', 'comment', false],
+			['title', 'input', null, true],
+		])
 	})
 
 	it('layout задаёт строки; поля нет в схеме — ошибка сразу', () => {

@@ -192,7 +192,7 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | исходящие запросы           | `kernel/http.ts`                                                                          | `integrations`      |
 | входящие вебхуки            | `kernel/webhooks/`, `defineWebhookHandler`, `webhook_events`                              | `integrations`      |
 | ПДн                         | `pii()` в схеме, редактор логов, `consents`, `exportMemberData`/`anonymizeMember` модулей | `personal-data`     |
-| rich text                   | `packages/contracts/src/common/rich-text.ts`, `packages/ui/src/rich-text`                 | `rich-text`         |
+| rich text                   | `packages/contracts/src/common/rich-text.ts`, `…/rich-text/server.ts`, `packages/ui/src/rich-text` | `rich-text`         |
 | метрики и health            | `kernel/metrics.ts`, `/health/*`, `/metrics`                                              | `observability`     |
 
 ## 9. Команды

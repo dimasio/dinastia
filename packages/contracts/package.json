@@ -8,11 +8,13 @@
 		"./*": "./src/*.ts"
 	},
 	"scripts": {
-		"typecheck": "tsc -p ."
+		"typecheck": "tsc -p .",
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@dinastia/config": "workspace:*",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	},
 	"dependencies": {
 		"@orpc/contract": "catalog:",

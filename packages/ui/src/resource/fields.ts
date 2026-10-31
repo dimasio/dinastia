@@ -1,4 +1,5 @@
 // Поля формы из zod-схемы (скилл admin-resource): тип контрола, обязательность, варианты enum.
+import { type RichTextProfile, richTextRegistry } from '@dinastia/contracts/common'
 import type { z } from 'zod'
 import type { FieldOverride, FormDef, Widget } from './types.ts'
 
@@ -7,6 +8,8 @@ export interface FieldInfo {
 	widget: Widget
 	required: boolean
 	options?: readonly string[] | undefined
+	/** Профиль редактора для `richtext` — из схемы поля. */
+	richText?: RichTextProfile | undefined
 	labels?: string | undefined
 	hint: boolean
 }
@@ -41,7 +44,12 @@ function unwrap(schema: z.ZodType): { base: z.ZodType; optional: boolean; format
 	}
 }
 
-function widgetOf(base: z.ZodType, format: string | undefined): { widget: Widget; options?: string[] } {
+function widgetOf(
+	base: z.ZodType,
+	format: string | undefined,
+): { widget: Widget; options?: string[]; richText?: RichTextProfile } {
+	const rich = richTextRegistry.get(base)
+	if (rich) return { widget: 'richtext', richText: rich.richText }
 	const def = defOf(base)
 	if (def.type === 'enum') return { widget: 'select', options: Object.values(def.entries ?? {}) }
 	if (def.type === 'boolean') return { widget: 'switch' }
@@ -66,6 +74,7 @@ export function fieldsFromSchema(form: FormDef<z.ZodObject>): FieldInfo[][] {
 				widget: o?.widget ?? auto.widget,
 				required: !optional,
 				options: o?.options ?? auto.options,
+				richText: auto.richText ?? (o?.widget === 'richtext' ? 'lesson' : undefined),
 				labels: o?.labels,
 				hint: o?.hint ?? false,
 			}

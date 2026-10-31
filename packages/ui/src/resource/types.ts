@@ -54,10 +54,11 @@ export interface FilterDef<F extends string> {
 	labels?: string
 }
 
-export type Widget = 'input' | 'email' | 'textarea' | 'select' | 'switch' | 'number'
+export type Widget = 'input' | 'email' | 'textarea' | 'select' | 'switch' | 'number' | 'richtext'
 
 export interface FieldOverride<V> {
-	/** По умолчанию — по типу zod: string→input, email→email, enum→select, boolean→switch, number→number. */
+	/** По умолчанию — по типу zod: string→input, email→email, enum→select, boolean→switch, number→number,
+	 * RichText/CompactText/CommentText (@dinastia/contracts/common)→richtext с профилем схемы. */
 	widget?: Widget
 	/** Значения для select, если поле не enum. */
 	options?: readonly string[]

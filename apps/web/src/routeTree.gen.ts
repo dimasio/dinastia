@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminProfileRouteImport } from './routes/admin/profile'
+import { Route as DevRichTextRouteImport } from './routes/dev.rich-text'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
 import { Route as LearnProfileRouteImport } from './routes/learn/profile'
@@ -56,6 +57,11 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const DevRichTextRoute = DevRichTextRouteImport.update({
+  id: '/dev/rich-text',
+  path: '/dev/rich-text',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin': typeof AdminIndexRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
     | '/admin/'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
     | '/admin'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/dev/rich-text'
     | '/invite/$token'
     | '/learn/profile'
     | '/admin/'
@@ -161,6 +173,7 @@ export interface RootRouteChildren {
   LearnRouteRoute: typeof LearnRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  DevRichTextRoute: typeof DevRichTextRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
 
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/profile'
       preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/dev/rich-text': {
+      id: '/dev/rich-text'
+      path: '/dev/rich-text'
+      fullPath: '/dev/rich-text'
+      preLoaderRoute: typeof DevRichTextRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnRouteRoute: LearnRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  DevRichTextRoute: DevRichTextRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport

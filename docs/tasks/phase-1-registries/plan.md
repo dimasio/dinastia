@@ -20,6 +20,19 @@
 | 2026-10-31 | 1.11 | `pii()`/`isPii` в `@dinastia/db` (флаг в config колонки), помечены ПДн-колонки ядра и `schools`, тест-страж «ключ pii-колонки маскируется в логах». **Миграция `0003_audit_webhooks`**: `audit_log` (REVOKE UPDATE/DELETE/TRUNCATE у `app_user`) и `webhook_events`. `ctx.audit` (актор — участник запроса, в задаче — система) — смена роли, блокировка, приглашение. `ctx.http` (`createHttp`) на `node:http(s)` с проверкой адреса в `lookup`, редиректы ≤ 3, таймаут, повторы идемпотентных. Вебхуки: `defineWebhookProvider`/`defineWebhookHandler`, `defineModule({ webhooks })`, `POST /api/webhooks/<provider>/<schoolId>`, задача `webhooks.process`, фейк с HMAC. `embedService` — согласованный список. D-048. Тесты: api 138 (+ журнал 5, pii 2, http 21, вебхуки 4, встраивания 20), e2e 12 |
 | 2026-10-31 | 1.11 | находки: `drizzle-kit` под Node 22 не понимает импорты `#/…` (`ERR_INVALID_MODULE_SPECIFIER`) — генерировать под Node 24 из `.nvmrc` (`nvm use`); новые тестовые файлы с `withTestSchool` выявили гонку — процессы vitest слали регистрации с одних и тех же «IP» и упирались в общий лимит better-auth (429) → у каждого процесса свой /16 в `test/http.ts` |
 | 2026-10-31 | 1.11+ | долг 1.11 — rate limit процедур: **миграция `0004_request_limits`**, `rateLimit({ name, max, windowSeconds, by: ip/user/member })` → 429 `RATE_LIMITED` + `retryAfter`; лимиты на `schools.create`, `invitations.create`, `files.createUpload`; scope задач `global` (`GlobalJobDef`, только ядро) и `rate-limit.cleanup`; D-049. Заодно убраны старые предупреждения линтера (`mail.test.ts`, `invitations.service.ts`). api 142, e2e 12 |
+| 2026-10-31 | 1.12 | Tiptap 3.32.2 (9 пакетов, каталог) — в `packages/ui`. `@dinastia/contracts/common`: `RICH_TEXT_PROFILES`, `richTextSchema`/`RichText`/`CompactText`/`CommentText` (+ `richTextRegistry`), `richTextIssues`, `sanitizeRichText`, `toPlainText`, `isEmptyDoc`, `collectFileIds`; `…/rich-text/server` — `toHtml`. `@dinastia/ui/rich-text`: `RichTextEditor` (лениво, панель по профилю, ссылка — диалог, цвет — палитра, таблица, картинка через `uploadImage`), `RichTextView`; виджет ресурса `richtext`. Демо (решение владельца, вариант 1): песочница `/dev/rich-text` (только dev) + e2e `rich-text.spec.ts`; продуктовое поле — с курсами. D-050. Тесты: contracts 22, ui 14, api 142, e2e 14 |
+| 2026-10-31 | 1.12 | находки: тест «редактор ↔ валидатор» сразу поймал атрибуты Tiptap, которых не было в правилах (`align` у ячеек, `title` у ссылки); `uniqueSlug` в тестах совпадал у параллельных процессов (409 на регистрации школы) — добавлен pid; тест аватара (S3 + задача) не укладывался в 5 с под нагрузкой — свой таймаут 15 с; сборка перегенерирует `routeTree.gen.ts` — `git stash` перед сборкой ломал возврат |
+
+## План 1.12 и долга 1.11
+
+Согласован владельцем 2026-10-31; демо — вариант 1 (песочница и тесты, продуктовое поле — с курсами).
+
+A. Rate limit процедур: таблица `request_limits` (миграция), `rateLimit` middleware, scope задач `global` и очистка,
+   лимиты на `schools.create`, приглашения, загрузку файлов; тесты, сверка `security-baseline`, `background-jobs`.
+B. Rich text: профили и валидатор в `@dinastia/contracts` (без Tiptap), `toPlainText`/`isEmptyDoc`/`collectFileIds`,
+   `toHtml` на сервере; `RichTextEditor` (Tiptap 3, лениво) и `RichTextView` (без innerHTML) в `@dinastia/ui`;
+   виджет ресурса `richtext`; тесты валидатора, рендеров, совместимости редактора и валидатора; e2e песочницы;
+   сверка `rich-text`, `admin-resource`.
 
 ## План 1.11
 

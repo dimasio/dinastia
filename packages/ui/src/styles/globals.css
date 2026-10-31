@@ -1,6 +1,7 @@
 /* Дизайн-система Dinastia (скилл ui-kit): только токены; цвет школы — через --primary (брендинг, фаза 1+). */
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./rich-text.css";
 
 /* Классы компонентов @dinastia/ui и приложений */
 @source "../";

@@ -8,15 +8,26 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./resource": "./src/resource/index.ts",
-		"./styles.css": "./src/styles/globals.css"
+		"./styles.css": "./src/styles/globals.css",
+		"./rich-text": "./src/rich-text/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc -p .",
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@dinastia/contracts": "workspace:*",
 		"@hookform/resolvers": "catalog:",
 		"@tanstack/react-table": "catalog:",
+		"@tiptap/core": "catalog:",
+		"@tiptap/extension-highlight": "catalog:",
+		"@tiptap/extension-list": "catalog:",
+		"@tiptap/extension-table": "catalog:",
+		"@tiptap/extension-text-style": "catalog:",
+		"@tiptap/extensions": "catalog:",
+		"@tiptap/pm": "catalog:",
+		"@tiptap/react": "catalog:",
+		"@tiptap/starter-kit": "catalog:",
 		"class-variance-authority": "catalog:",
 		"clsx": "catalog:",
 		"cn": "^0.5.0",

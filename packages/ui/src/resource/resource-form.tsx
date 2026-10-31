@@ -9,6 +9,7 @@ import { Button } from '#/components/ui/button.tsx'
 import { Input } from '#/components/ui/input.tsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select.tsx'
 import { Switch } from '#/components/ui/switch.tsx'
+import { RichTextEditor } from '#/rich-text/lazy.tsx'
 import { useResourceEnv, useResourceT } from './context.tsx'
 import { type FieldInfo, fieldsFromSchema } from './fields.ts'
 import type { FieldOverride, FormDef } from './types.ts'
@@ -93,6 +94,19 @@ export function ResourceForm({
 								checked={Boolean(field.value)}
 								onCheckedChange={field.onChange}
 								data-testid={`${testId}-${f.name}`}
+							/>
+						)
+					case 'richtext':
+						return (
+							<RichTextEditor
+								id={id}
+								profile={f.richText ?? 'lesson'}
+								value={field.value as never}
+								onChange={field.onChange}
+								invalid={invalid}
+								{...(describedBy ? { 'aria-describedby': describedBy } : {})}
+								aria-label={r(`fields.${f.name}`)}
+								testId={`${testId}-${f.name}`}
 							/>
 						)
 					case 'textarea':
