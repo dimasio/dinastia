@@ -5,6 +5,7 @@ import { type Subscriber, subscriberJob } from './events.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
+import type { AnySettingsDef } from './settings/settings.ts'
 import type { FilePurpose } from './storage/files.ts'
 import type { AnyWebhookHandler } from './webhooks/define.ts'
 
@@ -29,6 +30,8 @@ export interface ModuleDef<
 	files?: FilePurpose[]
 	/** Обработчики входящих вебхуков (`defineWebhookHandler`): провайдер + тип события. */
 	webhooks?: AnyWebhookHandler[]
+	/** Настройки школы модуля (`defineSettings`, таблица `<модуль>_settings`); экран /admin/settings строится из них. */
+	settings?: AnySettingsDef
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
@@ -37,6 +40,8 @@ export function defineModule<const N extends string, R extends object, P extends
 	if (def.permissions.module !== def.name) {
 		throw new Error(`модуль ${def.name}: разрешения объявлены для «${def.permissions.module}»`)
 	}
+	if (def.settings && def.settings.module !== def.name)
+		throw new Error(`модуль ${def.name}: настройки объявлены для «${def.settings.module}»`)
 	for (const f of def.files ?? [])
 		if (!f.key.startsWith(`${def.name}.`))
 			throw new Error(`модуль ${def.name}: назначение файла «${f.key}» чужого модуля`)

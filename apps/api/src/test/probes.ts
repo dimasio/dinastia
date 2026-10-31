@@ -9,11 +9,12 @@ import {
 	lessonBlocks,
 	schoolStatus,
 	schools,
+	settingsTable,
 	tenantRef,
 	tenantTable,
 } from '@dinastia/db'
 import { generateDrizzleJson, generateMigration } from 'drizzle-kit/api'
-import { boolean, text, uuid } from 'drizzle-orm/pg-core'
+import { boolean, integer, text, uuid } from 'drizzle-orm/pg-core'
 
 /** Изоляция школ и составные ключи (kernel/db/tenant.test.ts). */
 export const probeParents = tenantTable('kernel_probe_parents', { title: text('title').notNull() })
@@ -28,11 +29,17 @@ export const probeBlockItems = blockChildTable(probeBlock, 'items', {
 	isCorrect: boolean('is_correct').notNull(),
 })
 
+/** Настройки модуля (kernel/settings/settings.test.ts). */
+export const probeSettings = settingsTable('kernel_probe_settings', {
+	selfEnroll: boolean('self_enroll').notNull().default(true),
+	reminderHours: integer('reminder_hours').notNull().default(24),
+})
+
 /** SQL создания пробных таблиц поверх уже мигрированной схемы. */
 export async function probeDdl(): Promise<string[]> {
 	const base = { schools, schoolStatus, appUser, lessonBlocks, blockState }
 	return generateMigration(
 		generateDrizzleJson(base),
-		generateDrizzleJson({ ...base, probeParents, probeChildren, probeBlock, probeBlockItems }),
+		generateDrizzleJson({ ...base, probeParents, probeChildren, probeBlock, probeBlockItems, probeSettings }),
 	)
 }

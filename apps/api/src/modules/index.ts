@@ -3,7 +3,13 @@
 import { mailSendJob } from '#/kernel/mail/send.ts'
 import { collectJobs } from '#/kernel/module.ts'
 import { requestLimitsCleanupJob } from '#/kernel/rate-limit/rate-limit.ts'
-import { registerEmails, registerFilePurposes, registerJobs, registerWebhookHandlers } from '#/kernel/registry.ts'
+import {
+	registerEmails,
+	registerFilePurposes,
+	registerJobs,
+	registerSettings,
+	registerWebhookHandlers,
+} from '#/kernel/registry.ts'
 import files from '#/kernel/storage/module.ts'
 import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
 import schools from './schools/index.ts'
@@ -22,3 +28,4 @@ registerJobs([mailSendJob, processWebhookJob, requestLimitsCleanupJob, ...jobs],
 registerEmails(Object.values(modules).flatMap((m) => m.emails ?? []))
 registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
 registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))
+registerSettings(Object.values(modules).flatMap((m) => (m.settings ? [m.settings] : [])))

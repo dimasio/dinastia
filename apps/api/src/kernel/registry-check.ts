@@ -7,6 +7,7 @@ import { isPii, jsonKind } from '@dinastia/db'
 import { type AnyQuestionDef, questionDefIssues } from '@dinastia/questions'
 import { getTableName, is } from 'drizzle-orm'
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core'
+import { type AnySettingsDef, settingsIssues as settingsDefIssues } from './settings/settings.ts'
 
 export interface Issue {
 	/** Раздел отчёта: tables, blocks, questions, errors, registry. */
@@ -121,6 +122,22 @@ export function questionIssues(types: Readonly<Record<string, AnyQuestionDef>>, 
 		for (const k of ['title', 'description'])
 			if (typeof text(strings, `${key}.${k}`) !== 'string')
 				issues.push({ area: 'questions', where, message: `нет строки questions:${key}.${k}` })
+		return issues
+	})
+}
+
+/** Настройки модулей: поле = колонка с default, строки экрана — подпись, описание, группа. */
+export function settingsIssues(defs: AnySettingsDef[], strings: Strings): Issue[] {
+	return defs.flatMap((def) => {
+		const where = def.module
+		const issues: Issue[] = settingsDefIssues(def).map((message) => ({ area: 'settings', where, message }))
+		for (const [name, field] of Object.entries(def.fields as Record<string, { group: string }>)) {
+			for (const k of ['title', 'description'])
+				if (typeof text(strings, `${def.module}.${name}.${k}`) !== 'string')
+					issues.push({ area: 'settings', where, message: `нет строки settings:${def.module}.${name}.${k}` })
+			if (typeof text(strings, `groups.${field.group}`) !== 'string')
+				issues.push({ area: 'settings', where, message: `нет строки settings:groups.${field.group}` })
+		}
 		return issues
 	})
 }

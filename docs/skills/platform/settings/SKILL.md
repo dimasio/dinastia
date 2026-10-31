@@ -5,8 +5,8 @@ description: Настройки в Dinastia — настройки школы �
 
 # Настройки
 
-> Статус: конфигурация окружения — сверено с кодом в фазе 0; хелпер `settingsTable` — в 1.3; `defineSettings`,
-> `ctx.settings` — пункт 1.14 (экран — с первой настройкой).
+> Статус: сверено с кодом в 1.14 (`settingsTable`, `defineSettings`, `ctx.settings`, `updateSettings`).
+> Экран `/admin/settings` и процедуры `settings.*` — с первой настройкой модуля.
 
 Три вида — не путать:
 
@@ -18,15 +18,16 @@ description: Настройки в Dinastia — настройки школы �
 
 ## Настройки школы
 
-Настройка школы — колонка в таблице настроек модуля (строка на школу, создаётся лениво с default-значениями):
+Настройка школы — колонка в таблице настроек модуля (строка на школу, создаётся при первом чтении с default
+колонок; D-036):
 
 ```ts
 // apps/api/src/modules/learning/schema.ts
-import { boolean, integer } from 'drizzle-orm/pg-core'
 import { settingsTable } from '@dinastia/db'
+import { boolean, integer } from 'drizzle-orm/pg-core'
 
-export const learningSettings = settingsTable('learning_settings', {
-	// PK school_id, RLS
+// → learning_settings: PK school_id (каскад со школой), updated_at, RLS; у каждой колонки — default
+export const learningSettingsTable = settingsTable('learning_settings', {
 	selfEnrollByLink: boolean('self_enroll_by_link').notNull().default(true),
 	deadlineReminderHours: integer('deadline_reminder_hours').notNull().default(24),
 })
@@ -35,23 +36,30 @@ export const learningSettings = settingsTable('learning_settings', {
 ```ts
 // apps/api/src/modules/learning/settings.ts
 import { z } from 'zod'
-import { defineSettings } from '#/kernel/settings'
-import { learningSettings } from './schema'
+import { defineSettings } from '#/kernel/settings/settings.ts'
+import { learningSettingsTable } from './schema.ts'
 
-export const settings = defineSettings('learning', learningSettings, {
+export const learningSettings = defineSettings('learning', learningSettingsTable, {
 	selfEnrollByLink: { schema: z.boolean(), group: 'learning', edit: ['owner', 'admin'] },
 	deadlineReminderHours: { schema: z.number().int().min(1).max(168), group: 'notifications', edit: ['owner', 'admin'] },
 })
+// modules/learning/index.ts: defineModule({ …, settings: learningSettings })
 ```
 
-- Чтение: `await ctx.settings.get('learning.selfEnrollByLink')` — типизировано, default из колонки.
-- Каждое поле `defineSettings` = колонка таблицы (`check:registries` сверяет); новая настройка = колонка с default +
-  миграция (скилл `db-schema`) — существующие школы получают default без заполнения данных.
-- Подписи и описания — `settings:<модуль>.<имя>.title|description` в i18n.
-- Экран `/admin/settings` строится из реестра (группы, виджеты по zod — как в `admin-resource`).
+| Что | Как |
+| --- | --- |
+| чтение (сервис, задача, подписчик) | `await ctx.settings.get(learningSettings, 'selfEnrollByLink')` — тип значения из колонки, опечатка в имени — ошибка компиляции (D-053); `await ctx.settings.all(learningSettings)` — все |
+| изменение | `updateSettings(ctx, learningSettings, { deadlineReminderHours: 48 })` из `#/kernel/settings/settings.ts`: только переданные поля, каждое — по `schema` (`ZodError` → 400) и `edit` (owner — всегда; иначе `SETTING_FORBIDDEN`), неизвестное — `SETTING_UNKNOWN`; изменение — в журнал `settings.<модуль>.changed` с `diff` |
+| `defineSettings` проверяет | таблица — `<модуль>_settings` (дефисы модуля → `_`); поле = колонка, каждая колонка описана; у колонки есть default (у новой школы строки нет) |
+| `check:registries` | то же + строки `settings:<модуль>.<имя>.title\|description` и `settings:groups.<группа>` (`packages/i18n/locales/ru/settings.json`) |
+| новая настройка | колонка с default + поле в `defineSettings` + строки; миграция `pnpm db:generate` (скилл `db-schema`) — существующие школы получают default без заполнения данных |
+
+- Экран `/admin/settings` строится из реестра (`allSettings()` из `kernel/registry.ts`: группы, виджеты по zod — как
+  в `admin-resource`) — появится вместе с первой настройкой модуля.
 - Что относится к одной сущности (курс, урок, брендинг школы) — **колонка этой сущности**, а не настройка.
 - **Фича-флаг школы** — булева колонка с `edit: []` (меняет только оператор SaaS в `/ops`) — способ «временно
   включить/выключить» для школы вместо удаления кода.
+- Тест механизма — `apps/api/src/kernel/settings/settings.test.ts` (пробная таблица — `test/probes.ts`).
 
 ## Конфигурация окружения
 

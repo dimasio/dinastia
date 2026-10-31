@@ -11,6 +11,7 @@ import { createHttp } from './http.ts'
 import { jobsFor } from './jobs.ts'
 import type { Logger } from './log.ts'
 import { mailFor } from './mail/send.ts'
+import { settingsFor } from './settings/settings.ts'
 import { filesFor } from './storage/files.ts'
 
 export function tenantCtx(tx: Tx, school: BaseCtx['school'], env: { now: () => Date; log: Logger }): BaseCtx {
@@ -26,6 +27,7 @@ export function tenantCtx(tx: Tx, school: BaseCtx['school'], env: { now: () => D
 		files: filesFor(tx, jobs),
 		audit: auditFor(tx, { memberId: null }),
 		http: createHttp({ log: env.log }),
+		settings: settingsFor(tx),
 	}
 }
 

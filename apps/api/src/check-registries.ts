@@ -6,11 +6,13 @@ import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resources } from '@dinastia/i18n'
 import { GLOBAL_TABLES_WITH_SCHOOL_REF } from './kernel/db/rls-coverage.ts'
+import { allSettings } from './kernel/registry.ts'
 import {
 	blockIssues,
 	errorCodeIssues,
 	type Issue,
 	questionIssues,
+	settingsIssues,
 	tableIssues,
 	tablesOf,
 } from './kernel/registry-check.ts'
@@ -39,7 +41,11 @@ function sources(dir: string): { path: string; source: string }[] {
 	return out
 }
 
-await load('apps/api/src/modules/index.ts (модули, задачи, письма, файлы, вебхуки)', () => import('./modules/index.ts'))
+await load(
+	'apps/api/src/modules/index.ts (модули, задачи, письма, файлы, вебхуки, настройки)',
+	() => import('./modules/index.ts'),
+)
+issues.push(...settingsIssues(allSettings(), resources.ru.settings))
 const schema = await load('apps/api/src/db-schema.ts', () => import('./db-schema.ts'))
 if (schema) issues.push(...tableIssues(tablesOf(schema), GLOBAL_TABLES_WITH_SCHOOL_REF))
 const blocks = await load('@dinastia/blocks', () => import('@dinastia/blocks/server'))

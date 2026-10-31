@@ -6,6 +6,7 @@ import type { Emit } from './events.ts'
 import type { Http } from './http.ts'
 import type { Jobs } from './jobs.ts'
 import type { MailApi } from './mail/send.ts'
+import type { Settings } from './settings/settings.ts'
 import type { Files } from './storage/files.ts'
 
 export type { Tx }
@@ -35,6 +36,8 @@ export interface BaseCtx {
 	audit: Audit
 	/** Исходящие запросы наружу: таймаут, без приватных сетей, лог без тел (скилл integrations). */
 	http: Http
+	/** Настройки школы по определению модуля: `ctx.settings.get(learningSettings, 'selfEnrollByLink')` (скилл settings). */
+	settings: Settings
 }
 
 /** Контекст запроса участника школы. */

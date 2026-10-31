@@ -2,6 +2,7 @@
 // воркер (очереди, расписания), ctx.emit (кому доставить событие), ctx.mail и задача mail.send (шаблон по ключу).
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
+import type { AnySettingsDef } from './settings/settings.ts'
 import type { FilePurpose } from './storage/files.ts'
 import type { AnyWebhookHandler } from './webhooks/define.ts'
 
@@ -60,3 +61,16 @@ export function registerWebhookHandlers(list: AnyWebhookHandler[]) {
 
 export const webhookHandler = (provider: string, type: string): AnyWebhookHandler | undefined =>
 	webhookHandlers.get(`${provider}:${type}`)
+
+const settings = new Map<string, AnySettingsDef>()
+
+export function registerSettings(list: AnySettingsDef[]) {
+	for (const s of list) {
+		if (settings.has(s.module) && settings.get(s.module) !== s)
+			throw new Error(`настройки «${s.module}» объявлены дважды`)
+		settings.set(s.module, s)
+	}
+}
+
+/** Настройки всех модулей — экран /admin/settings и check:registries. */
+export const allSettings = (): AnySettingsDef[] => [...settings.values()]
