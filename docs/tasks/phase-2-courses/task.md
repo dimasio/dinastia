@@ -22,7 +22,7 @@ closed:
 | 2.1 | Модуль `courses`: курсы, разделы, уроки — схема, контракт, сервис, права; ресурс «Курсы» | [2.1](changes/2.1-courses-module.md) | done |
 | 2.2 | Конструктор курса: дерево разделов/уроков с dnd, переименование, порядок | [2.2](changes/2.2-course-builder.md) | done |
 | 2.3 | Конструктор урока: блоки из палитры, dnd, автосохранение черновика, предпросмотр | [2.3](changes/2.3-lesson-editor.md) | done |
-| 2.4 | Блоки контента: `text`, `heading`, `image`, `video`, `file`, `embed`, `callout`, `divider`, `code` | — | backlog |
+| 2.4 | Блоки контента: `text`, `heading`, `image`, `video`, `file`, `embed`, `callout`, `divider`, `code` | [2.4](changes/2.4-content-blocks.md) | шаг 3 — на утверждение |
 | 2.5 | Публикация урока/курса, статусы, предупреждения при удалении блоков с ответами | — | backlog |
 | 2.6 | Плеер урока ученика: навигация, доступ `open`/`sequential`/`drip`, отметка просмотра | — | backlog |
 | 2.7 | Обложки, загрузка медиа через `files` | — | backlog |
