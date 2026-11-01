@@ -22,6 +22,9 @@ export async function shoot(page: Page, name: string, opts: ShootOptions = {}): 
 		paths.push(path)
 	}
 	await expect(page.locator('body'), 'на экране пропущенная строка i18n (⟦ключ⟧)').not.toContainText('⟦')
+	// дождаться текущих анимаций (закрытие диалога): если отключить их посреди — Radix не получит animationend и
+	// оставит диалог на экране
+	await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
 	// без переходов: иначе после смены темы снимок ловит середину transition-colors (тёмный текст на тёмном фоне)
 	await page.addStyleTag({
 		content: '*, *::before, *::after { transition: none !important; animation: none !important; }',

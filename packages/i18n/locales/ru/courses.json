@@ -59,5 +59,46 @@
 				"success": "Курс «{{title}}» удалён"
 			}
 		}
+	},
+	"builder": {
+		"back": "Все курсы",
+		"tabs": {
+			"content": "Содержание"
+		},
+		"empty": {
+			"title": "В курсе пока нет разделов",
+			"description": "Добавьте первый раздел — например, «Введение», — а в него уроки."
+		},
+		"addSection": "Раздел",
+		"addLesson": "Урок",
+		"newSection": "Название раздела",
+		"newLesson": "Название урока",
+		"noLessons": "Уроков пока нет",
+		"lessonsCount_one": "{{count}} урок",
+		"lessonsCount_few": "{{count}} урока",
+		"lessonsCount_many": "{{count}} уроков",
+		"lessonsCount_other": "{{count}} урока",
+		"menu": "Действия",
+		"drag": "Перетащить",
+		"rename": "Переименовать",
+		"up": "Выше",
+		"down": "Ниже",
+		"toSection": "В раздел…",
+		"openLesson": "Открыть урок (скоро)",
+		"removeSection": "Удалить раздел",
+		"removeLesson": "Удалить урок",
+		"remove": "Удалить",
+		"confirmSection": {
+			"title": "Удалить раздел «{{title}}»?",
+			"description_one": "Вместе с разделом удалится {{count}} урок с содержимым. Это нельзя отменить.",
+			"description_few": "Вместе с разделом удалятся {{count}} урока с содержимым. Это нельзя отменить.",
+			"description_many": "Вместе с разделом удалятся {{count}} уроков с содержимым. Это нельзя отменить.",
+			"description_other": "Вместе с разделом удалятся {{count}} урока с содержимым. Это нельзя отменить.",
+			"description_zero": "Раздел пустой. Это нельзя отменить."
+		},
+		"confirmLesson": {
+			"title": "Удалить урок «{{title}}»?",
+			"description": "Урок удалится вместе с содержимым. Это нельзя отменить."
+		}
 	}
 }

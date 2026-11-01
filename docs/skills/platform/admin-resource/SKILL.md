@@ -93,7 +93,7 @@ export const Route = createFileRoute('/admin/staff/')({
 
 | Часть | Варианты |
 | ----- | -------- |
-| `columns[].render` | `text` (по умолчанию), `badge` (+ `tone(value)` → `default`/`secondary`/`destructive`/`outline`), `date`, `datetime`, `number`, `bool`, функция `(row) => ReactNode` |
+| `columns[].render` | функция с JSX (ссылка, кнопка) — файл ресурса `.tsx` (`features/courses/resources/courses.tsx`: название — ссылка в карточку); `text` (по умолчанию), `badge` (+ `tone(value)` → `default`/`secondary`/`destructive`/`outline`), `date`, `datetime`, `number`, `bool`, функция `(row) => ReactNode` |
 | `columns[].avatar` | поле строки со ссылкой на фото: в ячейке — `UserAvatar` и текст колонки (`{ field: 'name', avatar: 'avatarUrl' }`) |
 | `columns[].labels`, `filters[].labels`, `fields.<поле>.labels` | префикс подписей значений (`common:roles`); по умолчанию `<ns>:<key>.values.<поле>.<значение>`, нет строки — само значение |
 | `filters[]` | `{ field, options }` — выбор одного значения (select «все / …») |

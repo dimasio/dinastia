@@ -2,6 +2,7 @@
 // изменение названия и адреса, архив, удаление пустого черновика. Конструктор курса — 2.2.
 import { COURSE_STATUSES, CourseCreate, CourseRow, CourseSlug, CourseTitle } from '@dinastia/contracts/courses'
 import { action, defineResource } from '@dinastia/ui/resource'
+import { Link } from '@tanstack/react-router'
 import { z } from 'zod'
 import { client } from '#/app/orpc.ts'
 
@@ -16,7 +17,16 @@ export const coursesResource = defineResource({
 	list: client.courses.list,
 	perms: { read: 'courses.read', write: 'courses.manage' },
 	columns: [
-		{ field: 'title', sort: 'title' },
+		{
+			field: 'title',
+			sort: 'title',
+			// название — вход в конструктор курса (карточка 2.2)
+			render: (row) => (
+				<Link to="/admin/courses/$courseId" params={{ courseId: row.id }} className="font-medium hover:underline">
+					{row.title}
+				</Link>
+			),
+		},
 		{ field: 'status', render: 'badge', tone },
 		{ field: 'sectionsCount', render: 'number' },
 		{ field: 'lessonsCount', render: 'number' },

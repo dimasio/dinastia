@@ -1,6 +1,6 @@
 // Реестр ресурсов веба (скилл admin-resource): по нему тест проверяет строки экранов. Новый — `pnpm gen:resource`.
 import type { ResourceDef } from '@dinastia/ui/resource'
-import { coursesResource } from './courses/resources/courses.ts'
+import { coursesResource } from './courses/resources/courses.tsx'
 import { staffResource } from './schools/resources/staff.ts'
 // gen:resource:import
 

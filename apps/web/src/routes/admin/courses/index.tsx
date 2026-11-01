@@ -1,7 +1,7 @@
 import { ResourcePage, resourceSearch } from '@dinastia/ui/resource'
 import { createFileRoute } from '@tanstack/react-router'
 import { requirePerm } from '#/app/guards.ts'
-import { coursesResource } from '#/features/courses/resources/courses.ts'
+import { coursesResource } from '#/features/courses/resources/courses.tsx'
 
 export const Route = createFileRoute('/admin/courses/')({
 	validateSearch: resourceSearch,
