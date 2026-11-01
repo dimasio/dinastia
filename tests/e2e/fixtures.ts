@@ -54,4 +54,23 @@ export async function openDemoCourse(page: Page) {
 	await expect(page.getByTestId('course-builder')).toBeVisible()
 }
 
+/** Новый курс с одним уроком — и сразу в конструктор урока (клик по уроку в конструкторе курса). */
+export async function openNewLesson(page: Page, title: string) {
+	const run = Date.now().toString(36)
+	await page.goto(schoolUrl('demo', '/admin/courses'))
+	await page.getByTestId('resource-courses-create').click()
+	await page.getByTestId('resource-courses-create-form').getByLabel('Название').fill(`Урок ${run} ${title}`)
+	await page.getByTestId('resource-courses-create-form-submit').click()
+	await page.getByRole('link', { name: `Урок ${run} ${title}` }).click()
+	await page.getByTestId('course-add-section').click()
+	await page.getByTestId('course-new-section').fill('Раздел')
+	await page.getByTestId('course-new-section').press('Enter')
+	await page.getByTestId('course-add-lesson').click()
+	await page.getByTestId('course-new-lesson').fill(title)
+	await page.getByTestId('course-new-lesson').press('Enter')
+	await page.getByTestId('course-lesson-title').filter({ hasText: title }).click()
+	await expect(page.getByTestId('lesson-editor')).toBeVisible()
+	await expect(page.getByTestId('lesson-title')).toHaveText(title)
+}
+
 export { expect }

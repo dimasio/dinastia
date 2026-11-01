@@ -19,6 +19,7 @@
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@dinastia/ui": "workspace:*",
+		"highlight.js": "11.12.0",
 		"lucide-react": "catalog:",
 		"zod": "catalog:"
 	},

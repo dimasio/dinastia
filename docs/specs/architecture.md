@@ -43,7 +43,7 @@ apps/
   api/                         сервер (Hono + oRPC)
     src/
       kernel/                  ЯДРО: db, tenant, auth, orpc, permissions, events, jobs, storage, video, mail, documents,
-                               settings, audit, http, webhooks, rate-limit, embed-allowlist, errors, config
+                               settings, audit, http, webhooks, rate-limit, errors, config
       modules/                 ПРОДУКТ: доменные модули
         <module>/
           schema.ts            таблицы Drizzle модуля
@@ -191,7 +191,7 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | --------------------------- | ----------------------------------------------------------------------------------------- | ------------------- |
 | журнал действий `audit_log` | `kernel/audit/`                                                                           | `security-baseline` |
 | rate limit                  | `kernel/rate-limit/` (middleware oRPC), вход и регистрация — better-auth                  | `security-baseline` |
-| белый список встраиваний    | `kernel/embed-allowlist.ts`                                                               | `security-baseline` |
+| белый список встраиваний    | `packages/contracts/src/common/embed.ts` (`embedService`, `embedSrc`, `isVideoUrl`)       | `security-baseline` |
 | исходящие запросы           | `kernel/http.ts`                                                                          | `integrations`      |
 | входящие вебхуки            | `kernel/webhooks/`, `defineWebhookHandler`, `webhook_events`                              | `integrations`      |
 | ПДн                         | `pii()` в схеме, редактор логов, `consents`, `exportMemberData`/`anonymizeMember` модулей | `personal-data`     |

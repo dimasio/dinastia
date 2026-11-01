@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 test('выноска: из палитры в черновик, правка, публикация, просмотр', async ({ page }) => {
 	await page.goto('/dev/blocks')
 	const palette = page.getByRole('navigation', { name: 'Добавить блок' })
-	await expect(palette.getByText('Текст', { exact: true })).toBeVisible() // категория
+	await expect(palette.getByText('Основное', { exact: true })).toBeVisible() // категория
 	await palette.getByTestId('block-palette-callout').click()
 
 	await page.getByTestId('draft-0-tone').click()

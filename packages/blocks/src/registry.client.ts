@@ -1,5 +1,15 @@
 // Клиентский реестр блоков: иконка палитры и ленивые редактор/просмотр по типу (только web; api это не импортирует).
-import { type LucideIcon, MessageSquareWarning, Square } from 'lucide-react'
+import {
+	AppWindow,
+	Code,
+	Heading,
+	type LucideIcon,
+	MessageSquareWarning,
+	Minus,
+	Square,
+	Type,
+	Video,
+} from 'lucide-react'
 import { type ComponentType, type LazyExoticComponent, lazy } from 'react'
 import type { BlockType } from './registry.ts'
 import type { BlockEditorProps, BlockViewerProps } from './types.ts'
@@ -20,6 +30,36 @@ export const clientBlocks: Record<BlockType, ClientBlock> = {
 		icon: MessageSquareWarning,
 		Editor: lazy(() => import('./callout/editor.tsx')),
 		Viewer: lazy(() => import('./callout/viewer.tsx')),
+	},
+	text: {
+		icon: Type,
+		Editor: lazy(() => import('./text/editor.tsx')),
+		Viewer: lazy(() => import('./text/viewer.tsx')),
+	},
+	heading: {
+		icon: Heading,
+		Editor: lazy(() => import('./heading/editor.tsx')),
+		Viewer: lazy(() => import('./heading/viewer.tsx')),
+	},
+	code: {
+		icon: Code,
+		Editor: lazy(() => import('./code/editor.tsx')),
+		Viewer: lazy(() => import('./code/viewer.tsx')),
+	},
+	divider: {
+		icon: Minus,
+		Editor: lazy(() => import('./divider/editor.tsx')),
+		Viewer: lazy(() => import('./divider/viewer.tsx')),
+	},
+	video: {
+		icon: Video,
+		Editor: lazy(() => import('./video/editor.tsx')),
+		Viewer: lazy(() => import('./video/viewer.tsx')),
+	},
+	embed: {
+		icon: AppWindow,
+		Editor: lazy(() => import('./embed/editor.tsx')),
+		Viewer: lazy(() => import('./embed/viewer.tsx')),
 	},
 	// gen:block:client
 }

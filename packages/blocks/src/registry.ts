@@ -1,10 +1,22 @@
 // Реестр определений блоков (общий для сервера и клиента). Новый тип — `pnpm gen:block <type>` (маркеры gen:block).
 import { callout } from './callout/definition.ts'
+import { code } from './code/definition.ts'
 import type { AnyBlockDef } from './define.ts'
+import { divider } from './divider/definition.ts'
+import { embed } from './embed/definition.ts'
+import { heading } from './heading/definition.ts'
+import { text } from './text/definition.ts'
+import { video } from './video/definition.ts'
 // gen:block:import
 
 export const blocks = {
+	text,
+	heading,
 	callout,
+	code,
+	video,
+	embed,
+	divider,
 	// gen:block:entry
 } satisfies Record<string, AnyBlockDef>
 

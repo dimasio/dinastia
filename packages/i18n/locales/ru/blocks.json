@@ -1,6 +1,6 @@
 {
 	"categories": {
-		"content": "Текст",
+		"content": "Основное",
 		"media": "Медиа",
 		"interactive": "Интерактив",
 		"layout": "Оформление"
@@ -26,5 +26,73 @@
 			"success": "Совет"
 		},
 		"placeholder": "Текст выноски"
+	},
+	"text": {
+		"title": "Текст",
+		"description": "Абзацы, списки, цитаты, таблицы и ссылки",
+		"fields": {
+			"body": "Текст"
+		},
+		"placeholder": "Начните писать…"
+	},
+	"heading": {
+		"title": "Заголовок",
+		"description": "Название части урока — попадёт в оглавление",
+		"fields": {
+			"level": "Уровень",
+			"text": "Текст заголовка"
+		},
+		"levels": {
+			"h2": "Заголовок",
+			"h3": "Подзаголовок"
+		},
+		"placeholder": "Например, «Что понадобится»"
+	},
+	"code": {
+		"title": "Код",
+		"description": "Фрагмент программы с подсветкой и кнопкой «Копировать»",
+		"fields": {
+			"language": "Язык",
+			"code": "Код"
+		},
+		"languages": {
+			"plaintext": "Обычный текст",
+			"python": "Python",
+			"javascript": "JavaScript",
+			"typescript": "TypeScript",
+			"html": "HTML",
+			"css": "CSS",
+			"sql": "SQL",
+			"bash": "Bash",
+			"json": "JSON"
+		},
+		"copy": "Копировать",
+		"copied": "Скопировано"
+	},
+	"divider": {
+		"title": "Разделитель",
+		"description": "Линия между частями урока",
+		"hint": "Разделитель"
+	},
+	"video": {
+		"title": "Видео",
+		"description": "Ролик с YouTube, Rutube, VK Видео, Kinescope или Vimeo",
+		"fields": {
+			"url": "Ссылка на видео",
+			"caption": "Подпись"
+		},
+		"hint": "Скопируйте адрес страницы ролика: YouTube, Rutube, VK Видео, Kinescope, Vimeo."
+	},
+	"embed": {
+		"title": "Встраивание",
+		"description": "Форма, опрос или видео с другого сервиса",
+		"fields": {
+			"url": "Ссылка",
+			"height": "Высота, пикс.",
+			"caption": "Подпись"
+		},
+		"hint": "Можно: Яндекс Формы, Google Формы (полная ссылка), YouTube, Rutube, VK Видео, Kinescope, Vimeo.",
+		"notAllowed": "Этот сервис нельзя встроить — проверьте ссылку или выберите сервис из списка",
+		"external": "Содержимое внешнего сервиса"
 	}
 }

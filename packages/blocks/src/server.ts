@@ -2,7 +2,19 @@
 
 import { callout } from './callout/definition.ts'
 import { blockCallout } from './callout/table.ts'
+import { code } from './code/definition.ts'
+import { blockCode } from './code/table.ts'
+import { divider } from './divider/definition.ts'
+import { blockDivider } from './divider/table.ts'
+import { embed } from './embed/definition.ts'
+import { blockEmbed } from './embed/table.ts'
+import { heading } from './heading/definition.ts'
+import { blockHeading } from './heading/table.ts'
 import { type BlockStorage, defineBlockStorage } from './storage.ts'
+import { text } from './text/definition.ts'
+import { blockText } from './text/table.ts'
+import { video } from './video/definition.ts'
+import { blockVideo } from './video/table.ts'
 
 // gen:block:server-import
 
@@ -10,6 +22,12 @@ export * from './tables.ts'
 
 export const blockStorages: Readonly<Record<string, BlockStorage>> = {
 	callout: defineBlockStorage(callout, blockCallout),
+	text: defineBlockStorage(text, blockText),
+	heading: defineBlockStorage(heading, blockHeading),
+	code: defineBlockStorage(code, blockCode),
+	divider: defineBlockStorage(divider, blockDivider),
+	video: defineBlockStorage(video, blockVideo),
+	embed: defineBlockStorage(embed, blockEmbed),
 	// gen:block:storage
 }
 

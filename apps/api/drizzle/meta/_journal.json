@@ -64,6 +64,13 @@
       "when": 1793514130062,
       "tag": "0008_lesson_blocks_questions_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793518537170,
+      "tag": "0009_content_blocks",
+      "breakpoints": true
     }
   ]
 }

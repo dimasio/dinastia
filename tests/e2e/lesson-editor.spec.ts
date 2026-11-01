@@ -1,27 +1,7 @@
 // Конструктор урока (карточка 2.3): блок из палитры, правка с автосохранением, порядок, удаление с подтверждением,
 // «Как увидит ученик»; на телефоне палитра — в нижней панели; куратор — только просмотр.
-import { expect, openDemoCourse, type Page, schoolUrl, test } from './fixtures.ts'
+import { expect, openDemoCourse, openNewLesson, type Page, test } from './fixtures.ts'
 import { shoot } from './shots.ts'
-
-const run = Date.now().toString(36)
-
-/** Новый курс с одним уроком — и сразу в конструктор урока (клик по уроку в конструкторе курса). */
-async function newLesson(page: Page, title: string) {
-	await page.goto(schoolUrl('demo', '/admin/courses'))
-	await page.getByTestId('resource-courses-create').click()
-	await page.getByTestId('resource-courses-create-form').getByLabel('Название').fill(`Урок ${run} ${title}`)
-	await page.getByTestId('resource-courses-create-form-submit').click()
-	await page.getByRole('link', { name: `Урок ${run} ${title}` }).click()
-	await page.getByTestId('course-add-section').click()
-	await page.getByTestId('course-new-section').fill('Раздел')
-	await page.getByTestId('course-new-section').press('Enter')
-	await page.getByTestId('course-add-lesson').click()
-	await page.getByTestId('course-new-lesson').fill(title)
-	await page.getByTestId('course-new-lesson').press('Enter')
-	await page.getByTestId('course-lesson-title').filter({ hasText: title }).click()
-	await expect(page.getByTestId('lesson-editor')).toBeVisible()
-	await expect(page.getByTestId('lesson-title')).toHaveText(title)
-}
 
 const saved = (page: Page) => expect(page.getByTestId('lesson-save-state')).toHaveAttribute('data-state', 'saved')
 const blockTexts = (page: Page) =>
@@ -43,7 +23,7 @@ async function addCallout(page: Page, text: string) {
 test('преподаватель собирает урок из блоков', async ({ page, loginAs }) => {
 	test.setTimeout(90_000)
 	await loginAs('teacher')
-	await newLesson(page, 'Бумага')
+	await openNewLesson(page, 'Бумага')
 	await expect(page.getByText('Урок пустой')).toBeVisible()
 
 	await addCallout(page, 'Первый')
@@ -101,7 +81,7 @@ test('преподаватель собирает урок из блоков', a
 
 test('на телефоне палитра — в нижней панели по «+ Блок»', async ({ page, loginAs }) => {
 	await loginAs('teacher')
-	await newLesson(page, 'Мобильный')
+	await openNewLesson(page, 'Мобильный')
 	await page.setViewportSize({ width: 375, height: 800 })
 	await expect(page.getByTestId('block-palette-callout')).toBeHidden()
 	await page.getByTestId('lesson-add-block').click()

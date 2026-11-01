@@ -67,6 +67,23 @@ describe('блоки урока', () => {
 		expect(journal.map((r) => r.action)).toEqual(['courses.block.removed'])
 	})
 
+	it('блоки контента: ссылка на видео — только из белого списка (проверка на сервере)', async () => {
+		const t = await withTestSchool()
+		const c = t.as('teacher')
+		const lesson = await lessonOf(t)
+		const v = await c.courses.blocks.create({ lessonId: lesson.id, type: 'video' })
+		await expect(c.courses.blocks.update({ id: v.id, data: { url: 'https://evil.ru/x.mp4' } })).rejects.toMatchObject({
+			status: 400,
+		})
+		const saved = await c.courses.blocks.update({
+			id: v.id,
+			data: { url: 'https://rutube.ru/video/abc123/', caption: null },
+		})
+		expect(saved.data).toEqual({ url: 'https://rutube.ru/video/abc123/', caption: null })
+		const d = await c.courses.blocks.create({ lessonId: lesson.id, type: 'divider' })
+		expect(d.data).toEqual({})
+	})
+
 	it('куратор видит блоки, но не правит; другая школа блок не находит', async () => {
 		const a = await withTestSchool()
 		const b = await withTestSchool()

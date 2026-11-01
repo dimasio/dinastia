@@ -27,8 +27,8 @@ description: Базовые правила безопасности Dinastia д�
    `z.any()` на входе.
 2. **Доступ** — `can()` на каждой процедуре + политика записи; проверка на сервере, UI только прячет.
 3. **HTML** — нет `dangerouslySetInnerHTML` с пользовательскими данными (lint). Rich text — скилл `rich-text`.
-4. **Встраивания** (блок `embed`, видео по URL) — белый список в ядре: `embedService(url)` / `isAllowedEmbed(url)`
-   из `kernel/embed-allowlist.ts` — YouTube, Rutube, VK Видео, Kinescope, Vimeo, Яндекс Формы, Google Forms; только
+4. **Встраивания** (блок `embed`, видео по URL) — белый список: `embedService(url)` / `isAllowedEmbed(url)`, адрес для iframe — `embedSrc(url)`
+   из `packages/contracts/src/common/embed.ts` (общий: схема блока проверяет ссылку и на сервере, и в редакторе) — YouTube, Rutube, VK Видео, Kinescope, Vimeo, Яндекс Формы, Google Forms; только
    https, без порта и логина в ссылке; рендер в `iframe sandbox`. Новый сервис — с согласия человека.
 5. **Файлы** — `defineFilePurpose` с MIME и размером; private по умолчанию; проверка MIME по содержимому на
    `complete`; отдача private — signed URL с `attachment`, домен файлов отдельный от домена приложения.
