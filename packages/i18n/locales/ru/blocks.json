@@ -113,5 +113,46 @@
 		"issues": {
 			"noUrl": "нет ссылки"
 		}
+	},
+	"image": {
+		"title": "Картинка",
+		"description": "Фото, схема или скриншот",
+		"fields": {
+			"fileId": "Картинка",
+			"alt": "Описание для незрячих",
+			"caption": "Подпись"
+		},
+		"altHint": "Что изображено — прочитает экранный диктор",
+		"upload": "Загрузить картинку",
+		"replace": "Заменить",
+		"remove": "Убрать",
+		"issues": {
+			"noFile": "нет картинки"
+		}
+	},
+	"file": {
+		"title": "Файл",
+		"description": "Документ, таблица, презентация или архив для скачивания",
+		"fields": {
+			"fileId": "Файл",
+			"title": "Название"
+		},
+		"titleHint": "Не заполнено — покажем имя файла",
+		"upload": "Загрузить файл",
+		"replace": "Заменить файл",
+		"download": "Скачать",
+		"issues": {
+			"noFile": "нет файла"
+		}
+	},
+	"media": {
+		"hint": {
+			"image": "JPG, PNG, WEBP, GIF — до {{size}} МБ",
+			"file": "PDF, Word, Excel, PowerPoint, ZIP, TXT, CSV, MP3 — до {{size}} МБ"
+		},
+		"size": {
+			"mb": "{{n}} МБ",
+			"kb": "{{n}} КБ"
+		}
 	}
 }

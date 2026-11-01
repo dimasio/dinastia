@@ -12,6 +12,7 @@ import { and, asc, count, eq, inArray, like, ne, or, sql } from 'drizzle-orm'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
+import { coverPurpose } from './files.ts'
 import { courses, lessons, sections } from './schema.ts'
 import { nextFreeSlug, slugify } from './slug.ts'
 
@@ -79,6 +80,7 @@ export async function getCourse(ctx: SchoolCtx, id: string): Promise<Course> {
 		defaultAccessMode: course.defaultAccessMode,
 		accessDays: course.accessDays,
 		completionThresholdPct: course.completionThresholdPct,
+		coverUrl: course.coverFileId ? await ctx.files.signedUrl(course.coverFileId) : null,
 		createdAt: course.createdAt,
 		updatedAt: course.updatedAt,
 		sections: sectionRows.map((s) => ({
@@ -144,8 +146,16 @@ export async function updateCourse(ctx: SchoolCtx, input: CourseUpdate): Promise
 		if ((await takenSlugs(ctx, patch.slug, id)).has(patch.slug))
 			fail.conflict('COURSE_SLUG_TAKEN', { slug: patch.slug })
 	}
+	if (patch.coverFileId) {
+		const file = await ctx.files.get(patch.coverFileId)
+		if (file?.status !== 'ready' || file.purpose !== coverPurpose.key || file.ownerMemberId !== ctx.member.id)
+			fail.invalid('FILE_INVALID')
+	}
 	const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
 	if (Object.keys(set).length) await ctx.db.update(courses).set(set).where(eq(courses.id, id))
+	// прежняя обложка больше нигде не используется — строка сейчас, объект — задачей после коммита
+	if (patch.coverFileId !== undefined && course.coverFileId && course.coverFileId !== patch.coverFileId)
+		await ctx.files.remove(course.coverFileId)
 	return getCourse(ctx, id)
 }
 

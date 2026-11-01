@@ -2,7 +2,7 @@
 // перетаскиванием (dnd-kit) и из меню, переименование по месту, удаление с подтверждением. Изменения — сразу через
 // API 2.1; дерево обновляется оптимистично и откатывается при ошибке. Публикация (2.5): статус у уроков,
 // «Опубликовать изменения (N)» — все изменённые уроки разом, «Опубликовать курс» — у черновика.
-import { type Course, type Lesson, lessonStatus } from '@dinastia/contracts/courses'
+import { COURSE_COVER, type Course, type Lesson, lessonStatus } from '@dinastia/contracts/courses'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,6 +23,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 	EmptyState,
+	ImageInput,
 	Input,
 	Skeleton,
 	toast,
@@ -49,6 +50,7 @@ import { ArrowLeft, BookOpen, GripVertical, MoreHorizontal, Plus, Send } from 'l
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
+import { uploadFile } from '#/app/files.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
@@ -132,6 +134,8 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 	if (error || !course) return <EmptyState icon={BookOpen} title={t(errorText(error), { ns: 'errors' })} />
 
 	const sections = course.sections
+	const setCover = async (coverFileId: string | null) =>
+		qc.setQueryData(query.queryKey, await orpc.courses.update.call({ id: course.id, coverFileId }))
 	const unpublished = sections.flatMap((s) => s.lessons).filter((l) => lessonStatus(l) !== 'published').length
 	const sectionOf = (lessonId: string) => sections.find((s) => s.lessons.some((l) => l.id === lessonId))
 
@@ -188,6 +192,29 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 					<ArrowLeft className="size-4" aria-hidden />
 					{t('builder.back')}
 				</Link>
+				{canManage ? (
+					<ImageInput
+						preview="wide"
+						value={course.coverUrl}
+						name={t('builder.cover.alt', { title: course.title })}
+						accept={COURSE_COVER.mime}
+						maxSize={COURSE_COVER.maxSize}
+						uploadLabel={t('builder.cover.upload')}
+						upload={async (file, onProgress) => setCover(await uploadFile(COURSE_COVER.purpose, file, onProgress))}
+						onRemove={() => setCover(null)}
+						errorText={(e) => t(errorText(e), { ns: 'errors' })}
+						testId="course-cover"
+					/>
+				) : (
+					course.coverUrl && (
+						<img
+							src={course.coverUrl}
+							alt={t('builder.cover.alt', { title: course.title })}
+							className="aspect-video w-full max-w-xs rounded-md border object-cover"
+							data-testid="course-cover-preview"
+						/>
+					)
+				)}
 				<div className="flex flex-wrap items-center gap-3">
 					<InlineTitle
 						value={course.title}

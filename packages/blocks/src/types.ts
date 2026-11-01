@@ -1,5 +1,6 @@
 // Пропсы редактора и просмотра блока (скилл lesson-blocks): хосты (client/) передают их компонентам типа.
 import type { AnyBlockDef, BlockData, BlockPublicData, BlockResult } from './define.ts'
+import type { BlockFiles, BlockUpload } from './media.ts'
 
 export interface BlockEditorProps<B extends AnyBlockDef> {
 	/** Полные данные черновика (с секретами). */
@@ -7,6 +8,10 @@ export interface BlockEditorProps<B extends AnyBlockDef> {
 	/** Новое значение; хост проверяет схемой и сохраняет. */
 	onChange: (next: BlockData<B>) => void
 	readOnly?: boolean
+	/** Файлы блока по fileId (подписанные ссылки, `files` в defineBlock). */
+	files: BlockFiles
+	/** Загрузить файл в школу → fileId; нет — загрузка недоступна (только просмотр). */
+	upload?: BlockUpload
 	/** Префикс data-testid для полей редактора. */
 	testId: string
 }
@@ -18,5 +23,7 @@ export interface BlockViewerProps<B extends AnyBlockDef> {
 	state?: { result?: BlockResult | null }
 	/** Ответ ученика → сервер (evaluate) → новый state. */
 	onInteract?: (response: unknown) => Promise<void>
+	/** Файлы блока по fileId (подписанные ссылки). */
+	files: BlockFiles
 	testId: string
 }

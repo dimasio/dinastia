@@ -1,4 +1,4 @@
-import { emptyDoc, isEmptyDoc, RichText } from '@dinastia/contracts/common'
+import { collectFileIds, emptyDoc, isEmptyDoc, RichText } from '@dinastia/contracts/common'
 import { z } from 'zod'
 import { defineBlock } from '../define.ts'
 
@@ -10,4 +10,6 @@ export const text = defineBlock({
 	defaults: () => ({ body: emptyDoc() }),
 	completion: 'none',
 	issues: { empty: (d) => isEmptyDoc(d.body) },
+	// картинки внутри текста — файлы школы (2.7)
+	files: (d) => collectFileIds(d.body),
 })

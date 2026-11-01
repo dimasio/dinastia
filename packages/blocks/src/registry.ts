@@ -4,7 +4,9 @@ import { code } from './code/definition.ts'
 import type { AnyBlockDef } from './define.ts'
 import { divider } from './divider/definition.ts'
 import { embed } from './embed/definition.ts'
+import { file } from './file/definition.ts'
 import { heading } from './heading/definition.ts'
+import { image } from './image/definition.ts'
 import { text } from './text/definition.ts'
 import { video } from './video/definition.ts'
 // gen:block:import
@@ -14,7 +16,9 @@ export const blocks = {
 	heading,
 	callout,
 	code,
+	image,
 	video,
+	file,
 	embed,
 	divider,
 	// gen:block:entry

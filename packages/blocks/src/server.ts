@@ -8,8 +8,12 @@ import { divider } from './divider/definition.ts'
 import { blockDivider } from './divider/table.ts'
 import { embed } from './embed/definition.ts'
 import { blockEmbed } from './embed/table.ts'
+import { file } from './file/definition.ts'
+import { blockFile } from './file/table.ts'
 import { heading } from './heading/definition.ts'
 import { blockHeading } from './heading/table.ts'
+import { image } from './image/definition.ts'
+import { blockImage } from './image/table.ts'
 import { type BlockStorage, defineBlockStorage } from './storage.ts'
 import { text } from './text/definition.ts'
 import { blockText } from './text/table.ts'
@@ -28,6 +32,8 @@ export const blockStorages: Readonly<Record<string, BlockStorage>> = {
 	divider: defineBlockStorage(divider, blockDivider),
 	video: defineBlockStorage(video, blockVideo),
 	embed: defineBlockStorage(embed, blockEmbed),
+	image: defineBlockStorage(image, blockImage),
+	file: defineBlockStorage(file, blockFile),
 	// gen:block:storage
 }
 

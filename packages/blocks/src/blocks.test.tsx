@@ -136,6 +136,7 @@ describe('callout', () => {
 		const html = renderToStaticMarkup(
 			<CalloutViewer
 				testId="c"
+				files={{}}
 				data={{
 					tone: 'warning',
 					body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Осторожно' }] }] },

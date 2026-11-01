@@ -2,9 +2,9 @@
 // холсте — карточка с редактором типа (BlockEditorHost): правка уходит на сервер через 0,5 с после последнего
 // изменения, добавление, порядок и удаление — сразу. «Как увидит ученик» — черновик через toPublic типа, как на сервере.
 // «Опубликовать» (2.5) — черновик блоков ученикам; незаполненные блоки помечены на холсте и не дают опубликовать.
-import { type BlockType, blockDataIssues, blockDef } from '@dinastia/blocks'
+import { type BlockType, type BlockUpload, blockDataIssues, blockDef } from '@dinastia/blocks'
 import { BlockEditorHost, BlockPalette, BlockViewerHost } from '@dinastia/blocks/client'
-import type { LessonBlock } from '@dinastia/contracts/courses'
+import { LESSON_MEDIA_PURPOSE, type LessonBlock } from '@dinastia/contracts/courses'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -61,6 +61,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
+import { uploadFile } from '#/app/files.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
@@ -82,6 +83,9 @@ const publicData = (block: LessonBlock) => {
 	const parsed = def?.schema.safeParse(block.data)
 	return def && parsed?.success ? def.toPublic(parsed.data) : null
 }
+
+/** Медиа урока — в назначение файлов курса по виду (картинка, файл). */
+const upload: BlockUpload = (file, { kind, onProgress }) => uploadFile(LESSON_MEDIA_PURPOSE[kind], file, onProgress)
 
 /** Замечания «не готов к публикации» по данным черновика — те же, что проверит сервер. */
 const issuesOf = (block: LessonBlock) => {
@@ -317,6 +321,7 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 									key={block.id}
 									type={block.type}
 									data={publicData(block)}
+									files={block.files}
 									testId="lesson-preview-block"
 								/>
 							))}
@@ -467,7 +472,14 @@ function BlockCard(props: {
 					})}
 				</p>
 			)}
-			<BlockEditorHost type={block.type} value={block.data} onChange={props.onChange} testId={`block-${block.id}`} />
+			<BlockEditorHost
+				type={block.type}
+				value={block.data}
+				onChange={props.onChange}
+				files={block.files}
+				upload={upload}
+				testId={`block-${block.id}`}
+			/>
 		</li>
 	)
 }

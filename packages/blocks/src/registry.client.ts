@@ -2,7 +2,9 @@
 import {
 	AppWindow,
 	Code,
+	FileDown,
 	Heading,
+	Image,
 	type LucideIcon,
 	MessageSquareWarning,
 	Minus,
@@ -60,6 +62,16 @@ export const clientBlocks: Record<BlockType, ClientBlock> = {
 		icon: AppWindow,
 		Editor: lazy(() => import('./embed/editor.tsx')),
 		Viewer: lazy(() => import('./embed/viewer.tsx')),
+	},
+	image: {
+		icon: Image,
+		Editor: lazy(() => import('./image/editor.tsx')),
+		Viewer: lazy(() => import('./image/viewer.tsx')),
+	},
+	file: {
+		icon: FileDown,
+		Editor: lazy(() => import('./file/editor.tsx')),
+		Viewer: lazy(() => import('./file/viewer.tsx')),
 	},
 	// gen:block:client
 }

@@ -15,6 +15,7 @@ description: Курсы и контент в Dinastia — модуль courses �
 | таблицы типов блоков `block_<type>`                       | `packages/blocks/src/<type>/table.ts`                                                               |
 | курсы, разделы, уроки: адрес, порядок, архив, удаление    | `apps/api/src/modules/courses/service.ts` (+ `slug.ts`) |
 | публикация урока, курса, «Опубликовать изменения»          | `apps/api/src/modules/courses/publish.service.ts` поверх `kernel/blocks` (`publishBlocks`, `draftIssues`); события — `events.ts`; статус урока — `lessonStatus()` в контракте; бейдж и разбор ошибок — `apps/web/src/features/courses/publish.tsx` |
+| обложка курса, медиа урока                                | назначения — `modules/courses/files.ts`; обложка — `updateCourse` (`coverFileId`, прежний файл удаляется), `coverUrl` в `getCourse`; файлы блоков — `checkNewFiles` в `blocks.service.ts`; экран — `ImageInput preview="wide"` в конструкторе курса |
 | вычисление доступности урока                              | `apps/api/src/modules/learning/service.ts` → `computeLessonAccess()` (доступ зависит от зачисления) |
 | контракт                                                  | `packages/contracts/src/courses.ts`                                                                 |
 | реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`, маршрут `/admin/courses`, меню «Контент → Курсы» |
@@ -42,7 +43,7 @@ description: Курсы и контент в Dinastia — модуль courses �
   (то же). Куратор видит, но не правит.
 - Адрес курса — `slugify(title)` + `nextFreeSlug` (`slug.ts`), меняется только у черновика (`COURSE_SLUG_LOCKED`).
 - Удаление — только черновик без уроков; иначе архив (`archiveCourse`, журнал действий).
-- Тесты модуля — `modules/courses/courses.test.ts`, `blocks.test.ts`, `publish.test.ts`; e2e — `tests/e2e/publishing.spec.ts`; курс и урок для тестов механизмов ядра — `test/courses.ts`.
+- Тесты модуля — `modules/courses/courses.test.ts`, `blocks.test.ts`, `publish.test.ts`, `media.test.ts` (на SeaweedFS); e2e — `tests/e2e/publishing.spec.ts`, `media.spec.ts`; курс и урок для тестов механизмов ядра — `test/courses.ts`.
 
 ## Типовые задачи
 

@@ -5,7 +5,7 @@ description: Реестр блоков урока Dinastia (packages/blocks) —
 
 # Блоки урока
 
-> Статус: сверено с кодом в 2.5 (реестр, хранение и публикация в ядре, замечания `issues`, хосты, генератор; блоки `text`, `heading`,
+> Статус: сверено с кодом в 2.7 (реестр, хранение и публикация в ядре, замечания `issues`, файлы `files`, хосты, генератор; блоки `text`, `heading`, `image`, `file`,
 > `callout`, `code`, `video`, `embed`, `divider`; конструктор урока — 2.3). Картинка и файл — 2.7, загрузка видео — 2.4b.
 > Процедуры конструктора и плеера (`courses.blocks.*`, `learn.block.*`) — 2.3/2.6; хранение ответов
 > (`responseTable`, `block_progress`) — с модулем `learning`; свои `load`/`save`/`copy` — с блоком `quiz` (3.x).
@@ -139,6 +139,7 @@ export const flashcards = defineBlock({
 | `completion` | `none`; `view` — выполнен при показе; `interaction` — после `evaluate` с `done`; `grade` — внешний процесс модуля (`quiz`, `assignment`) |
 | `toPublic` | данные ученику; обязателен при `secretKeys`, иначе — как есть |
 | `responseSchema`, `evaluate` | интерактив: ответ и чистая проверка (сервер); хранение ответа и `block_progress` — модуль `learning` |
+| `files` | на какие файлы школы ссылается блок: `(data) => fileId[]` (`image`/`file` — поле `fileId`, `text` — `collectFileIds(body)`). Ядро прикладывает к блоку `files: { [fileId]: { url, name, mime, size } }` — подписанные ссылки на 6 ч (`BLOCK_FILE_TTL_SECONDS`), картинки — в странице, остальное — на скачивание; `toPublic` остаётся чистой |
 | `issues` | замечания «не готов к публикации»: `{ ключ: (data) => boolean }`, текст — `blocks:<type>.issues.<ключ>` (строчными: «нет ссылки»; `check:registries` проверяет строки). Черновик с замечаниями сохраняется, урок — не публикуется; конструктор показывает их на карточке (`blockDataIssues`) |
 
 ## Хранение и публикация (ядро, `apps/api/src/kernel/blocks/blocks.ts`)
@@ -156,7 +157,8 @@ export const flashcards = defineBlock({
 | `publishBlocks(ctx, lessonId)` | одной транзакцией: замечания — `LESSON_HAS_ISSUES` (ничего не меняется); удалить `published`-строки, скопировать `draft` с тем же `block_key` и `item_key` |
 | `listPublicBlocks(ctx, lessonId)` | опубликованные блоки ученику — данные через `toPublic` |
 
-Ошибки: `BLOCK_TYPE_UNKNOWN`, `BLOCK_NOT_FOUND`, `BLOCK_NOT_DRAFT`, `BLOCK_ORDER_MISMATCH`, `LESSON_HAS_ISSUES`. Тест ядра с пробным типом
+Ошибки: `BLOCK_TYPE_UNKNOWN`, `BLOCK_NOT_FOUND`, `BLOCK_NOT_DRAFT`, `BLOCK_ORDER_MISMATCH`, `LESSON_HAS_ISSUES`.
+`blockData(ctx, id)` — тип и данные блока без ссылок (сравнить «было/стало»). Тест ядра с пробным типом
 (своя таблица из теста, `registerProbeBlock`) — образец для проверки нового механизма хранения.
 
 ## editor.tsx и viewer.tsx
@@ -173,6 +175,11 @@ export default function CalloutViewer({ data, state, onInteract, testId }: Block
   `blocks:host.invalid`) и через `delayMs` (500) отдаёт проверенные данные странице (автосохранение — 2.3).
 - `BlockViewerHost` даёт просмотру **публичные** данные (`toPublic`) и `state`; `onInteract(response)` → сервер
   (`evaluate`) → новый `state`.
+- Файлы (2.7): оба хоста передают `files` (ссылки по `fileId`), редактору — ещё `upload(file, { kind, onProgress })`
+  → `fileId` (вид `image`/`file` → назначение файла решает страница). Лимиты видов — `BLOCK_MEDIA` (`media.ts`), их же
+  берут назначения на сервере. Загрузка в редакторе — `media/upload-button.tsx` (`UploadButton`, `useFileUrl`:
+  локальный адрес только что загруженного до ответа сервера). Новые `fileId` при сохранении проверяет сервис модуля
+  (`checkNewFiles` в `modules/courses/blocks.service.ts`). Внешний ключ `file_id` → `files` — ручной миграцией (D-054).
 - Иконка палитры — в `registry.client.ts` (`lucide-react`, по умолчанию `DEFAULT_BLOCK_ICON`), не в определении:
   api не тянет иконки. Компоненты — из `@dinastia/ui`; строки — `t('blocks:<type>.…')`; редактор и просмотр
   грузятся лениво; просмотр — от 360px, с клавиатуры, в токенах темы (светлая и тёмная).

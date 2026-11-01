@@ -1,9 +1,12 @@
 // Блоки урока в конструкторе (карточка 2.3): тонкая обёртка над механизмом ядра kernel/blocks — проверка урока,
 // отметка «есть неопубликованные изменения» (domain.md §3), журнал удаления. Правится только черновик (D-033).
+
+import { blockDef, blockFileIds } from '@dinastia/blocks'
 import type { LessonBlock } from '@dinastia/contracts/courses'
+import { LESSON_MEDIA_PURPOSE } from '@dinastia/contracts/courses'
 import { lessonBlocks } from '@dinastia/db'
 import { eq } from 'drizzle-orm'
-import { createBlock, listBlocks, removeBlock, reorderBlocks, updateBlock } from '#/kernel/blocks/blocks.ts'
+import { blockData, createBlock, listBlocks, removeBlock, reorderBlocks, updateBlock } from '#/kernel/blocks/blocks.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { courses, lessons } from './schema.ts'
@@ -68,8 +71,28 @@ export async function addLessonBlock(
 	return (await listBlocks(ctx, input.lessonId, 'draft')).find((b) => b.id === block.id) as LessonBlock
 }
 
+/**
+ * Новые файлы в данных блока (карточка 2.7): готовые, своего назначения (блок «Файл» — `courses.lesson-file`, остальное —
+ * картинки `courses.lesson-image`), загружены этим участником. Уже привязанные (их загрузил коллега) — не проверяются.
+ */
+async function checkNewFiles(ctx: SchoolCtx, blockId: string, data: unknown) {
+	const prev = await blockData(ctx, blockId)
+	const def = blockDef(prev.type)
+	if (!def?.files) return
+	const before = new Set(blockFileIds(def, prev.data))
+	const purpose = prev.type === 'file' ? LESSON_MEDIA_PURPOSE.file : LESSON_MEDIA_PURPOSE.image
+	const parsed = def.schema.safeParse(data)
+	if (!parsed.success) return // ошибку схемы вернёт ядро при сохранении
+	for (const id of blockFileIds(def, parsed.data).filter((x) => !before.has(x))) {
+		const file = await ctx.files.get(id)
+		if (file?.status !== 'ready' || file.purpose !== purpose || file.ownerMemberId !== ctx.member.id)
+			fail.invalid('FILE_INVALID')
+	}
+}
+
 export async function updateLessonBlock(ctx: SchoolCtx, input: { id: string; data: Record<string, unknown> }) {
 	const lessonId = await lessonOfBlock(ctx, input.id)
+	await checkNewFiles(ctx, input.id, input.data)
 	const block = await updateBlock(ctx, input.id, input.data)
 	await touched(ctx, lessonId)
 	return block

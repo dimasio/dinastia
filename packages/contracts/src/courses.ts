@@ -20,6 +20,15 @@ export const CourseSlug = z
 	.regex(/^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$/, 'COURSE_SLUG_FORMAT')
 	.refine((s) => !s.includes('--'), 'COURSE_SLUG_FORMAT')
 
+/** Обложка курса: картинка школы (назначение `courses.cover`); лимиты — их же проверяет форма (2.7). */
+export const COURSE_COVER = {
+	purpose: 'courses.cover',
+	mime: ['image/jpeg', 'image/png', 'image/webp'] as const,
+	maxSize: 5 * 1024 * 1024,
+}
+/** Медиа урока по виду (лимиты — `BLOCK_MEDIA` в @dinastia/blocks). */
+export const LESSON_MEDIA_PURPOSE = { image: 'courses.lesson-image', file: 'courses.lesson-file' } as const
+
 export const CourseTitle = z.string().trim().min(1).max(200)
 const ItemTitle = z.string().trim().min(1).max(200)
 
@@ -66,6 +75,8 @@ export const Course = z.object({
 	defaultAccessMode: z.enum(COURSE_ACCESS_MODES),
 	accessDays: z.number().int().nullable(),
 	completionThresholdPct: z.number().int(),
+	/** Подписанная ссылка на обложку (час); нет обложки — null. */
+	coverUrl: z.string().nullable(),
 	createdAt: DateTime,
 	updatedAt: DateTime,
 	sections: z.array(SectionWithLessons),
@@ -88,6 +99,8 @@ export const CourseUpdate = z.object({
 	defaultAccessMode: z.enum(COURSE_ACCESS_MODES).optional(),
 	accessDays: z.number().int().min(1).max(3650).nullable().optional(),
 	completionThresholdPct: z.number().int().min(1).max(100).optional(),
+	/** Загруженный файл `courses.cover`; null — убрать обложку. */
+	coverFileId: Id.nullable().optional(),
 })
 export type CourseUpdate = z.infer<typeof CourseUpdate>
 
@@ -109,6 +122,11 @@ export const LessonBlock = z.object({
 	position: z.number().int(),
 	isRequired: z.boolean(),
 	data: z.record(z.string(), z.unknown()),
+	/** Файлы блока по fileId — подписанные ссылки (2.7); ссылка живёт 6 ч. */
+	files: z.record(
+		z.string(),
+		z.object({ url: z.string(), name: z.string(), mime: z.string(), size: z.number().int() }),
+	),
 })
 export type LessonBlock = z.infer<typeof LessonBlock>
 

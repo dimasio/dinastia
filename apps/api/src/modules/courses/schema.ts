@@ -10,6 +10,7 @@ import {
 import { richText, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
 import { boolean, date, index, integer, pgEnum, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { files } from '#/kernel/storage/schema.ts'
 
 export const courseStatus = pgEnum('course_status', COURSE_STATUSES)
 export const courseAccessMode = pgEnum('course_access_mode', COURSE_ACCESS_MODES)
@@ -32,8 +33,14 @@ export const courses = tenantTable(
 		accessDays: integer('access_days'),
 		/** Сколько процентов уроков пройти, чтобы курс считался пройденным (фаза 4). */
 		completionThresholdPct: integer('completion_threshold_pct').notNull().default(100),
+		/** Обложка — файл `courses.cover` (2.7); замена удаляет прежний файл. */
+		coverFileId: uuid('cover_file_id'),
 	},
-	(t) => [uniqueIndex().on(t.schoolId, t.slug), index().on(t.schoolId, t.status, t.updatedAt)],
+	(t) => [
+		uniqueIndex().on(t.schoolId, t.slug),
+		index().on(t.schoolId, t.status, t.updatedAt),
+		tenantRef(t, t.coverFileId, files, 'no action'),
+	],
 )
 
 /** Раздел курса; порядок — `position` (шаг 1000). Удаляется вместе с уроками и их блоками. */

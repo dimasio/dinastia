@@ -27,6 +27,10 @@ export interface ImageInputProps {
 	errorText: (error: unknown) => string
 	testId: string
 	className?: string
+	/** Превью: аватар (круг с инициалами) или широкая картинка 16:9 — обложка (2.7). */
+	preview?: 'avatar' | 'wide'
+	/** Подпись кнопки загрузки, когда картинки ещё нет (по умолчанию «Загрузить фото»). */
+	uploadLabel?: string
 }
 
 export function ImageInput({
@@ -39,6 +43,8 @@ export function ImageInput({
 	errorText,
 	testId,
 	className,
+	preview = 'avatar',
+	uploadLabel,
 }: ImageInputProps) {
 	const { t: raw } = useTranslation()
 	const t = raw as unknown as T
@@ -76,7 +82,19 @@ export function ImageInput({
 
 	return (
 		<div className={cn('flex flex-wrap items-center gap-4', className)} data-testid={testId}>
-			<UserAvatar name={name} src={value} className="size-20 text-xl" />
+			{preview === 'avatar' ? (
+				<UserAvatar name={name} src={value} className="size-20 text-xl" />
+			) : (
+				<div className="aspect-video w-full max-w-xs overflow-hidden rounded-md border bg-muted">
+					{value ? (
+						<img src={value} alt={name} className="size-full object-cover" data-testid={`${testId}-preview`} />
+					) : (
+						<div className="flex size-full items-center justify-center text-muted-foreground">
+							<ImagePlus className="size-8" aria-hidden />
+						</div>
+					)}
+				</div>
+			)}
 			<div className="grid gap-2">
 				<div className="flex flex-wrap gap-2">
 					<input
@@ -91,7 +109,7 @@ export function ImageInput({
 					/>
 					<Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
 						<ImagePlus />
-						{value ? t('common:file.replace') : t('common:file.upload')}
+						{value ? t('common:file.replace') : (uploadLabel ?? t('common:file.upload'))}
 					</Button>
 					{value && onRemove ? (
 						<Button

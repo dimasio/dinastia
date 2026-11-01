@@ -47,6 +47,8 @@ export interface BlockDef<
 	/** Замечания «не готов к публикации» (2.5): ключ → есть ли замечание у данных. Текст — `blocks:<type>.issues.<ключ>`.
 	 * Черновик с замечаниями сохраняется; урок с ними не публикуется (LESSON_HAS_ISSUES). */
 	issues?: Readonly<Record<string, (data: z.output<S>) => boolean>>
+	/** На какие файлы школы ссылается блок (fileId) — ядро приложит к данным подписанные ссылки (2.7, `BlockFiles`). */
+	files?: (data: z.output<S>) => readonly string[]
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: у каждого блока своя схема — для реестров
@@ -84,6 +86,11 @@ export function defineBlock<const T extends string, S extends z.ZodObject, P = z
 		if (hasPath(toPublic(example.data), path)) throw new Error(`блок «${def.type}»: toPublic не убирает ${path}`)
 	}
 	return { ...def, toPublic }
+}
+
+/** fileId, на которые ссылаются данные блока (без повторов и пустых). */
+export function blockFileIds(def: AnyBlockDef, data: unknown): string[] {
+	return [...new Set(def.files?.(data) ?? [])].filter(Boolean)
 }
 
 /** Ключи замечаний к данным блока (пусто — готов к публикации). */

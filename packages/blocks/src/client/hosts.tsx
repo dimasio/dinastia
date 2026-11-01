@@ -4,6 +4,7 @@ import { Alert, AlertDescription, Skeleton } from '@dinastia/ui'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BlockResult } from '../define.ts'
+import type { BlockFiles, BlockUpload } from '../media.ts'
 import { clientBlock } from '../registry.client.ts'
 import { blockDef } from '../registry.ts'
 
@@ -14,10 +15,24 @@ export interface BlockEditorHostProps {
 	onChange: (data: unknown) => void
 	readOnly?: boolean
 	delayMs?: number
+	/** Файлы блока (с сервера, рядом с данными). */
+	files?: BlockFiles
+	upload?: BlockUpload
 	testId: string
 }
 
-export function BlockEditorHost({ type, value, onChange, readOnly, delayMs = 500, testId }: BlockEditorHostProps) {
+const NO_FILES: BlockFiles = {}
+
+export function BlockEditorHost({
+	type,
+	value,
+	onChange,
+	readOnly,
+	delayMs = 500,
+	files = NO_FILES,
+	upload,
+	testId,
+}: BlockEditorHostProps) {
 	const { t } = useTranslation('blocks')
 	const def = blockDef(type)
 	const client = clientBlock(type)
@@ -36,6 +51,8 @@ export function BlockEditorHost({ type, value, onChange, readOnly, delayMs = 500
 				<Editor
 					value={local}
 					readOnly={readOnly ?? false}
+					files={files}
+					{...(upload ? { upload } : {})}
 					testId={testId}
 					onChange={(next: unknown) => {
 						setLocal(next)
@@ -61,16 +78,23 @@ export interface BlockViewerHostProps {
 	data: unknown
 	state?: { result?: BlockResult | null }
 	onInteract?: (response: unknown) => Promise<void>
+	files?: BlockFiles
 	testId: string
 }
 
-export function BlockViewerHost({ type, data, state, onInteract, testId }: BlockViewerHostProps) {
+export function BlockViewerHost({ type, data, state, onInteract, files = NO_FILES, testId }: BlockViewerHostProps) {
 	const client = clientBlock(type)
 	if (!client) return <UnknownBlock type={type} />
 	const { Viewer } = client
 	return (
 		<Suspense fallback={<Skeleton className="h-16 w-full" />}>
-			<Viewer data={data} testId={testId} {...(state ? { state } : {})} {...(onInteract ? { onInteract } : {})} />
+			<Viewer
+				data={data}
+				files={files}
+				testId={testId}
+				{...(state ? { state } : {})}
+				{...(onInteract ? { onInteract } : {})}
+			/>
 		</Suspense>
 	)
 }
