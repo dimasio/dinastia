@@ -1,4 +1,4 @@
-// Конструктор курса (карточка 2.2, шаблон «Карточка» — скилл screen-design): дерево разделов и уроков, порядок
+// Конструктор курса (карточки 2.2, 2.3; шаблон «Карточка» — скилл screen-design): дерево разделов и уроков, порядок
 // перетаскиванием (dnd-kit) и из меню, переименование по месту, удаление с подтверждением. Изменения — сразу через
 // API 2.1; дерево обновляется оптимистично и откатывается при ошибке.
 import type { Course, Lesson } from '@dinastia/contracts/courses'
@@ -43,9 +43,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, BookOpen, GripVertical, MoreHorizontal, Plus } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
@@ -66,6 +66,7 @@ const moveTo = <T extends { id: string }>(items: T[], id: string, index: number)
 export function CourseBuilder({ courseId }: { courseId: string }) {
 	const { t } = useTranslation(['courses', 'common', 'errors'])
 	const qc = useQueryClient()
+	const navigate = useNavigate()
 	const query = orpc.courses.get.queryOptions({ input: { id: courseId } })
 	const { data: course, isPending, error } = useQuery(query)
 	const { data: me } = useQuery(meQuery())
@@ -262,6 +263,7 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 											<LessonItem
 												key={lesson.id}
 												lesson={lesson}
+												courseId={course.id}
 												canManage={canManage}
 												onRename={(title) =>
 													change.mutate({
@@ -300,7 +302,15 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 																run: () => moveLesson(lesson.id, s.id, s.lessons.length),
 															})),
 													},
-													{ key: 'open', label: t('builder.openLesson'), disabled: true, run: () => {} },
+													{
+														key: 'open',
+														label: t('builder.openLesson'),
+														run: () =>
+															navigate({
+																to: '/admin/courses/$courseId/lessons/$lessonId',
+																params: { courseId: course.id, lessonId: lesson.id },
+															}),
+													},
 													{
 														key: 'remove',
 														label: t('builder.removeLesson'),
@@ -391,6 +401,8 @@ type MenuItem = {
 
 /** Меню ⋯ элемента дерева; «Переименовать» включает поле на месте (через onRename у владельца). */
 function ItemMenu({ label, items, onRename }: { label: string; items: MenuItem[]; onRename?: () => void }) {
+	// после «Переименовать» фокус остаётся в поле: иначе меню при закрытии вернёт его на ⋯, поле получит blur и закроется
+	const renaming = useRef(false)
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -398,7 +410,13 @@ function ItemMenu({ label, items, onRename }: { label: string; items: MenuItem[]
 					<MoreHorizontal />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end">
+			<DropdownMenuContent
+				align="end"
+				onCloseAutoFocus={(e) => {
+					if (renaming.current) e.preventDefault()
+					renaming.current = false
+				}}
+			>
 				{items.map((item) =>
 					item.sub ? (
 						item.sub.length ? (
@@ -419,7 +437,11 @@ function ItemMenu({ label, items, onRename }: { label: string; items: MenuItem[]
 							<DropdownMenuItem
 								disabled={item.disabled}
 								variant={item.destructive ? 'destructive' : 'default'}
-								onSelect={() => (item.run === 'rename' ? onRename?.() : item.run?.())}
+								onSelect={() => {
+									if (item.run !== 'rename') return item.run?.()
+									renaming.current = true
+									onRename?.()
+								}}
 								data-testid={`course-menu-${item.key}`}
 							>
 								{item.label}
@@ -527,6 +549,7 @@ function SectionItem(props: {
 
 function LessonItem(props: {
 	lesson: Lesson
+	courseId: string
 	canManage: boolean
 	menuItems: MenuItem[]
 	onRename: (title: string) => void
@@ -553,6 +576,7 @@ function LessonItem(props: {
 				testId="course-lesson-title"
 				renameLabel={t('builder.rename')}
 				onSave={props.onRename}
+				link={{ courseId: props.courseId, lessonId: props.lesson.id }}
 			/>
 			{props.canManage && (
 				<ItemMenu label={t('builder.menu')} items={props.menuItems} onRename={() => setRenaming(true)} />
@@ -571,11 +595,24 @@ function InlineTitle(props: {
 	testId: string
 	renameLabel: string
 	onSave: (title: string) => void
+	/** урок: название — ссылка на конструктор урока (карточка 2.3) */
+	link?: { courseId: string; lessonId: string }
 }) {
 	const [own, setOwn] = useState(false)
 	const editing = props.editing ?? own
 	const setEditing = props.onEditingChange ?? setOwn
 	const [draft, setDraft] = useState(props.value)
+	if (!editing && props.link)
+		return (
+			<Link
+				to="/admin/courses/$courseId/lessons/$lessonId"
+				params={props.link}
+				className={`hover:underline ${props.className}`}
+				data-testid={props.testId}
+			>
+				{props.value}
+			</Link>
+		)
 	if (!editing)
 		return (
 			<span className={props.className} data-testid={props.testId}>

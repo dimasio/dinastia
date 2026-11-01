@@ -18,7 +18,7 @@ description: Курсы и контент в Dinastia — модуль courses �
 | контракт                                                  | `packages/contracts/src/courses.ts`                                                                 |
 | реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`, маршрут `/admin/courses`, меню «Контент → Курсы» |
 | конструктор курса (дерево)                                | `apps/web/src/features/courses/builder/course-builder.tsx`, маршрут `/admin/courses/$courseId` (dnd-kit: перетаскивание + меню «Выше/Ниже/В раздел…») |
-| конструктор урока                                         | `apps/web/src/features/courses/lesson-editor/` (хост блоков из `packages/blocks`)                   |
+| конструктор урока                                         | `apps/web/src/features/courses/lesson-editor/lesson-editor.tsx`, маршрут `/admin/courses/$courseId/lessons/$lessonId` (файл `$courseId_.lessons.$lessonId.tsx`); API — `modules/courses/blocks.service.ts` поверх `kernel/blocks` (любая правка → `has_unpublished_changes`) |
 | плеер урока                                               | `apps/web/src/features/learning/player/`                                                            |
 | блоки                                                     | `packages/blocks/src/<type>/` (скилл `lesson-blocks`)                                               |
 

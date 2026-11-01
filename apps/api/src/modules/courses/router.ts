@@ -3,6 +3,14 @@
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { can } from '#/permissions.ts'
 import {
+	addLessonBlock,
+	getLesson,
+	listLessonBlocks,
+	moveLessonBlock,
+	removeLessonBlock,
+	updateLessonBlock,
+} from './blocks.service.ts'
+import {
 	archiveCourse,
 	createCourse,
 	createLesson,
@@ -139,5 +147,56 @@ export const coursesRouter = {
 			.use(mw.member)
 			.use(can('courses.manage'))
 			.handler(({ input, context }) => removeLesson(schoolCtx(context), input.id)),
+		get: chain()
+			.lessons.get.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.read'))
+			.handler(({ input, context }) => getLesson(schoolCtx(context), input.id)),
+	},
+
+	blocks: {
+		list: chain()
+			.blocks.list.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.read'))
+			.handler(({ input, context }) => listLessonBlocks(schoolCtx(context), input.lessonId)),
+		create: chain()
+			.blocks.create.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => addLessonBlock(schoolCtx(context), input)),
+		update: chain()
+			.blocks.update.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => updateLessonBlock(schoolCtx(context), input)),
+		move: chain()
+			.blocks.move.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => moveLessonBlock(schoolCtx(context), input)),
+		remove: chain()
+			.blocks.remove.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => removeLessonBlock(schoolCtx(context), input.id)),
 	},
 }

@@ -43,4 +43,15 @@ export const test = base.extend<{
 	},
 })
 
+/**
+ * Открыть конструктор демо-курса «Основы акварели» — через поиск: сценарии копят курсы в демо-школе, и на первой
+ * странице списка (по дате изменения) демо-курса может не быть.
+ */
+export async function openDemoCourse(page: Page) {
+	await page.goto(schoolUrl('demo', '/admin/courses'))
+	await page.getByTestId('resource-courses-search').fill('Основы акварели')
+	await page.getByRole('link', { name: 'Основы акварели', exact: true }).click()
+	await expect(page.getByTestId('course-builder')).toBeVisible()
+}
+
 export { expect }

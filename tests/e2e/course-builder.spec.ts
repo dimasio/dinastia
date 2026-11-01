@@ -1,6 +1,6 @@
 // Конструктор курса (карточка 2.2): разделы и уроки — добавить, переименовать по месту, переставить (перетаскиванием
 // и из меню), перенести урок в другой раздел, удалить с подтверждением; куратор — только просмотр.
-import { expect, type Page, schoolUrl, test } from './fixtures.ts'
+import { expect, openDemoCourse, type Page, schoolUrl, test } from './fixtures.ts'
 import { shoot } from './shots.ts'
 
 const run = Date.now().toString(36)
@@ -98,8 +98,7 @@ test('преподаватель собирает структуру курса'
 
 test('куратор видит структуру демо-курса без инструментов правки', async ({ page, loginAs }) => {
 	await loginAs('curator')
-	await page.goto(schoolUrl('demo', '/admin/courses'))
-	await page.getByRole('link', { name: 'Основы акварели' }).click()
+	await openDemoCourse(page)
 	await expect(page.getByTestId('course-section')).toHaveCount(2)
 	await expect(page.getByTestId('course-add-section')).toHaveCount(0)
 	await expect(page.getByTestId('course-add-lesson')).toHaveCount(0)

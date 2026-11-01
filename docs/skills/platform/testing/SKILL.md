@@ -106,6 +106,9 @@ test('ученик попадает в /learn', async ({ page }) => {
 - `data-testid`: `<модуль>-<элемент>[-<id>]`.
 - Письма (magic link, приглашения) — `waitForLink(email, /regex/)` из `tests/e2e/mailpit.ts` (API Mailpit).
 - Уникальные данные на прогон (`Date.now().toString(36)` в email и slug): e2e идут по dev-БД.
+- Dev-БД **копит** данные прогонов: не искать сидовые записи на первой странице списка — демо-курс открывать
+  `openDemoCourse(page)` (`tests/e2e/fixtures.ts`, через поиск). Длинный сценарий — `test.setTimeout(90_000)`:
+  в общем прогоне файлы идут в нескольких воркерах.
 - **Запросы к `*.dinastia.localhost` — только из браузера** (`page.goto`, `page.evaluate(fetch…)`): Node на macOS
   не резолвит поддомены `localhost`, поэтому `page.request` к школе падает `ENOTFOUND`.
 - macOS 13: Playwright не ставит свой Chromium — конфиг берёт установленный Google Chrome (`channel: 'chrome'`);

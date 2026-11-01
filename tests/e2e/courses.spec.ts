@@ -9,6 +9,7 @@ test('преподаватель создаёт курс с описанием, 
 	page,
 	loginAs,
 }) => {
+	test.setTimeout(90_000) // длинный сценарий: в общем прогоне файлы идут в нескольких воркерах
 	await loginAs('teacher')
 	await page.goto(schoolUrl('demo', '/admin'))
 	await page.getByRole('link', { name: 'Курсы' }).click()

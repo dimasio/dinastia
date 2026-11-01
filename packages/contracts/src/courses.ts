@@ -95,6 +95,20 @@ export const CourseListInput = pageInput({
 export type CourseListQuery = z.output<typeof CourseListInput>
 
 const ById = z.object({ id: Id })
+
+/** Блок урока (черновик) с полными данными — для конструктора урока; данные проверяет схема типа на сервере. */
+export const LessonBlock = z.object({
+	id: Id,
+	blockKey: Id,
+	type: z.string(),
+	position: z.number().int(),
+	isRequired: z.boolean(),
+	data: z.record(z.string(), z.unknown()),
+})
+export type LessonBlock = z.infer<typeof LessonBlock>
+
+/** Урок с курсом — шапка конструктора урока. */
+export const LessonWithCourse = Lesson.extend({ course: z.object({ id: Id, title: z.string(), status: CourseStatus }) })
 /** Переместить в позицию `index` (0 — первым) среди соседей; урок — ещё и в другой раздел того же курса. */
 const SectionMove = z.object({ id: Id, index: z.number().int().min(0) })
 const LessonMove = z.object({ id: Id, sectionId: Id, index: z.number().int().min(0) })
@@ -138,6 +152,31 @@ export const coursesContract = {
 		move: oc.route({ method: 'POST', path: '/lessons/{id}/move' }).input(LessonMove).output(z.array(Lesson)),
 		remove: oc
 			.route({ method: 'DELETE', path: '/lessons/{id}' })
+			.input(ById)
+			.output(z.object({ ok: z.literal(true) })),
+		get: oc.route({ method: 'GET', path: '/lessons/{id}' }).input(ById).output(LessonWithCourse),
+	},
+
+	/** Блоки урока — черновик (D-033); публикация — 2.5. Тип — из реестра блоков (`@dinastia/blocks`). */
+	blocks: {
+		list: oc
+			.route({ method: 'GET', path: '/lessons/{lessonId}/blocks' })
+			.input(z.object({ lessonId: Id }))
+			.output(z.array(LessonBlock)),
+		create: oc
+			.route({ method: 'POST', path: '/lessons/{lessonId}/blocks', successStatus: 201 })
+			.input(z.object({ lessonId: Id, type: z.string().max(40), index: z.number().int().min(0).optional() }))
+			.output(LessonBlock),
+		update: oc
+			.route({ method: 'PATCH', path: '/blocks/{id}' })
+			.input(z.object({ id: Id, data: z.record(z.string(), z.unknown()) }))
+			.output(LessonBlock),
+		move: oc
+			.route({ method: 'POST', path: '/blocks/{id}/move' })
+			.input(z.object({ id: Id, index: z.number().int().min(0) }))
+			.output(z.array(LessonBlock)),
+		remove: oc
+			.route({ method: 'DELETE', path: '/blocks/{id}' })
 			.input(ById)
 			.output(z.object({ ok: z.literal(true) })),
 	},
