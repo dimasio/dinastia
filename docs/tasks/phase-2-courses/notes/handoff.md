@@ -8,7 +8,7 @@
 реестра, dnd, автосохранение черновика, предпросмотр. Механика есть с фазы 1: `kernel/blocks` (create/update/remove/
 reorder/list), `BlockEditorHost`/`BlockViewerHost`/`BlockPalette` (`@dinastia/blocks/client`). Нужны процедуры
 `courses.blocks.*` (контракт — модуль courses) и экран урока; пункт «Открыть урок (скоро)» в меню конструктора курса
-— включить. Новая карточка `changes/2.3-lesson-editor.md`, шаги 1–3, **ждать утверждения**.
+— включить. Карточка `changes/2.3-lesson-editor.md` — шаги 1–3 готовы, **ждёт утверждения** (4 вопроса в §3).
 
 ## Состояние кода
 
