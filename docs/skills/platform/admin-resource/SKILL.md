@@ -103,10 +103,15 @@ export const Route = createFileRoute('/admin/staff/')({
 | `layout` | строки полей: `[['firstName', 'lastName'], ['email']]` |
 | `actions[]` | `key`, `perm` (по умолчанию `perms.write`), `visible(row, viewer)`, `variant: 'destructive'`, `confirm: true` (подтверждение) или `form` (диалог с формой, `initial(row)`), `run(row, values)`; после успеха — тост и перезагрузка списка |
 
+На узком экране (< 640px) `ResourceTable` показывает строки **карточками**: первая колонка — заголовок, остальные —
+пары «подпись: значение», меню действий — в углу (`data-testid` те же: `resource-<key>-row`, `-row-actions`;
+список — `resource-<key>-cards`, таблица — `resource-<key>-table`). Первой ставь колонку, по которой строку узнают.
+Кнопка «создать» в пустом списке — `resource-<key>-create-empty` (в шапке — `resource-<key>-create`).
+
 Права: кнопка «создать» и действия скрыты без права (`viewer.permissions` из `schools.me`), запрещает сервер.
 После изменений вне ресурса список обновляют `queryClient.invalidateQueries({ queryKey: resourceKey('<key>') })`.
 
-Не хватает опции (выбор строк и массовые действия, виджеты `richtext`/`image`/`ref`, фильтр по дате) — запрос к ядру
+Не хватает опции (выбор строк и массовые действия, виджеты `image`/`ref`, фильтр по дате, сортировка в карточках) — запрос к ядру
 `docs/tasks/requests/`, не самописная таблица рядом.
 
 ## Строки

@@ -50,6 +50,20 @@
       "when": 1793472161837,
       "tag": "0006_questions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793514128669,
+      "tag": "0007_courses",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793514130062,
+      "tag": "0008_lesson_blocks_questions_fk",
+      "breakpoints": true
     }
   ]
 }

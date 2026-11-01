@@ -87,12 +87,17 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 	const page = list.data
 	const from = page?.total ? (page.page - 1) * page.pageSize + 1 : 0
 	const to = page ? Math.min(page.page * page.pageSize, page.total) : 0
-	const createButton = canCreate ? (
-		<Button onClick={() => setCreating(true)} data-testid={`resource-${resource.key}-create`}>
-			<Plus />
-			{r('create.button')}
-		</Button>
-	) : null
+	// в шапке и в пустом состоянии — разные testid: в пустом списке видны обе кнопки
+	const createButton = (place: 'header' | 'empty') =>
+		canCreate ? (
+			<Button
+				onClick={() => setCreating(true)}
+				data-testid={`resource-${resource.key}-create${place === 'empty' ? '-empty' : ''}`}
+			>
+				<Plus />
+				{r('create.button')}
+			</Button>
+		) : null
 
 	const createForm = resource.create ? (
 		<ResourceForm
@@ -114,7 +119,7 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 
 	return (
 		<div data-testid={`resource-${resource.key}`}>
-			<PageHeader title={r('title')} description={r('description')} actions={createButton} />
+			<PageHeader title={r('title')} description={r('description')} actions={createButton('header')} />
 
 			{resource.search || resource.filters?.length ? (
 				<div className="mb-4 flex flex-wrap gap-2">
@@ -194,7 +199,7 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 						}
 					/>
 				) : (
-					<EmptyState title={r('empty.title')} description={r('empty.description')} action={createButton} />
+					<EmptyState title={r('empty.title')} description={r('empty.description')} action={createButton('empty')} />
 				)
 			) : (
 				<>

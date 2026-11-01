@@ -5,9 +5,14 @@ import { eq } from 'drizzle-orm'
 import { auth } from './kernel/auth/auth.ts'
 import { users } from './kernel/auth/schema.ts'
 import { config } from './kernel/config.ts'
+import type { SchoolCtx } from './kernel/context.ts'
 import { db, pool } from './kernel/db/client.ts'
 import { withTenant } from './kernel/db/tenant.ts'
+import { log } from './kernel/log.ts'
 import { members } from './kernel/members/schema.ts'
+import { tenantCtx } from './kernel/tenant-ctx.ts'
+import { courses } from './modules/courses/schema.ts'
+import { createCourse, createLesson, createSection } from './modules/courses/service.ts'
 import { createSchool, findSchoolBySlug } from './modules/schools/service.ts'
 
 const PASSWORD = 'demo12345'
@@ -49,9 +54,31 @@ const staff: [string, string, MemberRole][] = [
 ]
 for (const [email, name, role] of staff) await ensureMember(demo.id, await ensureUser(email, name), role)
 
+// Демо-курс преподавателя: 2 раздела, 3 урока (содержимое уроков — с конструктором урока, 2.3).
+const teacherId = await ensureUser('teacher@demo.local', 'Татьяна Преподаватель')
+await withTenant(demo.id, async (tx) => {
+	const [exists] = await tx.select({ id: courses.id }).from(courses).where(eq(courses.slug, 'osnovy-akvareli'))
+	if (exists) return
+	const [teacher] = await tx.select().from(members).where(eq(members.userId, teacherId))
+	if (!teacher) throw new Error('нет преподавателя демо-школы')
+	// сервисы курса — от участника-преподавателя, как из его запроса
+	const ctx: SchoolCtx = {
+		...tenantCtx(tx, demo, { now: () => new Date(), log }),
+		user: { id: teacherId, email: 'teacher@demo.local', name: 'Татьяна Преподаватель' },
+		member: { id: teacher.id, role: 'teacher' },
+		can: () => true,
+	}
+	const course = await createCourse(ctx, { title: 'Основы акварели' })
+	const basics = await createSection(ctx, { courseId: course.id, title: 'Материалы и инструменты' })
+	await createLesson(ctx, { sectionId: basics.id, title: 'Бумага, кисти, краски' })
+	await createLesson(ctx, { sectionId: basics.id, title: 'Палитра и смешивание цветов' })
+	const practice = await createSection(ctx, { courseId: course.id, title: 'Первые работы' })
+	await createLesson(ctx, { sectionId: practice.id, title: 'Заливка и растяжка' })
+})
+
 // Вторая школа — для проверки изоляции; teacher@demo.local здесь ученик (один человек — разные роли).
 const other = await ensureSchool('other', 'Другая школа', 'owner@other.local', 'Олег Другой')
 await ensureMember(other.id, await ensureUser('teacher@demo.local', 'Татьяна Преподаватель'), 'student')
 
-console.log(`db:seed — ok: школы demo, other; пароль у всех — ${PASSWORD}`)
+console.log(`db:seed — ok: школы demo, other; демо-курс «Основы акварели»; пароль у всех — ${PASSWORD}`)
 await pool.end()

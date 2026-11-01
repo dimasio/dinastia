@@ -8,7 +8,7 @@ import {
 	useTable,
 } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { Badge } from '#/components/ui/badge.tsx'
 import { Button } from '#/components/ui/button.tsx'
 import {
@@ -24,6 +24,20 @@ import { useResourceT } from './context.tsx'
 import type { ActionDef, ColumnDef, ResourceDef } from './types.ts'
 
 const features = tableFeatures({ rowSortingFeature })
+
+/** Узкий экран (< 640px, как `sm` Tailwind): строки — карточками, а не таблицей (карточка 2.1). */
+const NARROW = '(max-width: 639px)'
+function useNarrow(): boolean {
+	return useSyncExternalStore(
+		(onChange) => {
+			const mq = window.matchMedia(NARROW)
+			mq.addEventListener('change', onChange)
+			return () => mq.removeEventListener('change', onChange)
+		},
+		() => window.matchMedia(NARROW).matches,
+		() => false,
+	)
+}
 
 export interface ResourceTableProps<Row extends { id: string }> {
 	resource: ResourceDef<Row, never>
@@ -82,6 +96,7 @@ export function ResourceTable<Row extends { id: string }>({
 		return resource.columns.map(
 			(c): TableColumnDef<typeof features, Row, unknown> => ({
 				id: c.sort ?? c.field,
+				meta: c.field,
 				accessorFn: (row) => row[c.field],
 				header: r(`fields.${c.field}`),
 				enableSorting: Boolean(c.sort),
@@ -89,6 +104,38 @@ export function ResourceTable<Row extends { id: string }>({
 			}),
 		)
 	}, [resource.columns, r, value, lang])
+
+	const narrow = useNarrow()
+	const actionsMenu = (row: Row) => {
+		const actions = hasActions ? actionsFor(row) : []
+		if (!actions.length) return null
+		return (
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label={t('common:resource.rowActions')}
+						data-testid={`resource-${resource.key}-row-actions`}
+					>
+						<MoreHorizontal />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					{actions.map((a) => (
+						<DropdownMenuItem
+							key={a.key}
+							variant={a.variant === 'destructive' ? 'destructive' : 'default'}
+							onSelect={() => onAction(a, row)}
+							data-testid={`resource-${resource.key}-action-${a.key}`}
+						>
+							{r(`actions.${a.key}.label`)}
+						</DropdownMenuItem>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		)
+	}
 
 	const sorting: SortingState = sort ? [{ id: sort.by, desc: sort.dir === 'desc' }] : []
 	const table = useTable({
@@ -105,6 +152,38 @@ export function ResourceTable<Row extends { id: string }>({
 			onSort(first ? { by: first.id, dir: first.desc ? 'desc' : 'asc' } : undefined)
 		},
 	})
+
+	if (narrow)
+		return (
+			<ul
+				className={cn('grid gap-2', pending && 'opacity-60 transition-opacity')}
+				data-testid={`resource-${resource.key}-cards`}
+			>
+				{table.getRowModel().rows.map((row) => {
+					const [first, ...rest] = row.getAllCells()
+					return (
+						<li key={row.id} className="rounded-lg border p-3" data-testid={`resource-${resource.key}-row`}>
+							<div className="flex items-start justify-between gap-2">
+								<div className="min-w-0 font-medium">{first ? <table.FlexRender cell={first} /> : null}</div>
+								{actionsMenu(row.original)}
+							</div>
+							<dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+								{rest.map((cell) => (
+									<div key={cell.id} className="contents">
+										<dt className="text-muted-foreground">
+											{r(`fields.${String(cell.column.columnDef.meta ?? cell.column.id)}`)}
+										</dt>
+										<dd className="min-w-0 break-words">
+											<table.FlexRender cell={cell} />
+										</dd>
+									</div>
+								))}
+							</dl>
+						</li>
+					)
+				})}
+			</ul>
+		)
 
 	return (
 		<div className={cn('rounded-lg border', pending && 'opacity-60 transition-opacity')}>
@@ -148,7 +227,6 @@ export function ResourceTable<Row extends { id: string }>({
 				</TableHeader>
 				<TableBody>
 					{table.getRowModel().rows.map((row) => {
-						const actions = hasActions ? actionsFor(row.original) : []
 						return (
 							<TableRow key={row.id} data-testid={`resource-${resource.key}-row`}>
 								{row.getAllCells().map((cell) => (
@@ -156,36 +234,7 @@ export function ResourceTable<Row extends { id: string }>({
 										<table.FlexRender cell={cell} />
 									</TableCell>
 								))}
-								{hasActions ? (
-									<TableCell className="text-right">
-										{actions.length ? (
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="icon-sm"
-														aria-label={t('common:resource.rowActions')}
-														data-testid={`resource-${resource.key}-row-actions`}
-													>
-														<MoreHorizontal />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													{actions.map((a) => (
-														<DropdownMenuItem
-															key={a.key}
-															variant={a.variant === 'destructive' ? 'destructive' : 'default'}
-															onSelect={() => onAction(a, row.original)}
-															data-testid={`resource-${resource.key}-action-${a.key}`}
-														>
-															{r(`actions.${a.key}.label`)}
-														</DropdownMenuItem>
-													))}
-												</DropdownMenuContent>
-											</DropdownMenu>
-										) : null}
-									</TableCell>
-								) : null}
+								{hasActions ? <TableCell className="text-right">{actionsMenu(row.original)}</TableCell> : null}
 							</TableRow>
 						)
 					})}

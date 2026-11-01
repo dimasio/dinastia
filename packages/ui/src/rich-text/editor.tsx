@@ -114,13 +114,17 @@ export default function RichTextEditor(props: RichTextEditorProps) {
 	)
 
 	// Значение сменили снаружи (сброс формы, загрузка записи) — показать его, не отправляя onChange обратно.
+	// Пустое значение (необязательное поле формы) = пустой документ. Экземпляр мог быть уничтожен (StrictMode
+	// пересоздаёт компонент) — тогда его команды недоступны.
 	useEffect(() => {
-		if (!editor || same(value, emitted.current) || same(value, editor.getJSON())) return
-		editor.commands.setContent(value ?? emptyDoc(), { emitUpdate: false })
+		if (!editor || editor.isDestroyed) return
+		const next = value ?? emptyDoc()
+		if (same(next, emitted.current) || same(next, editor.getJSON())) return
+		editor.commands.setContent(next, { emitUpdate: false })
 	}, [editor, value])
 
 	useEffect(() => {
-		editor?.setEditable(!props.disabled)
+		if (editor && !editor.isDestroyed) editor.setEditable(!props.disabled)
 	}, [editor, props.disabled])
 
 	return (

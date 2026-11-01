@@ -179,6 +179,15 @@ describe('OpenAPI', () => {
 				'/school/members/{id}/role',
 				'/school/members/{id}/status',
 				'/schools',
+				'/courses',
+				'/courses/{id}',
+				'/courses/{id}/archive',
+				'/courses/{courseId}/sections',
+				'/sections/{id}',
+				'/sections/{id}/move',
+				'/sections/{sectionId}/lessons',
+				'/lessons/{id}',
+				'/lessons/{id}/move',
 			].sort(),
 		)
 	})

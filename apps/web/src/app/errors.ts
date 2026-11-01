@@ -9,7 +9,8 @@ export function errorCode(error: unknown): string {
 		return issue ?? data?.code ?? error.code
 	}
 	if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string') return error.code
-	if (error instanceof TypeError) return 'NETWORK'
+	// сеть — только настоящий сбой запроса; программная ошибка (TypeError в рендере) — не «нет соединения»
+	if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) return 'NETWORK'
 	return 'UNKNOWN'
 }
 

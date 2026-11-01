@@ -11,12 +11,12 @@ description: Курсы и контент в Dinastia — модуль courses �
 
 | Что                                                       | Где                                                                                                 |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| таблицы `courses`, `sections`, `lessons`, `lesson_blocks` | `apps/api/src/modules/courses/schema.ts`                                                            |
+| таблицы `courses`, `sections`, `lessons`                  | `apps/api/src/modules/courses/schema.ts` (`lesson_blocks` — ядро, `@dinastia/db`; внешние ключи на `lessons`/`courses` — миграция `0008`, D-054) |
 | таблицы типов блоков `block_<type>`                       | `packages/blocks/src/<type>/table.ts`                                                               |
-| публикация, порядок, копирование черновика                | `apps/api/src/modules/courses/service.ts`                                                           |
+| курсы, разделы, уроки: адрес, порядок, архив, удаление    | `apps/api/src/modules/courses/service.ts` (+ `slug.ts`); публикация — 2.5 (`kernel/blocks` → `publishBlocks`) |
 | вычисление доступности урока                              | `apps/api/src/modules/learning/service.ts` → `computeLessonAccess()` (доступ зависит от зачисления) |
 | контракт                                                  | `packages/contracts/src/courses.ts`                                                                 |
-| реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`                                                |
+| реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`, маршрут `/admin/courses`, меню «Контент → Курсы» |
 | конструктор курса (дерево)                                | `apps/web/src/features/courses/builder/`                                                            |
 | конструктор урока                                         | `apps/web/src/features/courses/lesson-editor/` (хост блоков из `packages/blocks`)                   |
 | плеер урока                                               | `apps/web/src/features/learning/player/`                                                            |
@@ -34,7 +34,11 @@ description: Курсы и контент в Dinastia — модуль courses �
   block_key)` ссылаются попытки, сдачи, `block_progress`. При дублировании урока `block_key` перевыпускаются.
 - Удаление блока `quiz`/`assignment`, у которого есть попытки/сдачи, — 409 `BLOCK_HAS_RESPONSES`, UI спрашивает
   подтверждение и повторяет с `force: true` (ответы сохраняются; после публикации блок пропадает из плеера, `block_progress` по нему не учитывается в прогрессе).
-- Права: `courses.read` (сотрудники), `courses.manage` (owner, admin, teacher), `courses.publish` (то же).
+- Права: `courses.read` (owner, admin, teacher, curator), `courses.manage` (owner, admin, teacher), `courses.publish`
+  (то же). Куратор видит, но не правит.
+- Адрес курса — `slugify(title)` + `nextFreeSlug` (`slug.ts`), меняется только у черновика (`COURSE_SLUG_LOCKED`).
+- Удаление — только черновик без уроков; иначе архив (`archiveCourse`, журнал действий).
+- Тесты модуля — `modules/courses/courses.test.ts`; курс и урок для тестов механизмов ядра — `test/courses.ts`.
 
 ## Типовые задачи
 

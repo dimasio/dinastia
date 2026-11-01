@@ -5,6 +5,7 @@ import { questionItems, questions, schools } from '@dinastia/db'
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ZodError } from 'zod'
+import { courseIn } from '#/test/courses.ts'
 import type { BaseCtx } from '../context.ts'
 import { db, pool } from '../db/client.ts'
 import { withTenant } from '../db/tenant.ts'
@@ -63,7 +64,7 @@ afterAll(async () => {
 
 describe('вопрос single_choice в банке', () => {
 	it('создание и чтение: элементы по порядку с id; чужие для типа колонки — по умолчанию', async () => {
-		const courseId = randomUUID()
+		const courseId = await courseIn(a.id)
 		await inSchool(a, async (ctx) => {
 			const q = await createQuestion(ctx, {
 				courseId,
@@ -85,7 +86,7 @@ describe('вопрос single_choice в банке', () => {
 
 	it('ученику — без верных ответов и пояснения; проверка ответа; разбор', async () => {
 		await inSchool(a, async (ctx) => {
-			const q = await createQuestion(ctx, { courseId: randomUUID(), type: 'single_choice', data: question() })
+			const q = await createQuestion(ctx, { courseId: await courseIn(a.id), type: 'single_choice', data: question() })
 			const pub = publicQuestion(q) as { options: Record<string, unknown>[] }
 			expect(JSON.stringify(pub)).not.toContain('isCorrect')
 			expect(pub).not.toHaveProperty('explanation')
@@ -107,7 +108,7 @@ describe('вопрос single_choice в банке', () => {
 
 	it('правка на месте сохраняет id своих элементов; чужие id не принимаются', async () => {
 		await inSchool(a, async (ctx) => {
-			const q = await createQuestion(ctx, { courseId: randomUUID(), type: 'single_choice', data: question() })
+			const q = await createQuestion(ctx, { courseId: await courseIn(a.id), type: 'single_choice', data: question() })
 			const [lyon, paris, marseille] = optionsOf(q) as [Option, Option, Option]
 			const stranger = randomUUID()
 			const updated = await updateQuestion(ctx, q.id, {
@@ -129,7 +130,7 @@ describe('вопрос single_choice в банке', () => {
 	})
 
 	it('ревизия: прежняя неизменна и не текущая, у новой элементы с новыми id; правка прежней — ошибка', async () => {
-		const courseId = randomUUID()
+		const courseId = await courseIn(a.id)
 		await inSchool(a, async (ctx) => {
 			const v1 = await createQuestion(ctx, { courseId, type: 'single_choice', data: question(1) })
 			const v2 = await reviseQuestion(ctx, v1.id, { ...question(2), points: 1 })
@@ -151,13 +152,13 @@ describe('вопрос single_choice в банке', () => {
 	it('неверные данные и неизвестный тип — ошибки; два верных варианта — NEED_ONE_CORRECT', async () => {
 		await inSchool(a, async (ctx) => {
 			const two = { ...question(), options: question().options.map((o) => ({ ...o, isCorrect: true })) }
-			const err = await createQuestion(ctx, { courseId: randomUUID(), type: 'single_choice', data: two }).catch(
+			const err = await createQuestion(ctx, { courseId: await courseIn(a.id), type: 'single_choice', data: two }).catch(
 				(e) => e,
 			)
 			expect(err).toBeInstanceOf(ZodError)
 			expect((err as ZodError).issues[0]?.message).toBe('NEED_ONE_CORRECT')
 			await expect(
-				createQuestion(ctx, { courseId: randomUUID(), type: 'essay', data: question() }),
+				createQuestion(ctx, { courseId: await courseIn(a.id), type: 'essay', data: question() }),
 			).rejects.toBeInstanceOf(AppError)
 			await expect(getQuestion(ctx, randomUUID())).rejects.toMatchObject({ code: 'QUESTION_NOT_FOUND' })
 		})
@@ -167,7 +168,7 @@ describe('вопрос single_choice в банке', () => {
 describe('изоляция и удаление', () => {
 	it('другая школа не видит вопросов; удаление школы снимает вопросы со всеми ревизиями и элементами', async () => {
 		const c = await newSchool('qc')
-		const courseId = randomUUID()
+		const courseId = await courseIn(c.id)
 		const v1 = await inSchool(c, (ctx) => createQuestion(ctx, { courseId, type: 'single_choice', data: question() }))
 		await inSchool(c, (ctx) => reviseQuestion(ctx, v1.id, question(0)))
 		expect(await inSchool(b, (ctx) => listQuestions(ctx, courseId))).toEqual([])

@@ -4,6 +4,7 @@ import type { PgBoss } from 'pg-boss'
 import { BOSS_SCHEMA, workerBoss } from '#/kernel/boss.ts'
 import { db } from '#/kernel/db/client.ts'
 import { memoryOutbox } from '#/kernel/mail/transport.ts'
+import { allJobs } from '#/kernel/registry.ts'
 import { startWorkers } from '#/kernel/worker-runtime.ts'
 
 let running: { boss: PgBoss; stop: () => Promise<void> } | null = null
@@ -25,22 +26,41 @@ export async function stopTestWorker() {
 }
 
 /** Сколько задач ещё ждут или выполняются (без отложенных на будущее). */
-export async function pendingJobs(): Promise<number> {
-	const rows = await db.execute<{ n: number }>(
-		sql`select count(*)::int as n from ${sql.raw(BOSS_SCHEMA)}.job
-			where state in ('created', 'retry', 'active') and start_after <= now()`,
+/**
+ * Готовые к выполнению задачи очередей, которые знает реестр этого процесса. Чужие — не считаем: схема очереди общая
+ * у файлов одного процесса vitest, и пробные задачи другого файла (probe.*) здесь некому выполнить — ожидание
+ * «пока опустеет вся очередь» зависало (тест аватара, 2.1).
+ */
+async function pendingRows(): Promise<{ name: string }[]> {
+	const names = allJobs().map((j) => j.name)
+	if (!names.length) return []
+	const rows = await db.execute<{ name: string }>(
+		sql`select name from ${sql.raw(BOSS_SCHEMA)}.job
+			where state in ('created', 'retry', 'active') and start_after <= now()
+			and name in (${sql.join(
+				names.map((n) => sql`${n}`),
+				sql`, `,
+			)})`,
 	)
-	return rows.rows[0]?.n ?? 0
+	return rows.rows
 }
 
-/** Дождаться, пока воркер выполнит все готовые задачи (в т.ч. поставленные подписчиками по ходу). */
-export async function drainJobs(timeoutMs = 15_000) {
+export async function pendingJobs(): Promise<number> {
+	return (await pendingRows()).length
+}
+
+/** Дождаться, пока воркер выполнит все готовые задачи (в т.ч. поставленные подписчиками по ходу). Лимит — меньше
+ * лимита теста (15 с), чтобы сообщение «что ждёт» успело появиться. */
+export async function drainJobs(timeoutMs = 10_000) {
 	const deadline = Date.now() + timeoutMs
 	while (Date.now() < deadline) {
 		if ((await pendingJobs()) === 0) return
 		await new Promise((r) => setTimeout(r, 100))
 	}
-	throw new Error(`задачи не выполнились за ${timeoutMs} мс: ждут ${await pendingJobs()}`)
+	const waiting = (await pendingRows()).map((r) => r.name)
+	throw new Error(
+		`задачи не выполнились за ${timeoutMs} мс: ждут ${waiting.length} — ${[...new Set(waiting)].join(', ')}`,
+	)
 }
 
 /** Состояния задач очереди (для проверок повтора и окончательной ошибки). */

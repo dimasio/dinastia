@@ -7,6 +7,7 @@ import { schools } from '@dinastia/db'
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ZodError, z } from 'zod'
+import { lessonIn } from '#/test/courses.ts'
 import { probeBlockItems as probeItems, probeBlock as probeTable } from '#/test/probes.ts'
 import type { BaseCtx } from '../context.ts'
 import { db, pool } from '../db/client.ts'
@@ -75,7 +76,7 @@ afterAll(async () => {
 
 describe('черновик и публикация (callout)', () => {
 	it('новый блок — defaults типа, в конец урока; правка черновика; публикация — копия с тем же block_key', async () => {
-		const lessonId = randomUUID()
+		const lessonId = await lessonIn(schoolA.id)
 		await inSchool(schoolA, async (ctx) => {
 			const first = await createBlock(ctx, { lessonId, type: 'callout' })
 			expect(first.data).toEqual({ tone: 'info', body: { type: 'doc', content: [{ type: 'paragraph' }] } })
@@ -109,7 +110,7 @@ describe('черновик и публикация (callout)', () => {
 	})
 
 	it('опубликованную строку не правят и не удаляют; неизвестный тип и неверные данные — ошибки', async () => {
-		const lessonId = randomUUID()
+		const lessonId = await lessonIn(schoolA.id)
 		await inSchool(schoolA, async (ctx) => {
 			const b = await createBlock(ctx, { lessonId, type: 'callout' })
 			await publishBlocks(ctx, lessonId)
@@ -129,7 +130,7 @@ describe('черновик и публикация (callout)', () => {
 	})
 
 	it('порядок черновика; неполный список — ошибка', async () => {
-		const lessonId = randomUUID()
+		const lessonId = await lessonIn(schoolA.id)
 		await inSchool(schoolA, async (ctx) => {
 			const ids = [
 				(await createBlock(ctx, { lessonId, type: 'callout' })).id,
@@ -147,7 +148,7 @@ describe('черновик и публикация (callout)', () => {
 
 describe('дочерние таблицы и секреты (пробный тип)', () => {
 	it('элементы по порядку со стабильным key — в черновике и в публикации; ученику — без секретов', async () => {
-		const lessonId = randomUUID()
+		const lessonId = await lessonIn(schoolA.id)
 		await inSchool(schoolA, async (ctx) => {
 			const b = await createBlock(ctx, {
 				lessonId,
@@ -197,7 +198,7 @@ describe('дочерние таблицы и секреты (пробный ти
 	})
 
 	it('другая школа не видит блоков; удаление строки блока удаляет данные типа и элементы', async () => {
-		const lessonId = randomUUID()
+		const lessonId = await lessonIn(schoolA.id)
 		const b = await inSchool(schoolA, (ctx) =>
 			createBlock(ctx, {
 				lessonId,

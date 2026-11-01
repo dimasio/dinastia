@@ -68,11 +68,12 @@ it('приглашать сотрудников могут owner и admin', asyn
 | `clientFor(cookie, slug?)` | клиент API от имени сессии на хосте школы или корня |
 | `expectPermissionMatrix(t, вызов, { allow, deny })` | deny — 403 `NO_PERMISSION`; allow — не 401/403 (бизнес-ошибки допустимы) |
 | `call(method, path, { slug, cookie, body })`, `signUp()` (`test/http.ts`) | сырой HTTP (REST `/api/v1`, better-auth) |
-| `startTestWorker()` / `stopTestWorker()`, `drainJobs()`, `jobStates(name)` (`test/jobs.ts`) | настоящий воркер pg-boss в тесте; дождаться выполнения задач и подписчиков; состояния задач очереди (скилл `background-jobs`). Очередь — своя схема `pgboss_<n>` у каждого процесса (`test/setup.ts`): файлы идут параллельно, чужие задачи не выполняются |
+| `startTestWorker()` / `stopTestWorker()`, `drainJobs()`, `jobStates(name)` (`test/jobs.ts`) | настоящий воркер pg-boss в тесте; дождаться выполнения задач и подписчиков (только очередей из реестра процесса — чужие пробные задачи не ждём; лимит 10 с, в ошибке — какие задачи ждут); состояния задач очереди (скилл `background-jobs`). Очередь — своя схема `pgboss_<n>` у каждого процесса (`test/setup.ts`): файлы идут параллельно, чужие задачи не выполняются |
 | `lastMailTo(email)`, `inviteToken(email)` (`test/jobs.ts`) | выполнить очередь и взять последнее письмо на адрес (`memoryOutbox`) / токен приглашения из него |
 | `createUser()`, `uniqueEmail()`, `uniqueSlug()` (`test/users.ts`) | данные с уникальными значениями |
 | `memoryOutbox` (`kernel/mail/transport.ts`) | письма в тестах (`MAIL_TRANSPORT=memory`) |
 | `withTenant(schoolId, fn, { userId })` | прямой доступ к БД школы — для подготовки данных и проверки сервисов без HTTP |
+| `courseIn(schoolId)`, `lessonIn(schoolId)` (`test/courses.ts`) | настоящие курс и урок для тестов механизмов ядра: на них ссылаются внешние ключи `questions.course_id` и `lesson_blocks.lesson_id` |
 
 Сервис без HTTP (правила, гонки) — вызов функции с `SchoolCtx`, собранным внутри `withTenant` (образец — `inSchool` в
 `apps/api/src/modules/schools/schools.test.ts`). Подмена времени — через `now` в `SchoolCtx` (для HTTP — фаза 2, когда
