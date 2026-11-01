@@ -44,6 +44,9 @@ export interface BlockDef<
 	/** Интерактивный блок: ответ ученика и чистая проверка (только сервер). Хранение ответов — модуль learning. */
 	responseSchema?: z.ZodType<R>
 	evaluate?: (data: z.output<S>, response: R) => BlockResult
+	/** Замечания «не готов к публикации» (2.5): ключ → есть ли замечание у данных. Текст — `blocks:<type>.issues.<ключ>`.
+	 * Черновик с замечаниями сохраняется; урок с ними не публикуется (LESSON_HAS_ISSUES). */
+	issues?: Readonly<Record<string, (data: z.output<S>) => boolean>>
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: у каждого блока своя схема — для реестров
@@ -81,4 +84,11 @@ export function defineBlock<const T extends string, S extends z.ZodObject, P = z
 		if (hasPath(toPublic(example.data), path)) throw new Error(`блок «${def.type}»: toPublic не убирает ${path}`)
 	}
 	return { ...def, toPublic }
+}
+
+/** Ключи замечаний к данным блока (пусто — готов к публикации). */
+export function blockDataIssues(def: AnyBlockDef, data: unknown): string[] {
+	return Object.entries(def.issues ?? {})
+		.filter(([, has]) => has(data))
+		.map(([key]) => key)
 }

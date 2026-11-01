@@ -2,9 +2,14 @@
 // подсвечивается без HTML на странице (скилл security-baseline).
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { code } from './code/definition.ts'
 import CodeViewer from './code/viewer.tsx'
+import { blockDataIssues } from './define.ts'
+import { divider } from './divider/definition.ts'
 import { embed } from './embed/definition.ts'
+import { heading } from './heading/definition.ts'
 import HeadingViewer from './heading/viewer.tsx'
+import { text } from './text/definition.ts'
 import { video } from './video/definition.ts'
 
 describe('видео и встраивание', () => {
@@ -38,5 +43,18 @@ describe('код', () => {
 	it('пустой код и пустой заголовок ученику не показываются', () => {
 		expect(renderToStaticMarkup(<CodeViewer data={{ language: 'python', code: ' ' }} testId="c" />)).toBe('')
 		expect(renderToStaticMarkup(<HeadingViewer data={{ level: 'h2', text: '' }} testId="h" />)).toBe('')
+	})
+})
+
+describe('готовность к публикации (2.5)', () => {
+	it('новые пустые блоки — с замечаниями; заполненные и разделитель — без', () => {
+		expect(blockDataIssues(video, video.defaults())).toEqual(['noUrl'])
+		expect(blockDataIssues(embed, embed.defaults())).toEqual(['noUrl'])
+		expect(blockDataIssues(text, text.defaults())).toEqual(['empty'])
+		expect(blockDataIssues(heading, { level: 'h2', text: '  ' })).toEqual(['empty'])
+		expect(blockDataIssues(code, code.defaults())).toEqual(['empty'])
+		expect(blockDataIssues(divider, {})).toEqual([])
+		expect(blockDataIssues(video, { url: 'https://youtu.be/dQw4w9WgXcQ', caption: null })).toEqual([])
+		expect(blockDataIssues(heading, { level: 'h3', text: 'Итоги' })).toEqual([])
 	})
 })

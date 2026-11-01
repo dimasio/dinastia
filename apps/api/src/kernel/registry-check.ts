@@ -102,7 +102,7 @@ export function blockIssues(storages: Readonly<Record<string, BlockStorage>>, st
 		if (def.type !== key) issues.push({ area: 'blocks', where, message: `ключ реестра «${key}» ≠ type «${def.type}»` })
 		for (const m of blockStorageIssues(storage)) issues.push({ area: 'blocks', where, message: m })
 		issues.push(...secretIssues('blocks', where, def, (def.example ?? def.defaults)()))
-		for (const k of ['title', 'description'])
+		for (const k of ['title', 'description', ...Object.keys(def.issues ?? {}).map((i) => `issues.${i}`)])
 			if (typeof text(strings, `${key}.${k}`) !== 'string')
 				issues.push({ area: 'blocks', where, message: `нет строки blocks:${key}.${k}` })
 		return issues

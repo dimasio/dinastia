@@ -10,6 +10,7 @@ import {
 	removeLessonBlock,
 	updateLessonBlock,
 } from './blocks.service.ts'
+import { publishCourse, publishCourseChanges, publishLesson } from './publish.service.ts'
 import {
 	archiveCourse,
 	createCourse,
@@ -78,6 +79,22 @@ export const coursesRouter = {
 		.use(mw.member)
 		.use(can('courses.manage'))
 		.handler(({ input, context }) => removeCourse(schoolCtx(context), input.id)),
+	publish: chain()
+		.publish.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('courses.publish'))
+		.handler(({ input, context }) => publishCourse(schoolCtx(context), input.id)),
+	publishChanges: chain()
+		.publishChanges.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('courses.publish'))
+		.handler(({ input, context }) => publishCourseChanges(schoolCtx(context), input.id)),
 
 	sections: {
 		create: chain()
@@ -155,6 +172,14 @@ export const coursesRouter = {
 			.use(mw.member)
 			.use(can('courses.read'))
 			.handler(({ input, context }) => getLesson(schoolCtx(context), input.id)),
+		publish: chain()
+			.lessons.publish.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.publish'))
+			.handler(({ input, context }) => publishLesson(schoolCtx(context), input.id)),
 	},
 
 	blocks: {

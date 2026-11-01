@@ -13,7 +13,8 @@ description: Курсы и контент в Dinastia — модуль courses �
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | таблицы `courses`, `sections`, `lessons`                  | `apps/api/src/modules/courses/schema.ts` (`lesson_blocks` — ядро, `@dinastia/db`; внешние ключи на `lessons`/`courses` — миграция `0008`, D-054) |
 | таблицы типов блоков `block_<type>`                       | `packages/blocks/src/<type>/table.ts`                                                               |
-| курсы, разделы, уроки: адрес, порядок, архив, удаление    | `apps/api/src/modules/courses/service.ts` (+ `slug.ts`); публикация — 2.5 (`kernel/blocks` → `publishBlocks`) |
+| курсы, разделы, уроки: адрес, порядок, архив, удаление    | `apps/api/src/modules/courses/service.ts` (+ `slug.ts`) |
+| публикация урока, курса, «Опубликовать изменения»          | `apps/api/src/modules/courses/publish.service.ts` поверх `kernel/blocks` (`publishBlocks`, `draftIssues`); события — `events.ts`; статус урока — `lessonStatus()` в контракте; бейдж и разбор ошибок — `apps/web/src/features/courses/publish.tsx` |
 | вычисление доступности урока                              | `apps/api/src/modules/learning/service.ts` → `computeLessonAccess()` (доступ зависит от зачисления) |
 | контракт                                                  | `packages/contracts/src/courses.ts`                                                                 |
 | реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`, маршрут `/admin/courses`, меню «Контент → Курсы» |
@@ -28,17 +29,20 @@ description: Курсы и контент в Dinastia — модуль courses �
 - Ученику — только строки `state = published` через `toPublic()` типов; в `/learn` никогда не отдавать `draft`.
 - Публикация урока (`publishLesson`, D-033): удалить `published`-строки урока, скопировать `draft` → `published`
   с теми же `block_key` (ядро копирует таблицы типов), `published_at = now()`, `has_unpublished_changes = false`,
-  событие `lesson.published`. Любая правка черновика ставит `has_unpublished_changes = true`.
-  Курс публикуется отдельно (`course.published`); урок неопубликованного курса ученик не видит.
+  событие `lesson.published`. Любая правка черновика ставит `has_unpublished_changes = true`. Блоки с замечаниями
+  (`issues` типа) — `LESSON_HAS_ISSUES` (`data.blocks`), без блоков — `LESSON_EMPTY`.
+  Курс публикуется отдельно (`publishCourse`, нужен опубликованный урок, журнал, `course.published`); урок
+  неопубликованного курса ученик не видит. `publishCourseChanges` — все изменённые уроки или ни одного
+  (`COURSE_LESSONS_HAVE_ISSUES`, `data.lessons`).
 - Стабильный ключ блока — `block_key` (не `id` строки: `id` у `draft` и `published` разные). На `(lesson_id,
   block_key)` ссылаются попытки, сдачи, `block_progress`. При дублировании урока `block_key` перевыпускаются.
-- Удаление блока `quiz`/`assignment`, у которого есть попытки/сдачи, — 409 `BLOCK_HAS_RESPONSES`, UI спрашивает
+- (фаза 3, ещё не сделано) Удаление блока `quiz`/`assignment`, у которого есть попытки/сдачи, — 409 `BLOCK_HAS_RESPONSES`, UI спрашивает
   подтверждение и повторяет с `force: true` (ответы сохраняются; после публикации блок пропадает из плеера, `block_progress` по нему не учитывается в прогрессе).
 - Права: `courses.read` (owner, admin, teacher, curator), `courses.manage` (owner, admin, teacher), `courses.publish`
   (то же). Куратор видит, но не правит.
 - Адрес курса — `slugify(title)` + `nextFreeSlug` (`slug.ts`), меняется только у черновика (`COURSE_SLUG_LOCKED`).
 - Удаление — только черновик без уроков; иначе архив (`archiveCourse`, журнал действий).
-- Тесты модуля — `modules/courses/courses.test.ts`; курс и урок для тестов механизмов ядра — `test/courses.ts`.
+- Тесты модуля — `modules/courses/courses.test.ts`, `blocks.test.ts`, `publish.test.ts`; e2e — `tests/e2e/publishing.spec.ts`; курс и урок для тестов механизмов ядра — `test/courses.ts`.
 
 ## Типовые задачи
 

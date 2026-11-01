@@ -1,7 +1,8 @@
 // Конструктор урока (карточка 2.3, шаблон «Конструктор» — скилл screen-design): палитра блоков · холст. Блок на
 // холсте — карточка с редактором типа (BlockEditorHost): правка уходит на сервер через 0,5 с после последнего
 // изменения, добавление, порядок и удаление — сразу. «Как увидит ученик» — черновик через toPublic типа, как на сервере.
-import { type BlockType, blockDef } from '@dinastia/blocks'
+// «Опубликовать» (2.5) — черновик блоков ученикам; незаполненные блоки помечены на холсте и не дают опубликовать.
+import { type BlockType, blockDataIssues, blockDef } from '@dinastia/blocks'
 import { BlockEditorHost, BlockPalette, BlockViewerHost } from '@dinastia/blocks/client'
 import type { LessonBlock } from '@dinastia/contracts/courses'
 import {
@@ -46,12 +47,23 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Check, CircleAlert, FileText, GripVertical, LoaderCircle, MoreHorizontal, Plus } from 'lucide-react'
+import {
+	ArrowLeft,
+	Check,
+	CircleAlert,
+	FileText,
+	GripVertical,
+	LoaderCircle,
+	MoreHorizontal,
+	Plus,
+	Send,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type SaveState = 'saved' | 'saving' | 'error'
 
@@ -71,6 +83,12 @@ const publicData = (block: LessonBlock) => {
 	return def && parsed?.success ? def.toPublic(parsed.data) : null
 }
 
+/** Замечания «не готов к публикации» по данным черновика — те же, что проверит сервер. */
+const issuesOf = (block: LessonBlock) => {
+	const def = blockDef(block.type)
+	return def ? blockDataIssues(def, block.data) : []
+}
+
 export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonId: string }) {
 	const { t } = useTranslation(['courses', 'common', 'errors'])
 	const qc = useQueryClient()
@@ -80,6 +98,7 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 	const blocks = useQuery(blocksQuery)
 	const { data: me } = useQuery(meQuery())
 	const canManage = me?.permissions.includes('courses.manage') ?? false
+	const canPublish = me?.permissions.includes('courses.publish') ?? false
 	const [preview, setPreview] = useState(false)
 	const [paletteOpen, setPaletteOpen] = useState(false)
 	const [removing, setRemovingData] = useState<LessonBlock | null>(null)
@@ -126,6 +145,24 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 			// правка данных — ответ уже в кэше, перечитывать список незачем (редакторы держат своё значение)
 			if (!op.keep) void qc.invalidateQueries({ queryKey: blocksQuery.queryKey })
 			void qc.invalidateQueries({ queryKey: lessonQuery.queryKey })
+		},
+	})
+
+	const publish = useMutation({
+		mutationFn: () => orpc.courses.lessons.publish.call({ id: lessonId }),
+		onSuccess: (saved) => {
+			qc.setQueryData(lessonQuery.queryKey, (prev) => (prev ? { ...prev, ...saved } : prev))
+			void qc.invalidateQueries({ queryKey: orpc.courses.get.key({ input: { id: courseId } }) })
+			toast.success(t('publish.lessonDone'))
+		},
+		onError: (e) => {
+			toast.error(t(errorText(e), { ns: 'errors' }))
+			// к первому незаполненному блоку — пометка уже на карточке
+			const first = errorData<{ blocks?: { id: string }[] }>(e)?.blocks?.[0]
+			if (first) {
+				setPreview(false)
+				document.querySelector(`[data-block-id="${first.id}"]`)?.scrollIntoView({ block: 'center' })
+			}
 		},
 	})
 
@@ -183,9 +220,13 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 					{lesson.data.course.title}
 				</Link>
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-					<h1 className="min-w-0 flex-1 font-semibold text-2xl" data-testid="lesson-title">
+					<h1
+						className="min-w-0 basis-full break-words font-semibold text-2xl sm:flex-1 sm:basis-0"
+						data-testid="lesson-title"
+					>
 						{lesson.data.title}
 					</h1>
+					<LessonStatusBadge lesson={lesson.data} testId="lesson-status" />
 					{canManage && <SaveIndicator state={saveState} />}
 					{canManage && (
 						<fieldset
@@ -212,6 +253,21 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 								)
 							})}
 						</fieldset>
+					)}
+					{canPublish && (
+						<Button
+							// пока правка в пути, публиковать рано — уйдёт прежний черновик
+							disabled={
+								publish.isPending ||
+								saveState === 'saving' ||
+								(lesson.data.publishedAt !== null && !lesson.data.hasUnpublishedChanges)
+							}
+							onClick={() => publish.mutate()}
+							data-testid="lesson-publish"
+						>
+							{publish.isPending ? <LoaderCircle className="animate-spin" /> : <Send />}
+							{t('publish.lesson')}
+						</Button>
 					)}
 				</div>
 				{!canManage && <p className="text-muted-foreground text-sm">{t('lesson.readOnly')}</p>}
@@ -353,6 +409,7 @@ function BlockCard(props: {
 	const { t } = useTranslation(['courses', 'blocks'])
 	const { block } = props
 	const sortable = useSortable({ id: block.id })
+	const issues = issuesOf(block)
 	return (
 		<li
 			ref={sortable.setNodeRef}
@@ -363,6 +420,7 @@ function BlockCard(props: {
 			)}
 			data-testid="lesson-block"
 			data-block-id={block.id}
+			data-issues={issues.length > 0 || undefined}
 		>
 			<div className="flex items-center gap-2">
 				<button
@@ -395,6 +453,20 @@ function BlockCard(props: {
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+			{issues.length > 0 && (
+				<p
+					className="flex items-center gap-1.5 text-amber-700 text-sm dark:text-amber-400"
+					data-testid="lesson-block-issues"
+				>
+					<CircleAlert className="size-4 shrink-0" aria-hidden />
+					{t('host.issues', {
+						ns: 'blocks',
+						list: issues
+							.map((i) => t(`${block.type}.issues.${i}` as 'video.issues.noUrl', { ns: 'blocks' }))
+							.join(', '),
+					})}
+				</p>
+			)}
 			<BlockEditorHost type={block.type} value={block.data} onChange={props.onChange} testId={`block-${block.id}`} />
 		</li>
 	)

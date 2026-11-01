@@ -5,7 +5,7 @@ description: Реестр блоков урока Dinastia (packages/blocks) —
 
 # Блоки урока
 
-> Статус: сверено с кодом в 2.4 (реестр, хранение и публикация в ядре, хосты, генератор; блоки `text`, `heading`,
+> Статус: сверено с кодом в 2.5 (реестр, хранение и публикация в ядре, замечания `issues`, хосты, генератор; блоки `text`, `heading`,
 > `callout`, `code`, `video`, `embed`, `divider`; конструктор урока — 2.3). Картинка и файл — 2.7, загрузка видео — 2.4b.
 > Процедуры конструктора и плеера (`courses.blocks.*`, `learn.block.*`) — 2.3/2.6; хранение ответов
 > (`responseTable`, `block_progress`) — с модулем `learning`; свои `load`/`save`/`copy` — с блоком `quiz` (3.x).
@@ -139,6 +139,7 @@ export const flashcards = defineBlock({
 | `completion` | `none`; `view` — выполнен при показе; `interaction` — после `evaluate` с `done`; `grade` — внешний процесс модуля (`quiz`, `assignment`) |
 | `toPublic` | данные ученику; обязателен при `secretKeys`, иначе — как есть |
 | `responseSchema`, `evaluate` | интерактив: ответ и чистая проверка (сервер); хранение ответа и `block_progress` — модуль `learning` |
+| `issues` | замечания «не готов к публикации»: `{ ключ: (data) => boolean }`, текст — `blocks:<type>.issues.<ключ>` (строчными: «нет ссылки»; `check:registries` проверяет строки). Черновик с замечаниями сохраняется, урок — не публикуется; конструктор показывает их на карточке (`blockDataIssues`) |
 
 ## Хранение и публикация (ядро, `apps/api/src/kernel/blocks/blocks.ts`)
 
@@ -151,10 +152,11 @@ export const flashcards = defineBlock({
 | `removeBlock(ctx, id)` | удалить блок черновика; данные типа и элементы — каскадом |
 | `reorderBlocks(ctx, lessonId, ids)` | новый порядок всех блоков черновика (`BLOCK_ORDER_MISMATCH`, если список неполный) |
 | `listBlocks(ctx, lessonId, state?)` | блоки с данными по порядку; типы читаются пачкой (без N+1) |
-| `publishBlocks(ctx, lessonId)` | одной транзакцией: удалить `published`-строки, скопировать `draft` с тем же `block_key` и `item_key` |
+| `draftIssues(ctx, lessonId)` | замечания `issues` к блокам черновика — `[{ id, type, issues }]` |
+| `publishBlocks(ctx, lessonId)` | одной транзакцией: замечания — `LESSON_HAS_ISSUES` (ничего не меняется); удалить `published`-строки, скопировать `draft` с тем же `block_key` и `item_key` |
 | `listPublicBlocks(ctx, lessonId)` | опубликованные блоки ученику — данные через `toPublic` |
 
-Ошибки: `BLOCK_TYPE_UNKNOWN`, `BLOCK_NOT_FOUND`, `BLOCK_NOT_DRAFT`, `BLOCK_ORDER_MISMATCH`. Тест ядра с пробным типом
+Ошибки: `BLOCK_TYPE_UNKNOWN`, `BLOCK_NOT_FOUND`, `BLOCK_NOT_DRAFT`, `BLOCK_ORDER_MISMATCH`, `LESSON_HAS_ISSUES`. Тест ядра с пробным типом
 (своя таблица из теста, `registerProbeBlock`) — образец для проверки нового механизма хранения.
 
 ## editor.tsx и viewer.tsx
@@ -181,7 +183,8 @@ export default function CalloutViewer({ data, state, onInteract, testId }: Block
 
 - `defaults()` проходит схему — новый блок пустой. Поэтому схема описывает **форму** данных (тип, длина), а не
   «заполнено»: `z.string().max(500)` без `min(1)` — иначе `defineBlock` упадёт на `defaults()`. Пустой текст до
-  публикации — нормальное состояние черновика; проверка «блок готов к публикации» — пункт 2.5 (публикация урока).
+  публикации — нормальное состояние черновика; «готов к публикации» объявляет `issues` типа (пустое обязательное
+  поле → замечание).
 - **Необязательное** поле: в схеме `.nullish()` (или `.nullable()`), колонка — без `.notNull()`; сверка «поле =
   колонка» снимает optional/nullable сама (`packages/blocks/src/storage.ts`). **Обязательное** — колонка
   `.notNull().default(…)`, в схеме — без `optional`.
@@ -205,8 +208,8 @@ defaults: () => ({ text: '', author: null }),
   `src = embedSrc(url)` — адрес плеера, а не исходную ссылку. Рамка — `embed/frame.tsx` (`sandbox`, `lazy`).
 - Пользовательский текст не вставляется как HTML: подсветка кода (`code/highlight.ts`, D-055) возвращает дерево узлов,
   просмотр рисует их React-элементами. Новому блоку с разметкой — так же или `RichTextView`.
-- Пустой черновик допустим (`url: ''`, пустой код или заголовок) — просмотр ничего не показывает; проверка
-  готовности — 2.5.
+- Пустой черновик допустим (`url: ''`, пустой код или заголовок) — просмотр ничего не показывает; опубликовать
+  урок с ним нельзя (`issues`).
 
 ## Изменить существующий блок
 

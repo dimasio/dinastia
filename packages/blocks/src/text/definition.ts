@@ -1,4 +1,4 @@
-import { emptyDoc, RichText } from '@dinastia/contracts/common'
+import { emptyDoc, isEmptyDoc, RichText } from '@dinastia/contracts/common'
 import { z } from 'zod'
 import { defineBlock } from '../define.ts'
 
@@ -9,4 +9,5 @@ export const text = defineBlock({
 	schema: z.object({ body: RichText }),
 	defaults: () => ({ body: emptyDoc() }),
 	completion: 'none',
+	issues: { empty: (d) => isEmptyDoc(d.body) },
 })

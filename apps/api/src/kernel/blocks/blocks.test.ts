@@ -17,6 +17,7 @@ import { log } from '../log.ts'
 import { tenantCtx } from '../tenant-ctx.ts'
 import {
 	createBlock,
+	draftIssues,
 	listBlocks,
 	listPublicBlocks,
 	publishBlocks,
@@ -112,7 +113,7 @@ describe('черновик и публикация (callout)', () => {
 	it('опубликованную строку не правят и не удаляют; неизвестный тип и неверные данные — ошибки', async () => {
 		const lessonId = await lessonIn(schoolA.id)
 		await inSchool(schoolA, async (ctx) => {
-			const b = await createBlock(ctx, { lessonId, type: 'callout' })
+			const b = await createBlock(ctx, { lessonId, type: 'callout', data: { tone: 'info', body: doc('Текст') } })
 			await publishBlocks(ctx, lessonId)
 			const [pub] = await listBlocks(ctx, lessonId, 'published')
 			await expect(updateBlock(ctx, pub?.id ?? '', b.data)).rejects.toMatchObject({ code: 'BLOCK_NOT_DRAFT' })
@@ -126,6 +127,22 @@ describe('черновик и публикация (callout)', () => {
 				}),
 			).rejects.toBeInstanceOf(ZodError) // профиль compact: заголовков нет
 			await expect(updateBlock(ctx, randomUUID(), b.data)).rejects.toMatchObject({ code: 'BLOCK_NOT_FOUND' })
+		})
+	})
+
+	it('блок с замечаниями (issues типа) не публикуется — список замечаний, прежняя публикация на месте', async () => {
+		const lessonId = await lessonIn(schoolA.id)
+		await inSchool(schoolA, async (ctx) => {
+			const ok = await createBlock(ctx, { lessonId, type: 'callout', data: { tone: 'info', body: doc('Есть') } })
+			await publishBlocks(ctx, lessonId)
+			const empty = await createBlock(ctx, { lessonId, type: 'video' })
+			await createBlock(ctx, { lessonId, type: 'divider' })
+			expect(await draftIssues(ctx, lessonId)).toEqual([{ id: empty.id, type: 'video', issues: ['noUrl'] }])
+			await expect(publishBlocks(ctx, lessonId)).rejects.toMatchObject({
+				code: 'LESSON_HAS_ISSUES',
+				data: { blocks: [{ id: empty.id, type: 'video', issues: ['noUrl'] }] },
+			})
+			expect((await listPublicBlocks(ctx, lessonId)).map((b) => b.blockKey)).toEqual([ok.blockKey])
 		})
 	})
 

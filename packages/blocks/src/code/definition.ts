@@ -24,4 +24,5 @@ export const code = defineBlock({
 	}),
 	defaults: () => ({ language: 'plaintext' as const, code: '' }),
 	completion: 'none',
+	issues: { empty: (d) => d.code.trim() === '' },
 })

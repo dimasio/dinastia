@@ -1,5 +1,5 @@
 // Контракт модуля courses (скилл api-endpoints, lms-courses): курсы, разделы, уроки. Карточка изменения —
-// docs/tasks/phase-2-courses/changes/2.1-courses-module.md. Блоки урока — 2.3, публикация — 2.5.
+// docs/tasks/phase-2-courses/changes/2.1-courses-module.md. Блоки урока — 2.3, публикация — 2.5 (2.5-publishing.md).
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { DateTime, Id, page, pageInput, RichText } from './common/index.ts'
@@ -47,6 +47,11 @@ export const Lesson = z.object({
 	hasUnpublishedChanges: z.boolean(),
 })
 export type Lesson = z.infer<typeof Lesson>
+
+/** Статус урока для сотрудников (2.5): черновик — ни разу не опубликован; `changed` — черновик блоков отличается. */
+export type LessonStatus = 'draft' | 'published' | 'changed'
+export const lessonStatus = (l: Pick<Lesson, 'publishedAt' | 'hasUnpublishedChanges'>): LessonStatus =>
+	l.publishedAt === null ? 'draft' : l.hasUnpublishedChanges ? 'changed' : 'published'
 
 export const Section = z.object({ id: Id, courseId: Id, title: z.string(), position: z.number().int() })
 export const SectionWithLessons = Section.extend({ lessons: z.array(Lesson) })
@@ -123,6 +128,10 @@ export const coursesContract = {
 		.route({ method: 'DELETE', path: '/courses/{id}' })
 		.input(ById)
 		.output(z.object({ ok: z.literal(true) })),
+	/** Черновик → опубликован; нужен опубликованный урок (COURSE_NO_PUBLISHED_LESSONS). */
+	publish: oc.route({ method: 'POST', path: '/courses/{id}/publish' }).input(ById).output(Course),
+	/** Опубликовать все уроки курса с изменениями — все или ни одного (COURSE_LESSONS_HAVE_ISSUES). */
+	publishChanges: oc.route({ method: 'POST', path: '/courses/{id}/publish-changes' }).input(ById).output(Course),
 
 	sections: {
 		create: oc
@@ -155,9 +164,11 @@ export const coursesContract = {
 			.input(ById)
 			.output(z.object({ ok: z.literal(true) })),
 		get: oc.route({ method: 'GET', path: '/lessons/{id}' }).input(ById).output(LessonWithCourse),
+		/** Черновик блоков → ученикам; блоки с замечаниями — LESSON_HAS_ISSUES, без блоков — LESSON_EMPTY. */
+		publish: oc.route({ method: 'POST', path: '/lessons/{id}/publish' }).input(ById).output(Lesson),
 	},
 
-	/** Блоки урока — черновик (D-033); публикация — 2.5. Тип — из реестра блоков (`@dinastia/blocks`). */
+	/** Блоки урока — черновик (D-033); публикация — `lessons.publish`. Тип — из реестра блоков (`@dinastia/blocks`). */
 	blocks: {
 		list: oc
 			.route({ method: 'GET', path: '/lessons/{lessonId}/blocks' })

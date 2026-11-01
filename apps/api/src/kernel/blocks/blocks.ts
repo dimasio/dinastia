@@ -1,5 +1,6 @@
 // Блоки урока в БД (скилл lesson-blocks, D-033, D-034): строки lesson_blocks + таблицы типов. Ядро делает load/save/copy
 // по паре «определение + таблицы» (@dinastia/blocks/server) и публикацию урока строками. Правка — только черновика.
+import { blockDataIssues } from '@dinastia/blocks'
 import { type BlockStorage, blockStorage } from '@dinastia/blocks/server'
 import { lessonBlocks } from '@dinastia/db'
 import { and, asc, eq, inArray } from 'drizzle-orm'
@@ -170,14 +171,34 @@ export async function reorderBlocks(ctx: BaseCtx, lessonId: string, ids: string[
 			.where(eq(lessonBlocks.id, id))
 }
 
+/** Блок черновика, не готовый к публикации: ключи замечаний типа (`blocks:<type>.issues.<ключ>`). */
+export interface BlockIssue {
+	id: string
+	type: string
+	issues: string[]
+}
+
+const issuesOf = (blocks: LessonBlock[]): BlockIssue[] =>
+	blocks
+		.map((b) => ({ id: b.id, type: b.type, issues: blockDataIssues(storageOf(b.type).def, b.data) }))
+		.filter((b) => b.issues.length > 0)
+
+/** Замечания к черновику урока (пусто — можно публиковать). */
+export async function draftIssues(ctx: BaseCtx, lessonId: string): Promise<BlockIssue[]> {
+	return issuesOf(await listBlocks(ctx, lessonId, 'draft'))
+}
+
 /**
  * Опубликовать урок (D-033): опубликованные строки заменяются копией черновика с тем же block_key — одной
  * транзакцией (ctx.db). Ответы учеников ссылаются на block_key и item_key, поэтому повторная публикация их не теряет.
+ * Блоки с замечаниями (`issues` типа) — LESSON_HAS_ISSUES со списком, публикация не меняется.
  */
 export async function publishBlocks(ctx: BaseCtx, lessonId: string) {
 	const drafts = await rowsOf(ctx.db, lessonId, 'draft').for('update')
-	await ctx.db.delete(lessonBlocks).where(and(eq(lessonBlocks.lessonId, lessonId), eq(lessonBlocks.state, 'published')))
 	const loaded = await loadRows(ctx.db, drafts)
+	const issues = issuesOf(loaded)
+	if (issues.length) return fail.conflict('LESSON_HAS_ISSUES', { blocks: issues })
+	await ctx.db.delete(lessonBlocks).where(and(eq(lessonBlocks.lessonId, lessonId), eq(lessonBlocks.state, 'published')))
 	for (const b of loaded) {
 		const [row] = await ctx.db
 			.insert(lessonBlocks)

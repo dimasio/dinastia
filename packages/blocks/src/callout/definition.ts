@@ -1,4 +1,4 @@
-import { CompactText, emptyDoc } from '@dinastia/contracts/common'
+import { CompactText, emptyDoc, isEmptyDoc } from '@dinastia/contracts/common'
 import { z } from 'zod'
 import { defineBlock } from '../define.ts'
 
@@ -14,4 +14,5 @@ export const callout = defineBlock({
 	}),
 	defaults: () => ({ tone: 'info' as const, body: emptyDoc() }),
 	completion: 'none',
+	issues: { empty: (d) => isEmptyDoc(d.body) },
 })

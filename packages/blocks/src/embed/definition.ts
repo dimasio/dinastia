@@ -19,5 +19,6 @@ export const embed = defineBlock({
 	}),
 	defaults: () => ({ url: '', height: EMBED_HEIGHT.default, caption: null }),
 	completion: 'none',
+	issues: { noUrl: (d) => d.url === '' },
 	toPublic: (d) => ({ src: d.url ? embedSrc(d.url) : null, height: d.height, caption: d.caption ?? null }),
 })

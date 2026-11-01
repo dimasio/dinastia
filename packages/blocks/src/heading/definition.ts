@@ -13,4 +13,5 @@ export const heading = defineBlock({
 	}),
 	defaults: () => ({ level: 'h2' as const, text: '' }),
 	completion: 'none',
+	issues: { empty: (d) => d.text.trim() === '' },
 })

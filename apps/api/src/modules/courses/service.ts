@@ -52,7 +52,7 @@ export async function listCourses(ctx: SchoolCtx, input: CourseListQuery) {
 	return toPage(items satisfies CourseRow[], total?.n ?? 0, input)
 }
 
-async function courseOrFail(ctx: SchoolCtx, id: string) {
+export async function courseOrFail(ctx: SchoolCtx, id: string) {
 	const [row] = await ctx.db.select().from(courses).where(eq(courses.id, id)).limit(1)
 	return row ?? fail.notFound('COURSE_NOT_FOUND')
 }
@@ -91,7 +91,7 @@ export async function getCourse(ctx: SchoolCtx, id: string): Promise<Course> {
 	}
 }
 
-const toLesson = (l: typeof lessons.$inferSelect): Lesson => ({
+export const toLesson = (l: typeof lessons.$inferSelect): Lesson => ({
 	id: l.id,
 	courseId: l.courseId,
 	sectionId: l.sectionId,

@@ -1,7 +1,8 @@
 // Конструктор курса (карточки 2.2, 2.3; шаблон «Карточка» — скилл screen-design): дерево разделов и уроков, порядок
 // перетаскиванием (dnd-kit) и из меню, переименование по месту, удаление с подтверждением. Изменения — сразу через
-// API 2.1; дерево обновляется оптимистично и откатывается при ошибке.
-import type { Course, Lesson } from '@dinastia/contracts/courses'
+// API 2.1; дерево обновляется оптимистично и откатывается при ошибке. Публикация (2.5): статус у уроков,
+// «Опубликовать изменения (N)» — все изменённые уроки разом, «Опубликовать курс» — у черновика.
+import { type Course, type Lesson, lessonStatus } from '@dinastia/contracts/courses'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -44,12 +45,13 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen, GripVertical, MoreHorizontal, Plus } from 'lucide-react'
+import { ArrowLeft, BookOpen, GripVertical, MoreHorizontal, Plus, Send } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type Section = Course['sections'][number]
 type Confirm = { title: string; description: string; run: () => void } | null
@@ -71,6 +73,7 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 	const { data: course, isPending, error } = useQuery(query)
 	const { data: me } = useQuery(meQuery())
 	const canManage = me?.permissions.includes('courses.manage') ?? false
+	const canPublish = me?.permissions.includes('courses.publish') ?? false
 	// текст подтверждения живёт до конца анимации закрытия (иначе заголовок мигает пустым); открыт — отдельный флаг
 	const [confirm, setConfirmData] = useState<Confirm>(null)
 	const [confirmOpen, setConfirmOpen] = useState(false)
@@ -99,6 +102,27 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 		},
 	})
 
+	/** Публикация курса или всех изменённых уроков: ответ — курс целиком (статусы уроков уже новые). */
+	const publish = useMutation({
+		mutationFn: (op: { kind: 'course' | 'changes'; count: number }) =>
+			op.kind === 'course'
+				? orpc.courses.publish.call({ id: courseId })
+				: orpc.courses.publishChanges.call({ id: courseId }),
+		onSuccess: (saved, op) => {
+			qc.setQueryData(query.queryKey, saved)
+			void qc.invalidateQueries({ queryKey: orpc.courses.list.key() })
+			toast.success(op.kind === 'course' ? t('publish.courseDone') : t('publish.changesDone', { count: op.count }))
+		},
+		onError: (e) => {
+			const lessons = errorData<{ lessons?: { title: string }[] }>(e)?.lessons
+			toast.error(t(errorText(e), { ns: 'errors' }), {
+				description: lessons?.length
+					? t('publish.issueLessons', { list: lessons.map((l) => `«${l.title}»`).join(', ') })
+					: undefined,
+			})
+		},
+	})
+
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -108,6 +132,7 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 	if (error || !course) return <EmptyState icon={BookOpen} title={t(errorText(error), { ns: 'errors' })} />
 
 	const sections = course.sections
+	const unpublished = sections.flatMap((s) => s.lessons).filter((l) => lessonStatus(l) !== 'published').length
 	const sectionOf = (lessonId: string) => sections.find((s) => s.lessons.some((l) => l.id === lessonId))
 
 	const moveSection = (id: string, index: number) =>
@@ -177,7 +202,33 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 							})
 						}
 					/>
-					<Badge variant="outline">{t(`courses.values.status.${course.status}`)}</Badge>
+					<Badge variant="outline" data-testid="course-status">
+						{t(`courses.values.status.${course.status}`)}
+					</Badge>
+					{canPublish && (
+						<div className="flex flex-wrap gap-2 sm:ml-auto">
+							{unpublished > 0 && (
+								<Button
+									variant={course.status === 'draft' ? 'outline' : 'default'}
+									disabled={publish.isPending}
+									onClick={() => publish.mutate({ kind: 'changes', count: unpublished })}
+									data-testid="course-publish-changes"
+								>
+									{t('publish.changes', { count: unpublished })}
+								</Button>
+							)}
+							{course.status === 'draft' && (
+								<Button
+									disabled={publish.isPending}
+									onClick={() => publish.mutate({ kind: 'course', count: 0 })}
+									data-testid="course-publish"
+								>
+									<Send />
+									{t('publish.course')}
+								</Button>
+							)}
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -578,6 +629,7 @@ function LessonItem(props: {
 				onSave={props.onRename}
 				link={{ courseId: props.courseId, lessonId: props.lesson.id }}
 			/>
+			<LessonStatusBadge lesson={props.lesson} hidePublished testId="course-lesson-status" />
 			{props.canManage && (
 				<ItemMenu label={t('builder.menu')} items={props.menuItems} onRename={() => setRenaming(true)} />
 			)}
