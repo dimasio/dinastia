@@ -89,14 +89,29 @@
 	},
 	"video": {
 		"title": "Видео",
-		"description": "Ролик с YouTube, Rutube, VK Видео, Kinescope или Vimeo",
+		"description": "Ролик по ссылке (YouTube, Rutube, VK Видео, Kinescope, Vimeo) или файл с компьютера",
 		"fields": {
 			"url": "Ссылка на видео",
 			"caption": "Подпись"
 		},
 		"hint": "Скопируйте адрес страницы ролика: YouTube, Rutube, VK Видео, Kinescope, Vimeo.",
 		"issues": {
-			"noUrl": "нет ссылки на видео"
+			"noUrl": "нет ссылки на видео",
+			"noVideo": "видео не загружено",
+			"processing": "видео ещё обрабатывается",
+			"failed": "видео не обработано"
+		},
+		"source": {
+			"label": "Откуда видео",
+			"link": "Ссылка",
+			"upload": "Загрузить файл"
+		},
+		"upload": "Выбрать видеофайл",
+		"replace": "Загрузить другое",
+		"status": {
+			"processing": "Обрабатывается… Это может занять несколько минут",
+			"ready": "Видео готово",
+			"failed": "Не удалось обработать видео — загрузите другой файл"
 		}
 	},
 	"embed": {
@@ -148,7 +163,8 @@
 	"media": {
 		"hint": {
 			"image": "JPG, PNG, WEBP, GIF — до {{size}} МБ",
-			"file": "PDF, Word, Excel, PowerPoint, ZIP, TXT, CSV, MP3 — до {{size}} МБ"
+			"file": "PDF, Word, Excel, PowerPoint, ZIP, TXT, CSV, MP3 — до {{size}} МБ",
+			"video": "MP4, MOV, WebM, MKV — до 2 ГБ"
 		},
 		"size": {
 			"mb": "{{n}} МБ",

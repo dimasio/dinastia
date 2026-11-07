@@ -204,6 +204,20 @@ export const coursesContract = {
 			.route({ method: 'POST', path: '/blocks/{id}/move' })
 			.input(z.object({ id: Id, index: z.number().int().min(0) }))
 			.output(z.array(LessonBlock)),
+		/** Блок «Видео»: начать загрузку у провайдера (2.4b). Файл клиент шлёт на `uploadUrl` сам (tus); блок — `processing`. */
+		startVideoUpload: oc
+			.route({ method: 'POST', path: '/blocks/{id}/video-upload' })
+			.input(
+				z.object({
+					id: Id,
+					filename: z.string().min(1).max(255),
+					mime: z.string().max(100),
+					size: z.number().int().min(1),
+				}),
+			)
+			.output(z.object({ uploadUrl: z.string(), block: LessonBlock })),
+		/** Узнать статус обработки видео у провайдера и вернуть актуальный блок. */
+		videoStatus: oc.route({ method: 'POST', path: '/blocks/{id}/video-status' }).input(ById).output(LessonBlock),
 		remove: oc
 			.route({ method: 'DELETE', path: '/blocks/{id}' })
 			.input(ById)

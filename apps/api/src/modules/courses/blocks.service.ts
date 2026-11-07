@@ -11,13 +11,13 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { courses, lessons } from './schema.ts'
 
-async function lessonOrFail(ctx: SchoolCtx, id: string) {
+export async function lessonOrFail(ctx: SchoolCtx, id: string) {
 	const [row] = await ctx.db.select().from(lessons).where(eq(lessons.id, id)).limit(1)
 	return row ?? fail.notFound('LESSON_NOT_FOUND')
 }
 
 /** Урок блока; блока нет (или он чужой школы) — BLOCK_NOT_FOUND. */
-async function lessonOfBlock(ctx: SchoolCtx, blockId: string) {
+export async function lessonOfBlock(ctx: SchoolCtx, blockId: string) {
 	const [row] = await ctx.db
 		.select({ lessonId: lessonBlocks.lessonId })
 		.from(lessonBlocks)
@@ -25,7 +25,7 @@ async function lessonOfBlock(ctx: SchoolCtx, blockId: string) {
 	return row?.lessonId ?? fail.notFound('BLOCK_NOT_FOUND')
 }
 
-const touched = (ctx: SchoolCtx, lessonId: string) =>
+export const touched = (ctx: SchoolCtx, lessonId: string) =>
 	ctx.db.update(lessons).set({ hasUnpublishedChanges: true }).where(eq(lessons.id, lessonId))
 
 /** Урок с курсом — шапка конструктора урока. */
@@ -90,10 +90,26 @@ async function checkNewFiles(ctx: SchoolCtx, blockId: string, data: unknown) {
 	}
 }
 
+/**
+ * Загруженное видео (2.4b): сервис, id и статус пишет только сервер (`startVideoUpload`, синхронизация) — что прислал
+ * клиент, отбрасывается. Переключение на ссылку — загруженное забывается.
+ */
+function lockVideoFields(prev: Record<string, unknown>, data: Record<string, unknown>) {
+	const keep = data.source === 'upload' && prev.source === 'upload'
+	return {
+		...data,
+		provider: keep ? (prev.provider ?? null) : null,
+		videoId: keep ? (prev.videoId ?? null) : null,
+		status: keep ? (prev.status ?? null) : null,
+	}
+}
+
 export async function updateLessonBlock(ctx: SchoolCtx, input: { id: string; data: Record<string, unknown> }) {
 	const lessonId = await lessonOfBlock(ctx, input.id)
 	await checkNewFiles(ctx, input.id, input.data)
-	const block = await updateBlock(ctx, input.id, input.data)
+	const prev = await blockData(ctx, input.id)
+	const data = prev.type === 'video' ? lockVideoFields(prev.data, input.data) : input.data
+	const block = await updateBlock(ctx, input.id, data)
 	await touched(ctx, lessonId)
 	return block
 }

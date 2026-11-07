@@ -1,9 +1,12 @@
 // Медиа блоков урока (карточка 2.7): виды загружаемых файлов и их лимиты — общие для редакторов (проверка до загрузки)
 // и назначений файлов на сервере (modules/courses/files.ts). Исполняемое браузером (html, svg) — не допускается.
 const MB = 1024 * 1024
+const GB = 1024 * MB
 
 export const BLOCK_MEDIA = {
 	image: { mime: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], maxSize: 10 * MB },
+	// видео грузится не в хранилище школы, а в сервис видео (tus, 2.4b)
+	video: { mime: ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'], maxSize: 2 * GB },
 	file: {
 		mime: [
 			'application/pdf',

@@ -13,15 +13,15 @@ description: Интеграции Dinastia с внешними сервисам�
 Каждый внешний сервис — за **интерфейсом** ядра; модули не знают, какой сервис подключён.
 
 ```ts
-// apps/api/src/kernel/video/provider.ts
+// apps/api/src/kernel/video/provider.ts (готово в 2.4b, D-056)
 export interface VideoProvider {
-	createUpload(input: { title: string; schoolId: string }): Promise<{ videoId: string; uploadUrl: string }>
-	getStatus(videoId: string): Promise<'processing' | 'ready' | 'failed'>
-	playerToken(videoId: string, viewer: { memberId: string }): Promise<{ token: string; expiresAt: Date }>
-	parseWebhook(req: WebhookRequest): Promise<VideoEvent | null> // проверяет подпись
+	createUpload(http, { filename, size, now }): Promise<{ videoId: string; uploadUrl: string }> // tus-адрес для клиента
+	getStatus(http, videoId, now): Promise<'processing' | 'ready' | 'failed'>
 }
-// реализации: kernel/video/kinescope.ts, kernel/video/fake.ts
-// выбор: config.VIDEO_PROVIDER = 'kinescope' | 'fake'
+// модулям — ctx.video (то же, с привязанным http); реализации: kernel/video/kinescope.ts, kernel/video/fake.ts
+// выбор: config.VIDEO_PROVIDER = 'kinescope' | 'fake' (KINESCOPE_TOKEN, KINESCOPE_PROJECT_ID); fake в production запрещён
+// фейк: `fake://<id>` вместо tus-адреса, «обработка» 3 с по времени ctx.now, имя файла с «broken» — ошибка
+// подписи вебхука Kinescope в документации нет → статус опросом (задача courses.video-sync), вебхука нет
 ```
 
 Правила:

@@ -27,6 +27,7 @@ import {
 	renameSection,
 	updateCourse,
 } from './service.ts'
+import { refreshVideo, startVideoUpload } from './video.service.ts'
 
 const chain = () => impl.courses
 
@@ -215,6 +216,22 @@ export const coursesRouter = {
 			.use(mw.member)
 			.use(can('courses.manage'))
 			.handler(({ input, context }) => moveLessonBlock(schoolCtx(context), input)),
+		startVideoUpload: chain()
+			.blocks.startVideoUpload.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => startVideoUpload(schoolCtx(context), input)),
+		videoStatus: chain()
+			.blocks.videoStatus.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.read'))
+			.handler(({ input, context }) => refreshVideo(schoolCtx(context), input.id)),
 		remove: chain()
 			.blocks.remove.use(mw.host)
 			.use(mw.session)

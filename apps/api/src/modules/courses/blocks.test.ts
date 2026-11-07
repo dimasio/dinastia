@@ -79,7 +79,14 @@ describe('блоки урока', () => {
 			id: v.id,
 			data: { url: 'https://rutube.ru/video/abc123/', caption: null },
 		})
-		expect(saved.data).toEqual({ url: 'https://rutube.ru/video/abc123/', caption: null })
+		expect(saved.data).toEqual({
+			source: 'link',
+			url: 'https://rutube.ru/video/abc123/',
+			provider: null,
+			videoId: null,
+			status: null,
+			caption: null,
+		})
 		const d = await c.courses.blocks.create({ lessonId: lesson.id, type: 'divider' })
 		expect(d.data).toEqual({})
 	})

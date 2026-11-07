@@ -58,12 +58,13 @@ import {
 	Plus,
 	Send,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { uploadFile } from '#/app/files.ts'
-import { orpc } from '#/app/orpc.ts'
+import { client, orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { uploadVideo } from '#/app/video-upload.ts'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -84,8 +85,25 @@ const publicData = (block: LessonBlock) => {
 	return def && parsed?.success ? def.toPublic(parsed.data) : null
 }
 
-/** Медиа урока — в назначение файлов курса по виду (картинка, файл). */
-const upload: BlockUpload = (file, { kind, onProgress }) => uploadFile(LESSON_MEDIA_PURPOSE[kind], file, onProgress)
+/** Картинка и файл — в назначение файлов курса по виду; видео — провайдеру напрямую (tus), блок обновляется ответом. */
+const uploadFor =
+	(blockId: string, onBlock: (b: LessonBlock) => void): BlockUpload =>
+	async (file, { kind, onProgress }) => {
+		if (kind !== 'video') return uploadFile(LESSON_MEDIA_PURPOSE[kind], file, onProgress)
+		const started = await client.courses.blocks.startVideoUpload({
+			id: blockId,
+			filename: file.name,
+			mime: file.type,
+			size: file.size,
+		})
+		onBlock(started.block)
+		await uploadVideo(started.uploadUrl, file, onProgress)
+		return blockId
+	}
+
+/** Пока видео обрабатывается — спрашиваем статус у сервера (он узнаёт у провайдера). */
+const VIDEO_POLL_MS = 3000
+const videoState = (b: LessonBlock) => `${b.data.videoId ?? ''}:${b.data.status ?? ''}`
 
 /** Замечания «не готов к публикации» по данным черновика — те же, что проверит сервер. */
 const issuesOf = (block: LessonBlock) => {
@@ -303,6 +321,11 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 											first={i === 0}
 											last={i === list.length - 1}
 											onChange={(data) => update(block.id, data)}
+											onBlock={(b) =>
+												setBlocks((prev) =>
+													prev.map((x) => (x.id === b.id ? { ...x, data: b.data, files: b.files } : x)),
+												)
+											}
 											onUp={() => move(block.id, i - 1)}
 											onDown={() => move(block.id, i + 1)}
 											onRemove={() => {
@@ -407,14 +430,32 @@ function BlockCard(props: {
 	first: boolean
 	last: boolean
 	onChange: (data: unknown) => void
+	/** Блок обновился на сервере (загрузка видео, статус обработки). */
+	onBlock: (block: LessonBlock) => void
 	onUp: () => void
 	onDown: () => void
 	onRemove: () => void
 }) {
 	const { t } = useTranslation(['courses', 'blocks'])
-	const { block } = props
+	const { block, onBlock } = props
 	const sortable = useSortable({ id: block.id })
 	const issues = issuesOf(block)
+	// onBlock меняется на каждый рендер страницы — через ref, чтобы не сбрасывать таймер опроса
+	const onBlockRef = useRef(onBlock)
+	onBlockRef.current = onBlock
+	const upload = useMemo(() => uploadFor(block.id, (b) => onBlockRef.current(b)), [block.id])
+	const processing = block.type === 'video' && block.data.source === 'upload' && block.data.status === 'processing'
+	const state = videoState(block)
+	useEffect(() => {
+		if (!processing) return
+		const timer = setInterval(() => {
+			client.courses.blocks.videoStatus({ id: block.id }).then(
+				(b) => videoState(b) !== state && onBlockRef.current(b),
+				() => undefined, // сеть моргнула — следующий опрос
+			)
+		}, VIDEO_POLL_MS)
+		return () => clearInterval(timer)
+	}, [processing, block.id, state])
 	return (
 		<li
 			ref={sortable.setNodeRef}
@@ -473,6 +514,7 @@ function BlockCard(props: {
 				</p>
 			)}
 			<BlockEditorHost
+				key={videoState(block)}
 				type={block.type}
 				value={block.data}
 				onChange={props.onChange}

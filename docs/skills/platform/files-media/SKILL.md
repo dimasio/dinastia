@@ -89,8 +89,9 @@ export const coverPurpose = defineFilePurpose({
 - Очистка неиспользуемых файлов (картинки и файлы, удалённые из уроков, — на них может ссылаться опубликованная
   версия).
 - Публичные ссылки без подписи (CDN) — с прод-инфраструктурой.
-- Видео: блок `video` (`{ source: 'provider', provider: 'kinescope', videoId }` или встраивание по белому списку),
-  загрузка через `ctx.video` ядра, статус — вебхуком (скилл `integrations`).
+- Видео (2.4b, D-056): блок `video` — `source: 'link'` (белый список) или `'upload'` (`provider`, `videoId`, `status`).
+  Загрузка не через `files`: `courses.blocks.startVideoUpload` → `ctx.video.createUpload` → клиент шлёт файл провайдеру по
+  tus (`apps/web/src/app/video-upload.ts`); статус — опросом (`courses.blocks.videoStatus`, задача `courses.video-sync`).
 - Квоты школы.
 
 ## Готово, когда

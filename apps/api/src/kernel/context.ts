@@ -8,6 +8,7 @@ import type { Jobs } from './jobs.ts'
 import type { MailApi } from './mail/send.ts'
 import type { Settings } from './settings/settings.ts'
 import type { Files } from './storage/files.ts'
+import type { Video } from './video/index.ts'
 
 export type { Tx }
 
@@ -38,6 +39,8 @@ export interface BaseCtx {
 	http: Http
 	/** Настройки школы по определению модуля: `ctx.settings.get(learningSettings, 'selfEnrollByLink')` (скилл settings). */
 	settings: Settings
+	/** Видео у провайдера (Kinescope / фейк): создать загрузку, статус (скилл integrations). */
+	video: Video
 }
 
 /** Контекст запроса участника школы. */

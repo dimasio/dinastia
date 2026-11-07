@@ -13,9 +13,11 @@ import type { Logger } from './log.ts'
 import { mailFor } from './mail/send.ts'
 import { settingsFor } from './settings/settings.ts'
 import { filesFor } from './storage/files.ts'
+import { videoFor, videoProvider } from './video/index.ts'
 
 export function tenantCtx(tx: Tx, school: BaseCtx['school'], env: { now: () => Date; log: Logger }): BaseCtx {
 	const jobs = jobsFor(tx, school.id)
+	const http = createHttp({ log: env.log })
 	return {
 		db: tx,
 		school,
@@ -26,8 +28,9 @@ export function tenantCtx(tx: Tx, school: BaseCtx['school'], env: { now: () => D
 		mail: mailFor(jobs),
 		files: filesFor(tx, jobs),
 		audit: auditFor(tx, { memberId: null }),
-		http: createHttp({ log: env.log }),
+		http,
 		settings: settingsFor(tx),
+		video: videoFor(videoProvider(), http, env.now),
 	}
 }
 
