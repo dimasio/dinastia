@@ -13,6 +13,7 @@ import {
 import files from '#/kernel/storage/module.ts'
 import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
 import courses from './courses/index.ts'
+import learning from './learning/index.ts'
 import schools from './schools/index.ts'
 // gen:module:import
 
@@ -20,6 +21,7 @@ export const modules = {
 	files, // модуль ядра: загрузка файлов (kernel/storage)
 	schools,
 	courses,
+	learning,
 	// gen:module:entry
 }
 

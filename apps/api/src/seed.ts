@@ -12,8 +12,10 @@ import { log } from './kernel/log.ts'
 import { members } from './kernel/members/schema.ts'
 import { tenantCtx } from './kernel/tenant-ctx.ts'
 import { addLessonBlock, listLessonBlocks, updateLessonBlock } from './modules/courses/blocks.service.ts'
+import { publishCourse, publishLesson } from './modules/courses/publish.service.ts'
 import { courses, lessons } from './modules/courses/schema.ts'
 import { createCourse, createLesson, createSection } from './modules/courses/service.ts'
+import { enrollMember } from './modules/learning/service.ts'
 import { createSchool, findSchoolBySlug } from './modules/schools/service.ts'
 
 const PASSWORD = 'demo12345'
@@ -88,6 +90,26 @@ await withTenant(demo.id, async (tx) => {
 				body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] },
 			},
 		})
+	}
+
+	// 2.6: уроки с текстом опубликованы, курс — последовательный, student1 зачислен (демо плеера ученика)
+	const [course] = await tx.select().from(courses).where(eq(courses.slug, 'osnovy-akvareli'))
+	if (course) {
+		const list = await tx.select().from(lessons).where(eq(lessons.courseId, course.id))
+		for (const lesson of list) {
+			if ((await listLessonBlocks(ctx, lesson.id)).every((b) => b.type !== 'text')) {
+				const body = await addLessonBlock(ctx, { lessonId: lesson.id, type: 'text' })
+				const line = `Конспект урока «${lesson.title}».`
+				const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: line }] }] }
+				await updateLessonBlock(ctx, { id: body.id, data: { body: doc } })
+			}
+			if (!lesson.publishedAt) await publishLesson(ctx, lesson.id)
+		}
+		await tx.update(courses).set({ defaultAccessMode: 'sequential' }).where(eq(courses.id, course.id))
+		if (course.status === 'draft') await publishCourse(ctx, course.id)
+		const studentUser = await ensureUser('student1@demo.local', 'Ученик Первый')
+		const [student] = await tx.select().from(members).where(eq(members.userId, studentUser))
+		if (student) await enrollMember(ctx, { memberId: student.id, courseId: course.id })
 	}
 })
 

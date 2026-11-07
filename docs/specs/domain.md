@@ -152,12 +152,24 @@ status: draft
 - Статус `lesson_progress.status` вычисляется сервисом `learning` и пересчитывается по событиям
   `lesson.completed`, `enrollment.created`, по расписанию (drip).
 
+- **Плеер ученика (2.6, D-057).** Ученик видит курсы, на которые зачислен (`enrollments`: `active`/`completed`/`expired`),
+  кроме черновиков; архивный курс у зачисленных открыт. Урок виден только опубликованный (`published_at`); блоки — только
+  опубликованные строки через `toPublic`. Доступность считается при чтении: `sequential` — предыдущий опубликованный урок
+  курса (разделы, затем уроки) завершён; `drip` — наступили `drip_date` или `enrolled_at + drip_days`; `inherit` — режим
+  курса. Закрытый урок виден в оглавлении с причиной, открыть его нельзя (`LESSON_LOCKED`); чужой, неопубликованный или без
+  зачисления — `LESSON_NOT_FOUND`. `expires_at` в прошлом — «доступ закончился» (`ENROLLMENT_EXPIRED`), оглавление не
+  отдаётся. Зачисление в 2.6 — только внутренняя `enrollMember` (идемпотентна; курс опубликован; `expires_at` из
+  `courses.access_days`); экраны и API — фаза 4.
+
 ### Завершение урока (`lessons.completion_rule`)
 
 - `view` (открыл) | `all_blocks` (все блоки `is_required` выполнены) | `manual` (кнопка «Завершить»).
 - Блок задаёт свой вид завершения (`completion` в `defineBlock`): `none`, `view`, `interaction`, `grade`
   (тест пройден на ≥ `pass_score_pct`, задание принято); факт — `block_progress`.
-- Прогресс курса `progress_pct` = завершённые уроки / опубликованные уроки.
+- Прогресс курса `progress_pct` = завершённые уроки / опубликованные уроки; при `progress_pct ≥ completion_threshold_pct`
+  зачисление становится `completed` (`recalcProgress`, событие `enrollment.completed`). В 2.6: `view` завершает урок при
+  открытии (`learn.lessons.open`), `manual` — «Завершить урок» (`learn.lessons.complete`), `all_blocks` = `view` до блоков с
+  ответами (фаза 3); событие `lesson.completed` — один раз на урок.
 
 ### Тест (блок `quiz`)
 

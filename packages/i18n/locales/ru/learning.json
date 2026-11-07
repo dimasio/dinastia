@@ -1,0 +1,44 @@
+{
+	"nav": {
+		"title": "Обучение"
+	},
+	"my": {
+		"title": "Мои курсы",
+		"emptyTitle": "Вас пока не записали на курсы",
+		"emptyDescription": "Когда школа откроет вам курс, он появится здесь.",
+		"progress": "Пройдено {{pct}}%",
+		"continue": "Продолжить",
+		"open": "Открыть",
+		"expired": "Доступ закончился",
+		"cover": "Обложка курса"
+	},
+	"course": {
+		"back": "Мои курсы",
+		"contents": "Содержание",
+		"continue": "Продолжить обучение",
+		"finished": "Курс пройден",
+		"emptyTitle": "В курсе пока нет уроков",
+		"emptyDescription": "Преподаватель ещё не опубликовал уроки.",
+		"expiredTitle": "Доступ к курсу закончился",
+		"expiredDescription": "Обратитесь в школу, чтобы продлить доступ.",
+		"status": {
+			"locked": "Закрыт",
+			"available": "Не начат",
+			"in_progress": "В процессе",
+			"completed": "Пройден"
+		},
+		"lockedByLesson": "Откроется после урока «{{title}}»",
+		"lockedByDate": "Откроется {{date}}"
+	},
+	"player": {
+		"prev": "Назад",
+		"next": "Далее",
+		"complete": "Завершить урок",
+		"completed": "Урок пройден",
+		"nextLesson": "Следующий урок",
+		"toCourse": "К содержанию",
+		"lockedTitle": "Урок пока закрыт",
+		"notFoundTitle": "Урок не найден",
+		"emptyTitle": "В уроке пока нет материалов"
+	}
+}

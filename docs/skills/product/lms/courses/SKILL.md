@@ -16,7 +16,7 @@ description: Курсы и контент в Dinastia — модуль courses �
 | курсы, разделы, уроки: адрес, порядок, архив, удаление    | `apps/api/src/modules/courses/service.ts` (+ `slug.ts`) |
 | публикация урока, курса, «Опубликовать изменения»          | `apps/api/src/modules/courses/publish.service.ts` поверх `kernel/blocks` (`publishBlocks`, `draftIssues`); события — `events.ts`; статус урока — `lessonStatus()` в контракте; бейдж и разбор ошибок — `apps/web/src/features/courses/publish.tsx` |
 | обложка курса, медиа урока                                | назначения — `modules/courses/files.ts`; обложка — `updateCourse` (`coverFileId`, прежний файл удаляется), `coverUrl` в `getCourse`; файлы блоков — `checkNewFiles` в `blocks.service.ts`; экран — `ImageInput preview="wide"` в конструкторе курса |
-| вычисление доступности урока                              | `apps/api/src/modules/learning/service.ts` → `computeLessonAccess()` (доступ зависит от зачисления) |
+| вычисление доступности урока                              | `apps/api/src/modules/learning/access.ts` → `computeAccess()` (чистая функция; D-057) (доступ зависит от зачисления) |
 | контракт                                                  | `packages/contracts/src/courses.ts`                                                                 |
 | реестр курсов (ресурс)                                    | `apps/web/src/features/courses/resources/courses.ts`, маршрут `/admin/courses`, меню «Контент → Курсы» |
 | конструктор курса (дерево)                                | `apps/web/src/features/courses/builder/course-builder.tsx`, маршрут `/admin/courses/$courseId` (dnd-kit: перетаскивание + меню «Выше/Ниже/В раздел…») |

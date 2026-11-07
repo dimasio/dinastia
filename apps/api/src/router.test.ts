@@ -196,6 +196,11 @@ describe('OpenAPI', () => {
 				'/blocks/{id}/move',
 				'/blocks/{id}/video-status',
 				'/blocks/{id}/video-upload',
+				'/learn/courses',
+				'/learn/courses/{courseId}',
+				'/learn/lessons/{lessonId}',
+				'/learn/lessons/{lessonId}/complete',
+				'/learn/lessons/{lessonId}/open',
 			].sort(),
 		)
 	})

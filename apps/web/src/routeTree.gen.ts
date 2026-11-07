@@ -25,7 +25,9 @@ import { Route as LearnProfileRouteImport } from './routes/learn/profile'
 import { Route as AdminCoursesIndexRouteImport } from './routes/admin/courses/index'
 import { Route as AdminCoursesCourseIdRouteImport } from './routes/admin/courses/$courseId'
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
+import { Route as LearnCoursesCourseIdRouteImport } from './routes/learn/courses/$courseId'
 import { Route as AdminCoursesCourseIdLessonsLessonIdRouteImport } from './routes/admin/courses/$courseId_.lessons.$lessonId'
+import { Route as LearnCoursesCourseIdLessonsLessonIdRouteImport } from './routes/learn/courses/$courseId_.lessons.$lessonId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -107,11 +109,22 @@ const AdminStaffIndexRoute = AdminStaffIndexRouteImport.update({
   path: '/staff/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const LearnCoursesCourseIdRoute = LearnCoursesCourseIdRouteImport.update({
+  id: '/courses/$courseId',
+  path: '/courses/$courseId',
+  getParentRoute: () => LearnRouteRoute,
+} as any)
 const AdminCoursesCourseIdLessonsLessonIdRoute =
   AdminCoursesCourseIdLessonsLessonIdRouteImport.update({
     id: '/courses/$courseId_/lessons/$lessonId',
     path: '/courses/$courseId/lessons/$lessonId',
     getParentRoute: () => AdminRouteRoute,
+  } as any)
+const LearnCoursesCourseIdLessonsLessonIdRoute =
+  LearnCoursesCourseIdLessonsLessonIdRouteImport.update({
+    id: '/courses/$courseId_/lessons/$lessonId',
+    path: '/courses/$courseId/lessons/$lessonId',
+    getParentRoute: () => LearnRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -129,9 +142,11 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
+  '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId/lessons/$lessonId': typeof AdminCoursesCourseIdLessonsLessonIdRoute
+  '/learn/courses/$courseId/lessons/$lessonId': typeof LearnCoursesCourseIdLessonsLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -146,9 +161,11 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
+  '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
   '/admin/courses': typeof AdminCoursesIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId/lessons/$lessonId': typeof AdminCoursesCourseIdLessonsLessonIdRoute
+  '/learn/courses/$courseId/lessons/$lessonId': typeof LearnCoursesCourseIdLessonsLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -166,9 +183,11 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
+  '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId_/lessons/$lessonId': typeof AdminCoursesCourseIdLessonsLessonIdRoute
+  '/learn/courses/$courseId_/lessons/$lessonId': typeof LearnCoursesCourseIdLessonsLessonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,9 +206,11 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/learn/'
     | '/admin/courses/$courseId'
+    | '/learn/courses/$courseId'
     | '/admin/courses/'
     | '/admin/staff/'
     | '/admin/courses/$courseId/lessons/$lessonId'
+    | '/learn/courses/$courseId/lessons/$lessonId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -204,9 +225,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/learn'
     | '/admin/courses/$courseId'
+    | '/learn/courses/$courseId'
     | '/admin/courses'
     | '/admin/staff'
     | '/admin/courses/$courseId/lessons/$lessonId'
+    | '/learn/courses/$courseId/lessons/$lessonId'
   id:
     | '__root__'
     | '/'
@@ -223,9 +246,11 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/learn/'
     | '/admin/courses/$courseId'
+    | '/learn/courses/$courseId'
     | '/admin/courses/'
     | '/admin/staff/'
     | '/admin/courses/$courseId_/lessons/$lessonId'
+    | '/learn/courses/$courseId_/lessons/$lessonId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -354,12 +379,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStaffIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/learn/courses/$courseId': {
+      id: '/learn/courses/$courseId'
+      path: '/courses/$courseId'
+      fullPath: '/learn/courses/$courseId'
+      preLoaderRoute: typeof LearnCoursesCourseIdRouteImport
+      parentRoute: typeof LearnRouteRoute
+    }
     '/admin/courses/$courseId_/lessons/$lessonId': {
       id: '/admin/courses/$courseId_/lessons/$lessonId'
       path: '/courses/$courseId/lessons/$lessonId'
       fullPath: '/admin/courses/$courseId/lessons/$lessonId'
       preLoaderRoute: typeof AdminCoursesCourseIdLessonsLessonIdRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/learn/courses/$courseId_/lessons/$lessonId': {
+      id: '/learn/courses/$courseId_/lessons/$lessonId'
+      path: '/courses/$courseId/lessons/$lessonId'
+      fullPath: '/learn/courses/$courseId/lessons/$lessonId'
+      preLoaderRoute: typeof LearnCoursesCourseIdLessonsLessonIdRouteImport
+      parentRoute: typeof LearnRouteRoute
     }
   }
 }
@@ -390,11 +429,16 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 interface LearnRouteRouteChildren {
   LearnProfileRoute: typeof LearnProfileRoute
   LearnIndexRoute: typeof LearnIndexRoute
+  LearnCoursesCourseIdRoute: typeof LearnCoursesCourseIdRoute
+  LearnCoursesCourseIdLessonsLessonIdRoute: typeof LearnCoursesCourseIdLessonsLessonIdRoute
 }
 
 const LearnRouteRouteChildren: LearnRouteRouteChildren = {
   LearnProfileRoute: LearnProfileRoute,
   LearnIndexRoute: LearnIndexRoute,
+  LearnCoursesCourseIdRoute: LearnCoursesCourseIdRoute,
+  LearnCoursesCourseIdLessonsLessonIdRoute:
+    LearnCoursesCourseIdLessonsLessonIdRoute,
 }
 
 const LearnRouteRouteWithChildren = LearnRouteRoute._addFileChildren(

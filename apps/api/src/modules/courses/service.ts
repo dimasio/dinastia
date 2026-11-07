@@ -8,8 +8,8 @@ import type {
 	CourseUpdate,
 	Lesson,
 } from '@dinastia/contracts/courses'
-import { and, asc, count, eq, inArray, like, ne, or, sql } from 'drizzle-orm'
-import type { SchoolCtx } from '#/kernel/context.ts'
+import { and, asc, count, eq, inArray, isNotNull, like, ne, or, sql } from 'drizzle-orm'
+import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import { coverPurpose } from './files.ts'
@@ -326,4 +326,90 @@ export async function removeLesson(ctx: SchoolCtx, id: string) {
 	await ctx.db.delete(lessons).where(eq(lessons.id, id))
 	await ctx.audit('courses.lesson.removed', { entity: 'lesson', id, diff: { title: lesson.title } })
 	return { ok: true as const }
+}
+
+/** Опубликованное оглавление курса для ученика (публичный API для `learning`, карточка 2.6): курс, разделы и уроки с `published_at` по порядку. */
+export interface PublishedOutline {
+	course: {
+		id: string
+		title: string
+		status: 'published' | 'archived'
+		defaultAccessMode: 'open' | 'sequential' | 'drip'
+		accessDays: number | null
+		completionThresholdPct: number
+	}
+	sections: {
+		id: string
+		title: string
+		lessons: {
+			id: string
+			title: string
+			accessMode: 'inherit' | 'open' | 'sequential' | 'drip'
+			dripDays: number | null
+			dripDate: string | null
+			completionRule: 'view' | 'all_blocks' | 'manual'
+		}[]
+	}[]
+}
+
+/** Курс `draft` и несуществующий для ученика не различаются — `null`. Разделы без опубликованных уроков опущены. */
+export async function publishedOutline(ctx: BaseCtx, courseId: string): Promise<PublishedOutline | null> {
+	const [course] = await ctx.db.select().from(courses).where(eq(courses.id, courseId)).limit(1)
+	if (!course || course.status === 'draft') return null
+	const [sectionRows, lessonRows] = await Promise.all([
+		ctx.db
+			.select()
+			.from(sections)
+			.where(eq(sections.courseId, courseId))
+			.orderBy(asc(sections.position), asc(sections.id)),
+		ctx.db
+			.select()
+			.from(lessons)
+			.where(and(eq(lessons.courseId, courseId), isNotNull(lessons.publishedAt)))
+			.orderBy(asc(lessons.position), asc(lessons.id)),
+	])
+	return {
+		course: {
+			id: course.id,
+			title: course.title,
+			status: course.status,
+			defaultAccessMode: course.defaultAccessMode,
+			accessDays: course.accessDays,
+			completionThresholdPct: course.completionThresholdPct,
+		},
+		sections: sectionRows
+			.map((s) => ({
+				id: s.id,
+				title: s.title,
+				lessons: lessonRows
+					.filter((l) => l.sectionId === s.id)
+					.map((l) => ({
+						id: l.id,
+						title: l.title,
+						accessMode: l.accessMode,
+						dripDays: l.dripDays,
+						dripDate: l.dripDate,
+						completionRule: l.completionRule,
+					})),
+			}))
+			.filter((s) => s.lessons.length > 0),
+	}
+}
+
+/** Карточки опубликованных (и архивных) курсов для «Моих курсов»: название, адрес, обложка (подписанная ссылка). */
+export async function courseCards(ctx: BaseCtx, ids: string[]) {
+	if (!ids.length) return []
+	const rows = await ctx.db
+		.select({ id: courses.id, title: courses.title, slug: courses.slug, coverFileId: courses.coverFileId })
+		.from(courses)
+		.where(and(inArray(courses.id, ids), ne(courses.status, 'draft')))
+		.orderBy(asc(courses.title))
+	return Promise.all(
+		rows.map(async (c) => ({
+			id: c.id,
+			title: c.title,
+			slug: c.slug,
+			coverUrl: c.coverFileId ? await ctx.files.signedUrl(c.coverFileId) : null,
+		})),
+	)
 }
