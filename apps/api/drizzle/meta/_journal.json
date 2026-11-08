@@ -134,6 +134,13 @@
       "when": 1794144026670,
       "tag": "0018_block_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794144682808,
+      "tag": "0019_quiz_manual_grading",
+      "breakpoints": true
     }
   ]
 }

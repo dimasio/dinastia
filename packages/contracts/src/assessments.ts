@@ -148,13 +148,20 @@ export const ResultQuestion = AttemptQuestion.extend({
 	isCorrect: z.boolean().nullable(),
 	/** Разбор типа (верный ответ, пояснение). */
 	review: z.unknown(),
+	/** Комментарий проверяющего к ручной оценке (3.6). */
+	feedback: CommentText.nullable(),
 })
+
+/** Вопрос с ручной проверкой (`open_text`) и его оценка — видны ученику всегда, независимо от правила показа ответов. */
+export const ManualResult = AttemptQuestion.extend({ score: z.number().nullable(), feedback: CommentText.nullable() })
 export const AttemptResult = z.object({
 	attempt: AttemptSummary,
 	pct: z.number().int(),
 	/** Показаны ли ответы и разбор по правилу `show_correct`; нет — `questions` пуст. */
 	revealed: z.boolean(),
 	questions: z.array(ResultQuestion),
+	/** Вопросы с ручной проверкой: ответ, баллы и комментарий проверяющего (3.6). */
+	manual: z.array(ManualResult),
 })
 export type AttemptResult = z.infer<typeof AttemptResult>
 
@@ -311,14 +318,22 @@ export const assessmentsContract = {
 }
 
 // ── Очередь проверки (карточка 3.5): namespace `review`, процедуры проверяющего ───────────────────────────────────────
+export const REVIEW_KINDS = ['assignment', 'quiz'] as const
+export const REVIEW_STATUSES = ['submitted', 'needs_revision', 'accepted', 'rejected', 'graded'] as const
+export const ReviewStatus = z.enum(REVIEW_STATUSES)
+
 export const ReviewRow = z.object({
 	id: Id,
+	/** Вид строки очереди: работа по заданию или попытка теста с ручной проверкой. */
+	kind: z.enum(REVIEW_KINDS),
 	studentName: z.string(),
 	studentEmail: z.string(),
 	courseId: Id,
 	courseTitle: z.string(),
 	lessonTitle: z.string(),
-	status: SubmissionStatus,
+	/** Задание — статус сдачи; тест — `submitted` (ждёт проверки) или `graded` (оценён). */
+	status: ReviewStatus,
+	/** Номер отправки (задание) или попытки (тест). */
 	revision: z.number().int(),
 	submittedAt: DateTime.nullable(),
 })
@@ -328,7 +343,7 @@ export const ReviewListInput = pageInput({
 	sorts: ['submittedAt'] as const,
 	defaultSort: 'submittedAt',
 	defaultDir: 'asc',
-	filters: { status: SubmissionStatus, courseId: Id },
+	filters: { status: ReviewStatus, courseId: Id, kind: z.enum(REVIEW_KINDS) },
 })
 export type ReviewListQuery = z.output<typeof ReviewListInput>
 
@@ -346,7 +361,49 @@ export const ReviewDetail = z.object({
 })
 export type ReviewDetail = z.infer<typeof ReviewDetail>
 
+/** Попытка теста на ручную проверку (3.6): ответы целиком, ручные вопросы с оценкой. */
+export const AttemptReview = z.object({
+	attempt: AttemptSummary,
+	student: z.object({ name: z.string(), email: z.string() }),
+	course: z.object({ id: Id, title: z.string() }),
+	lesson: z.object({ id: Id, title: z.string() }),
+	/** Баллы за вопросы с автопроверкой и максимум за ручные (для понимания итога). */
+	autoScore: z.number(),
+	manualMax: z.number().int(),
+	passScorePct: z.number().int(),
+	questions: z.array(
+		z.object({
+			id: Id,
+			type: z.string(),
+			points: z.number().int(),
+			manual: z.boolean(),
+			data: z.unknown(),
+			response: z.unknown().nullable(),
+			score: z.number().nullable(),
+			isCorrect: z.boolean().nullable(),
+			feedback: CommentText.nullable(),
+		}),
+	),
+})
+export type AttemptReview = z.infer<typeof AttemptReview>
+
 export const reviewContract = {
+	/** Попытка теста для ручной оценки (`open_text`). */
+	attempt: oc.route({ method: 'GET', path: '/review/attempts/{attemptId}' }).input(ByAttempt).output(AttemptReview),
+	/** Оценки ручных вопросов (баллы 0…максимум, шаг 0,5; комментарий). Оценены все — попытка `graded` с итогом и «сдал / не сдал». */
+	gradeAttempt: oc
+		.route({ method: 'POST', path: '/review/attempts/{attemptId}/grades' })
+		.input(
+			ByAttempt.extend({
+				grades: z
+					.array(
+						z.object({ attemptQuestionId: Id, score: z.number().min(0).max(100), feedback: CommentText.nullable() }),
+					)
+					.min(1)
+					.max(50),
+			}),
+		)
+		.output(AttemptReview),
 	list: oc.route({ method: 'GET', path: '/review/submissions' }).input(ReviewListInput).output(page(ReviewRow)),
 	get: oc
 		.route({ method: 'GET', path: '/review/submissions/{submissionId}' })

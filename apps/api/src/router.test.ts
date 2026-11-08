@@ -198,6 +198,8 @@ describe('OpenAPI', () => {
 				'/assignment/{lessonId}/{blockKey}/draft',
 				'/assignment/{lessonId}/{blockKey}/reply',
 				'/assignment/{lessonId}/{blockKey}/submit',
+				'/review/attempts/{attemptId}',
+				'/review/attempts/{attemptId}/grades',
 				'/review/submissions',
 				'/review/submissions/{submissionId}',
 				'/review/submissions/{submissionId}/comments',

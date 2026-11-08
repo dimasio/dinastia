@@ -56,3 +56,12 @@ description: Ученики и прогресс в Dinastia — модуль lea
   (`apps/web/src/features/learning/`). Доступность считается при чтении, `lesson_progress.status` не хранится.
 - Зачислить для разработки и e2e: `pnpm --filter @dinastia/api exec tsx src/enroll.ts <школа> <email> "<курс>" [sequential]`.
 - Нет (фаза 4): экраны и API зачисления, потоки, кураторы, дедлайны, drip-задача, сертификаты, аналитика.
+
+## Завершение урока по результату (3.6)
+
+- `learning/service.ts`: `recordBlockResult(ctx, { enrollmentId, lessonId, blockKey, done })` — публичный вызов для `assessments`
+  (синхронно, в той же транзакции): пишет `block_progress` (`done` не снимается, `failed` его не понижает) и пересчитывает урок с
+  правилом `all_blocks`; `openLesson` для `all_blocks` завершает урок, только если выполнены все блоки `completion: 'grade'`
+  (`gradeBlocksDone`); `view` и `manual` — как раньше. Блоки «оценки» — по `blockDef(type).completion` опубликованной версии.
+- Правило у новых уроков по умолчанию `all_blocks`; переключатель в конструкторе — `courses.lessons.update`.
+- Отклонённая работа блок не выполняет — урок под `all_blocks` не завершится (сброс — фаза 4).

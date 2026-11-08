@@ -8,7 +8,8 @@ import { client } from '#/app/orpc.ts'
 
 type ListInput = z.input<typeof ReviewListInput>
 
-const STATUSES = ['submitted', 'needs_revision', 'accepted', 'rejected'] as const
+const STATUSES = ['submitted', 'needs_revision', 'accepted', 'rejected', 'graded'] as const
+const KINDS = ['assignment', 'quiz'] as const
 const tone = (v: unknown) =>
 	v === 'accepted'
 		? 'default'
@@ -28,17 +29,29 @@ export function reviewResource(opts: { courses: readonly string[] }) {
 		columns: [
 			{
 				field: 'studentName',
-				render: (row) => (
-					<Link
-						to="/admin/review/$submissionId"
-						params={{ submissionId: row.id }}
-						className="font-medium hover:underline"
-						data-testid="review-open"
-					>
-						{row.studentName}
-					</Link>
-				),
+				// задание — экран работы, тест — экран проверки попытки (3.6)
+				render: (row) =>
+					row.kind === 'quiz' ? (
+						<Link
+							to="/admin/review/attempts/$attemptId"
+							params={{ attemptId: row.id }}
+							className="font-medium hover:underline"
+							data-testid="review-open"
+						>
+							{row.studentName}
+						</Link>
+					) : (
+						<Link
+							to="/admin/review/$submissionId"
+							params={{ submissionId: row.id }}
+							className="font-medium hover:underline"
+							data-testid="review-open"
+						>
+							{row.studentName}
+						</Link>
+					),
 			},
+			{ field: 'kind', render: 'badge', tone: () => 'outline' },
 			{ field: 'courseTitle' },
 			{ field: 'lessonTitle' },
 			{ field: 'status', render: 'badge', tone },
@@ -47,6 +60,7 @@ export function reviewResource(opts: { courses: readonly string[] }) {
 		],
 		search: true,
 		filters: [
+			{ field: 'kind', options: KINDS },
 			{ field: 'status', options: STATUSES },
 			...(opts.courses.length ? [{ field: 'courseId' as const, options: opts.courses }] : []),
 		],

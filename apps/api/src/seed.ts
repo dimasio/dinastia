@@ -49,6 +49,8 @@ const staff: [string, string, MemberRole][] = [
 	['admin@demo.local', 'Алексей Админ', 'admin'],
 	['teacher@demo.local', 'Татьяна Преподаватель', 'teacher'],
 	['curator@demo.local', 'Кирилл Куратор', 'curator'],
+	// для e2e «Сотрудники»: роль и блокировку меняют ему, а не общему куратору (иначе параллельные сценарии теряют доступ)
+	['curator2@demo.local', 'Лев Куратор', 'curator'],
 	['student1@demo.local', 'Ученик Первый', 'student'],
 	['student2@demo.local', 'Ученица Вторая', 'student'],
 	['student3@demo.local', 'Ученик Третий', 'student'],

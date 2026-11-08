@@ -122,9 +122,13 @@ export const quizAnswers = tenantTable(
 		score: doublePrecision('score'),
 		isCorrect: boolean('is_correct'),
 		answeredAt: timestamp('answered_at', { withTimezone: true }).notNull().defaultNow(),
+		/** Ручная оценка (`open_text`, 3.6): кто поставил и комментарий проверяющего. */
+		gradedByMemberId: uuid('graded_by_member_id'),
+		feedback: richText('feedback'),
 	},
 	(t) => [
 		tenantRef(t, t.attemptQuestionId, attemptQuestions, 'cascade'),
+		tenantRef(t, t.gradedByMemberId, members, 'no action'),
 		uniqueIndex().on(t.schoolId, t.attemptQuestionId),
 	],
 )

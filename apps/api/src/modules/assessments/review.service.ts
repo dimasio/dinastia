@@ -1,7 +1,8 @@
 // Очередь проверки и переписка проверяющего (скилл lms-assessments, карточка 3.5): список работ школы, работа целиком,
 // реплика без решения. Решения (принять, на доработку, отклонить) — `reviewSubmission` (3.4).
 import type { ReviewDetail, ReviewListQuery, ReviewRow } from '@dinastia/contracts/assessments'
-import { and, asc, count, eq, ilike, or, type SQL, sql } from 'drizzle-orm'
+import { questionTypes } from '@dinastia/questions'
+import { type AnyColumn, and, asc, count, desc, eq, ilike, or, type SQL, sql } from 'drizzle-orm'
 import { users } from '#/kernel/auth/schema.ts'
 import { listBlocks } from '#/kernel/blocks/blocks.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
@@ -10,7 +11,7 @@ import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courses, lessons } from '../courses/schema.ts'
 import { enrollments } from '../learning/schema.ts'
-import { submissions } from './schema.ts'
+import { quizAttempts, submissions } from './schema.ts'
 import { addComment, viewOf } from './submission.service.ts'
 
 /**
@@ -23,59 +24,143 @@ export function reviewScope(_ctx: SchoolCtx): SQL | undefined {
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`)
 
-/** Очередь: отправленные работы (черновики не видны), «на проверке» — сверху, дальше по дате отправки. */
-export async function listQueue(ctx: SchoolCtx, input: ReviewListQuery) {
-	const conditions: SQL[] = [sql`${submissions.status} <> 'draft'`]
-	const scope = reviewScope(ctx)
-	if (scope) conditions.push(scope)
-	if (input.filters.status) conditions.push(eq(submissions.status, input.filters.status))
-	if (input.filters.courseId) conditions.push(eq(courses.id, input.filters.courseId))
-	if (input.q) {
-		const pattern = `%${likeEscape(input.q)}%`
-		const any = or(ilike(users.name, pattern), ilike(users.email, pattern))
-		if (any) conditions.push(any)
-	}
-	const where = and(...conditions)
-	const from = ctx.db
-		.select({
-			id: submissions.id,
-			studentName: users.name,
-			studentEmail: users.email,
-			courseId: courses.id,
-			courseTitle: courses.title,
-			lessonTitle: lessons.title,
-			status: submissions.status,
-			revision: submissions.revision,
-			submittedAt: submissions.submittedAt,
-		})
-		.from(submissions)
-		.innerJoin(enrollments, eq(enrollments.id, submissions.enrollmentId))
-		.innerJoin(members, eq(members.id, enrollments.memberId))
-		.innerJoin(users, eq(users.id, members.userId))
-		.innerJoin(lessons, eq(lessons.id, submissions.lessonId))
-		.innerJoin(courses, eq(courses.id, lessons.courseId))
-		.where(where)
-	const waitingFirst = sql`case when ${submissions.status} = 'submitted' then 0 else 1 end`
-	const [items, [total]] = await Promise.all([
-		from
-			.orderBy(
-				waitingFirst,
-				input.dir === 'desc' ? sql`${submissions.submittedAt} desc` : asc(submissions.submittedAt),
-				asc(submissions.id),
-			)
-			.limit(input.pageSize)
-			.offset((input.page - 1) * input.pageSize),
+const sourceOf = (ctx: SchoolCtx) => ({
+	assignment: () =>
 		ctx.db
-			.select({ n: count() })
+			.select({
+				id: submissions.id,
+				studentName: users.name,
+				studentEmail: users.email,
+				courseId: courses.id,
+				courseTitle: courses.title,
+				lessonTitle: lessons.title,
+				status: sql<ReviewRow['status']>`${submissions.status}::text`,
+				revision: submissions.revision,
+				submittedAt: submissions.submittedAt,
+			})
 			.from(submissions)
 			.innerJoin(enrollments, eq(enrollments.id, submissions.enrollmentId))
 			.innerJoin(members, eq(members.id, enrollments.memberId))
 			.innerJoin(users, eq(users.id, members.userId))
 			.innerJoin(lessons, eq(lessons.id, submissions.lessonId))
-			.innerJoin(courses, eq(courses.id, lessons.courseId))
-			.where(where),
+			.innerJoin(courses, eq(courses.id, lessons.courseId)),
+	quiz: () =>
+		ctx.db
+			.select({
+				id: quizAttempts.id,
+				studentName: users.name,
+				studentEmail: users.email,
+				courseId: courses.id,
+				courseTitle: courses.title,
+				lessonTitle: lessons.title,
+				status: sql<ReviewRow['status']>`${quizAttempts.status}::text`,
+				// номер попытки этого ученика в этом тесте
+				revision: sql<number>`(row_number() over (partition by ${quizAttempts.enrollmentId}, ${quizAttempts.lessonId}, ${quizAttempts.blockKey} order by ${quizAttempts.startedAt}))::int`,
+				submittedAt: quizAttempts.submittedAt,
+			})
+			.from(quizAttempts)
+			.innerJoin(enrollments, eq(enrollments.id, quizAttempts.enrollmentId))
+			.innerJoin(members, eq(members.id, enrollments.memberId))
+			.innerJoin(users, eq(users.id, members.userId))
+			.innerJoin(lessons, eq(lessons.id, quizAttempts.lessonId))
+			.innerJoin(courses, eq(courses.id, lessons.courseId)),
+})
+
+/** Попытка попадает в очередь, если в ней есть вопрос с ручной проверкой. */
+const hasManualQuestions = () => {
+	const types = Object.values(questionTypes)
+		.filter((d) => d.manual)
+		.map((d) => d.type)
+	return sql`exists (
+		select 1 from attempt_questions aq join questions q on q.id = aq.question_id
+		where aq.attempt_id = ${quizAttempts.id} and q.type in (${sql.join(
+			types.map((t) => sql`${t}`),
+			sql`, `,
+		)}))`
+}
+
+/**
+ * Очередь: работы по заданиям (черновики не видны) и попытки тестов с ручными вопросами; «на проверке» сверху, дальше по дате
+ * отправки. Два источника — каждый отдаёт нужное число строк, затем слияние (страницы малы, очередь — рабочий список).
+ */
+export async function listQueue(ctx: SchoolCtx, input: ReviewListQuery) {
+	const scope = reviewScope(ctx)
+	const { status, courseId, kind } = input.filters
+	const like = input.q ? `%${likeEscape(input.q)}%` : null
+	const person = like ? or(ilike(users.name, like), ilike(users.email, like)) : undefined
+	const src = sourceOf(ctx)
+	const limit = input.page * input.pageSize
+	const dir = (col: SQL | AnyColumn) => (input.dir === 'desc' ? desc(col) : asc(col))
+	const waiting = (col: AnyColumn) => sql`case when ${col}::text = 'submitted' then 0 else 1 end`
+
+	const wantAssignments = kind !== 'quiz' && status !== 'graded'
+	const wantQuizzes = kind !== 'assignment' && (!status || status === 'submitted' || status === 'graded')
+
+	const asgWhere = and(
+		sql`${submissions.status} <> 'draft'`,
+		scope,
+		status ? eq(submissions.status, status as never) : undefined,
+		courseId ? eq(courses.id, courseId) : undefined,
+		person,
+	)
+	const quizWhere = and(
+		sql`${quizAttempts.status} <> 'in_progress'`,
+		hasManualQuestions(),
+		scope,
+		status ? eq(quizAttempts.status, status as never) : undefined,
+		courseId ? eq(courses.id, courseId) : undefined,
+		person,
+	)
+	const [asg, asgTotal, quiz, quizTotal] = await Promise.all([
+		wantAssignments
+			? src
+					.assignment()
+					.where(asgWhere)
+					.orderBy(waiting(submissions.status), dir(submissions.submittedAt), asc(submissions.id))
+					.limit(limit)
+			: [],
+		wantAssignments
+			? ctx.db
+					.select({ n: count() })
+					.from(submissions)
+					.innerJoin(enrollments, eq(enrollments.id, submissions.enrollmentId))
+					.innerJoin(members, eq(members.id, enrollments.memberId))
+					.innerJoin(users, eq(users.id, members.userId))
+					.innerJoin(lessons, eq(lessons.id, submissions.lessonId))
+					.innerJoin(courses, eq(courses.id, lessons.courseId))
+					.where(asgWhere)
+			: [{ n: 0 }],
+		wantQuizzes
+			? src
+					.quiz()
+					.where(quizWhere)
+					.orderBy(waiting(quizAttempts.status), dir(quizAttempts.submittedAt), asc(quizAttempts.id))
+					.limit(limit)
+			: [],
+		wantQuizzes
+			? ctx.db
+					.select({ n: count() })
+					.from(quizAttempts)
+					.innerJoin(enrollments, eq(enrollments.id, quizAttempts.enrollmentId))
+					.innerJoin(members, eq(members.id, enrollments.memberId))
+					.innerJoin(users, eq(users.id, members.userId))
+					.innerJoin(lessons, eq(lessons.id, quizAttempts.lessonId))
+					.innerJoin(courses, eq(courses.id, lessons.courseId))
+					.where(quizWhere)
+			: [{ n: 0 }],
 	])
-	return toPage(items satisfies ReviewRow[], total?.n ?? 0, input)
+	const rows: ReviewRow[] = [
+		...asg.map((r) => ({ ...r, kind: 'assignment' as const })),
+		...quiz.map((r) => ({ ...r, kind: 'quiz' as const })),
+	]
+	const rank = (r: ReviewRow) => (r.status === 'submitted' ? 0 : 1)
+	const time = (r: ReviewRow) => r.submittedAt?.getTime() ?? 0
+	rows.sort(
+		(x, y) =>
+			rank(x) - rank(y) || (input.dir === 'desc' ? time(y) - time(x) : time(x) - time(y)) || x.id.localeCompare(y.id),
+	)
+	const total = (asgTotal[0]?.n ?? 0) + (quizTotal[0]?.n ?? 0)
+	return toPage(rows.slice((input.page - 1) * input.pageSize, input.page * input.pageSize), total, input)
 }
 
 /** Работа, доступная проверяющему (по области); иначе SUBMISSION_NOT_FOUND. */

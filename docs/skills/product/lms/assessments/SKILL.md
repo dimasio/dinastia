@@ -90,4 +90,8 @@ description: Тесты и домашние задания в Dinastia — мо�
   `fileIds`, `review.service.ts` (`reviewScope`, `listQueue`, `getForReview`, `commentAsReviewer`), `submission_comment_files`,
   файлы `assessments.comment-file`, письмо `emails/submission-reviewed.tsx` и подписчик `subscribers.ts`, право `assessments.review`
   у куратора. **`reviewScope` — единственное место, где в фазе 4 включается ограничение куратора по потокам.**
-- Нет (3.6): завершение урока по принятому заданию и сданному тесту, ручная проверка `open_text` в попытках (строки другого вида в ту же очередь).
+- 3.6: результат блока → завершение урока (`learning.recordBlockResult` вызывается из `finalizeAttempt`, `grading.service.gradeAttempt`,
+  `submitAssignment` (автопринятие), `reviewSubmission`); ручная проверка `open_text`: `grading.service.ts` (`getAttemptForReview`,
+  `gradeAttempt`), очередь `listQueue` объединяет задания и попытки с ручными вопросами (`kind`), экран
+  `features/assessments/review/attempt-review.tsx`, API `review.attempt`/`review.gradeAttempt`, колонки `quiz_answers.graded_by_member_id`,
+  `feedback`; `quiz.result` отдаёт `manual` (ручные вопросы с баллами и комментарием) всегда.

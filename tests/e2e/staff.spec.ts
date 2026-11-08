@@ -11,7 +11,7 @@ test('преподаватель видит сотрудников, но не у
 	await page.getByRole('link', { name: 'Сотрудники' }).click()
 	await expect(page).toHaveURL(/\/admin\/staff$/)
 	const rows = page.getByTestId('resource-staff-row')
-	await expect(rows).toHaveCount(4)
+	await expect(rows).toHaveCount(5)
 	await expect(page.getByTestId('resource-staff-create')).toHaveCount(0)
 	await expect(page.getByTestId('resource-staff-row-actions')).toHaveCount(0)
 
@@ -27,12 +27,12 @@ test('преподаватель видит сотрудников, но не у
 	await page.getByTestId('resource-staff-search').fill('нет-такого')
 	await expect(page.getByText('Ничего не нашлось')).toBeVisible()
 	await page.getByRole('button', { name: 'Сбросить фильтры' }).click()
-	await expect(rows).toHaveCount(4)
+	await expect(rows).toHaveCount(5)
 
 	// фильтр по роли
 	await page.getByTestId('resource-staff-filter-role').click()
 	await page.getByRole('option', { name: 'Куратор' }).click()
-	await expect(rows).toHaveCount(1)
+	await expect(rows).toHaveCount(2)
 	await expect(rows.first()).toContainText('Куратор')
 	await page.screenshot(shots('1.2-staff-filter'))
 })
@@ -41,7 +41,7 @@ test('сортировка по имени в обе стороны', async ({ p
 	await loginAs('admin')
 	await page.goto(schoolUrl('demo', '/admin/staff'))
 	const names = page.getByTestId('resource-staff-row').locator('td:first-child')
-	await expect(names).toHaveCount(4)
+	await expect(names).toHaveCount(5)
 	await page.getByTestId('resource-staff-sort-name').click()
 	const asc = await names.allTextContents()
 	expect(asc).toEqual([...asc].sort((a, b) => a.localeCompare(b, 'ru')))
@@ -75,7 +75,8 @@ test('владелец приглашает, меняет роль, блокир
 	await expect(ownerRow.getByTestId('resource-staff-row-actions')).toHaveCount(0)
 
 	// смена роли куратора и обратно
-	const curator = page.getByTestId('resource-staff-row').filter({ hasText: 'curator@demo.local' })
+	// второй куратор из сида: общий curator@demo.local нужен параллельным сценариям, его блокировать нельзя
+	const curator = page.getByTestId('resource-staff-row').filter({ hasText: 'curator2@demo.local' })
 	const changeRole = async (from: string, to: string) => {
 		await curator.getByTestId('resource-staff-row-actions').click()
 		await page.getByTestId('resource-staff-action-changeRole').click()
@@ -106,7 +107,7 @@ test('мобильная ширина: список без горизонтал�
 	await page.setViewportSize({ width: 360, height: 740 })
 	await loginAs('admin')
 	await page.goto(schoolUrl('demo', '/admin/staff'))
-	await expect(page.getByTestId('resource-staff-row')).toHaveCount(4)
+	await expect(page.getByTestId('resource-staff-row')).toHaveCount(5)
 	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
 	expect(overflow).toBeLessThanOrEqual(0)
 	await page.screenshot(shots('1.2-staff-mobile'))

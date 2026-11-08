@@ -2,6 +2,7 @@
 // member → can(…); логика — question.service.ts.
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { can } from '#/permissions.ts'
+import { getAttemptForReview, gradeAttempt } from './grading.service.ts'
 import {
 	archiveBankQuestion,
 	createBankQuestion,
@@ -212,6 +213,22 @@ export const reviewRouter = {
 		.use(mw.member)
 		.use(can('assessments.review'))
 		.handler(({ input, context }) => getForReview(schoolCtx(context), input.submissionId)),
+	attempt: impl.review.attempt
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => getAttemptForReview(schoolCtx(context), input.attemptId)),
+	gradeAttempt: impl.review.gradeAttempt
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => gradeAttempt(schoolCtx(context), input)),
 	comment: impl.review.comment
 		.use(mw.host)
 		.use(mw.session)

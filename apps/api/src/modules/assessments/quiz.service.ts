@@ -31,7 +31,7 @@ import {
 type Attempt = typeof quizAttempts.$inferSelect
 
 /** Данные опубликованного блока `quiz` (поля — как в `packages/blocks/src/quiz/definition.ts`). */
-interface QuizSettings {
+export interface QuizSettings {
 	selection: 'fixed' | 'random_by_tags'
 	randomCount: number
 	attemptsLimit: number
@@ -57,13 +57,13 @@ const shuffleArray = <T>(items: readonly T[]): T[] => {
 }
 
 /** Настройки опубликованного блока урока по `block_key`; нет — QUIZ_NOT_FOUND. */
-async function settingsOf(ctx: BaseCtx, lessonId: string, blockKey: string): Promise<QuizSettings> {
+export async function settingsOf(ctx: BaseCtx, lessonId: string, blockKey: string): Promise<QuizSettings> {
 	const block = (await listBlocks(ctx, lessonId, 'published')).find((b) => b.blockKey === blockKey && b.type === 'quiz')
 	if (!block) return fail.notFound('QUIZ_NOT_FOUND')
 	return block.data as unknown as QuizSettings
 }
 
-const summary = (a: Attempt): AttemptSummary => ({
+export const summary = (a: Attempt): AttemptSummary => ({
 	id: a.id,
 	status: a.status,
 	score: a.score,
@@ -243,14 +243,14 @@ export async function startAttempt(
 
 // ── Просмотр попытки ───────────────────────────────────────────────────────────────────────────────────────────
 
-interface Parts {
+export interface Parts {
 	aqs: (typeof attemptQuestions.$inferSelect)[]
 	questions: Map<string, StoredQuestion>
 	order: Map<string, Map<string, number>>
-	answers: Map<string, AnswerRows & { score: number | null; isCorrect: boolean | null }>
+	answers: Map<string, AnswerRows & { score: number | null; isCorrect: boolean | null; feedback: unknown }>
 }
 
-async function loadParts(ctx: BaseCtx, attemptId: string): Promise<Parts> {
+export async function loadParts(ctx: BaseCtx, attemptId: string): Promise<Parts> {
 	const aqs = await ctx.db
 		.select()
 		.from(attemptQuestions)
@@ -285,6 +285,7 @@ async function loadParts(ctx: BaseCtx, attemptId: string): Promise<Parts> {
 				numberValue: a.numberValue,
 				score: a.score,
 				isCorrect: a.isCorrect,
+				feedback: a.feedback,
 				items: itemRows
 					.filter((i) => i.answerId === a.id)
 					.map((i) => ({ itemId: i.itemId, position: i.position, matchedItemId: i.matchedItemId })),
@@ -295,7 +296,7 @@ async function loadParts(ctx: BaseCtx, attemptId: string): Promise<Parts> {
 }
 
 /** Вопрос ученику: `toPublic` типа, элементы — в порядке снимка попытки. */
-function publicInAttempt(q: StoredQuestion, order: Map<string, number> | undefined): unknown {
+export function publicInAttempt(q: StoredQuestion, order: Map<string, number> | undefined): unknown {
 	const pub = publicQuestion(q) as Record<string, unknown>
 	const def = questionDef(q.type)
 	if (!order?.size || !def?.items) return pub
@@ -484,8 +485,26 @@ export async function resultOf(ctx: SchoolCtx, attemptId: string): Promise<Attem
 	}
 	const revealed = showCorrect === 'after_submit' || (showCorrect === 'after_pass' && attempt.passed === true)
 	const pct = attempt.maxScore > 0 ? Math.round((attempt.score / attempt.maxScore) * 100) : 0
-	if (!revealed) return { attempt: summary(attempt), pct, revealed, questions: [] }
 	const p = await loadParts(ctx, attemptId)
+	// ручные вопросы (`open_text`): ответ, баллы и комментарий проверяющего — ученику всегда (это оценка, а не верный ответ)
+	const manual = p.aqs.flatMap((aq) => {
+		const q = p.questions.get(aq.questionId)
+		const def = q ? questionDef(q.type) : undefined
+		if (!q || !def?.manual) return []
+		const rows = p.answers.get(aq.id) ?? null
+		return [
+			{
+				id: aq.id,
+				type: q.type,
+				points: aq.points,
+				data: publicInAttempt(q, p.order.get(aq.id)),
+				response: decodeResponse(def, rows),
+				score: rows?.score ?? null,
+				feedback: (rows?.feedback as never) ?? null,
+			},
+		]
+	})
+	if (!revealed) return { attempt: summary(attempt), pct, revealed, questions: [], manual }
 	const out = p.aqs.flatMap((aq) => {
 		const q = p.questions.get(aq.questionId)
 		const def = q ? questionDef(q.type) : undefined
@@ -501,8 +520,9 @@ export async function resultOf(ctx: SchoolCtx, attemptId: string): Promise<Attem
 				score: rows?.score ?? null,
 				isCorrect: rows?.isCorrect ?? null,
 				review: reviewQuestion(q),
+				feedback: (rows?.feedback as never) ?? null,
 			},
 		]
 	})
-	return { attempt: summary(attempt), pct, revealed, questions: out }
+	return { attempt: summary(attempt), pct, revealed, questions: out, manual }
 }

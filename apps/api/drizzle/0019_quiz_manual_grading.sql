@@ -1,0 +1,3 @@
+ALTER TABLE "quiz_answers" ADD COLUMN "graded_by_member_id" uuid;--> statement-breakpoint
+ALTER TABLE "quiz_answers" ADD COLUMN "feedback" jsonb;--> statement-breakpoint
+ALTER TABLE "quiz_answers" ADD CONSTRAINT "quiz_answers_school_id_graded_by_member_id_members_school_id_id_fk" FOREIGN KEY ("school_id","graded_by_member_id") REFERENCES "public"."members"("school_id","id") ON DELETE no action ON UPDATE no action;

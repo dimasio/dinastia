@@ -1,8 +1,10 @@
 // Панель теста в плеере ученика (карточка 3.3): карточка с настройками и попытками → прохождение (ответы сохраняются
 // сразу, таймер по серверному сроку) → результат и разбор по правилу показа ответов. Всё решает сервер (`quiz.*`).
 import type { AttemptResult, AttemptSummary, AttemptView, QuizState } from '@dinastia/contracts/assessments'
+import { isEmptyDoc } from '@dinastia/contracts/common'
 import { QuestionViewerHost } from '@dinastia/questions/client'
 import { Alert, AlertDescription, Badge, Button, Skeleton, toast } from '@dinastia/ui'
+import { RichTextView } from '@dinastia/ui/rich-text'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardCheck, Clock, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -380,6 +382,25 @@ function ResultScreen(props: { result: AttemptResult; canRetry: boolean; onRetry
 				{key === 'pending' && <p className="text-muted-foreground text-sm">{t('quiz.pendingHint')}</p>}
 				{!revealed && key !== 'pending' && <p className="text-muted-foreground text-sm">{t('quiz.hiddenHint')}</p>}
 			</div>
+			{!revealed && questions.length === 0 && props.result.manual.length > 0 && (
+				<ol className="grid gap-4" data-testid="quiz-manual">
+					{props.result.manual.map((q, i) => (
+						<li key={q.id} className="grid gap-2 rounded-lg border p-4" data-testid="quiz-manual-item">
+							<p className="text-muted-foreground text-xs">
+								{t('quiz.manualTitle')} ·{' '}
+								{q.score === null ? t('quiz.notGraded') : t('quiz.earned', { score: fmt(q.score), max: q.points })}
+							</p>
+							<QuestionViewerHost type={q.type} data={q.data} response={q.response} testId={`quiz-m-${i}`} />
+							{q.feedback && !isEmptyDoc(q.feedback) && (
+								<div className="rounded-md bg-muted p-3 text-sm" data-testid="quiz-feedback">
+									<p className="mb-1 font-medium">{t('quiz.feedback')}</p>
+									<RichTextView doc={q.feedback} />
+								</div>
+							)}
+						</li>
+					))}
+				</ol>
+			)}
 			{revealed && (
 				<ol className="grid gap-6">
 					{questions.map((q, i) => (
@@ -400,6 +421,12 @@ function ResultScreen(props: { result: AttemptResult; canRetry: boolean; onRetry
 								review={q.review}
 								testId={`quiz-r-${i}`}
 							/>
+							{q.feedback && !isEmptyDoc(q.feedback) && (
+								<div className="rounded-md bg-muted p-3 text-sm" data-testid="quiz-feedback">
+									<p className="mb-1 font-medium">{t('quiz.feedback')}</p>
+									<RichTextView doc={q.feedback} />
+								</div>
+							)}
 						</li>
 					))}
 				</ol>
