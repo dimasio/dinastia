@@ -4,6 +4,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 import { LESSON_COMPLETION_RULES } from './courses.ts'
+import { SchoolPublic } from './schools.ts'
 
 export const LESSON_STATUSES = ['locked', 'available', 'in_progress', 'completed'] as const
 export const LessonStatus = z.enum(LESSON_STATUSES)
@@ -137,17 +138,46 @@ export const EnrollInput = z.object({
 
 const ById = z.object({ id: Id })
 
+export const INVITE_STATUSES = ['active', 'expired', 'revoked', 'exhausted'] as const
+/** Приглашение на курс в списке: ссылка (`email` пуст) или адресное. */
+export const InviteRow = z.object({
+	id: Id,
+	email: z.string().nullable(),
+	status: z.enum(INVITE_STATUSES),
+	expiresAt: DateTime,
+	maxUses: z.number().int().nullable(),
+	uses: z.number().int(),
+	createdAt: DateTime,
+})
+export type InviteRow = z.infer<typeof InviteRow>
+
+export const InviteCreateInput = z.object({
+	courseId: Id,
+	/** Срок действия ссылки, дней (по умолчанию 30). */
+	expiresInDays: z.number().int().min(1).max(365).default(30),
+	/** Сколько человек могут присоединиться; не указан — без лимита. */
+	maxUses: z.number().int().min(1).max(10000).optional(),
+})
+
 export const learningContract = {
 	enrollments: {
 		list: oc
 			.route({ method: 'GET', path: '/courses/{courseId}/enrollments' })
 			.input(EnrollmentListInput)
 			.output(page(EnrollmentRow)),
-		/** Зачислить ученика школы по почте; повтор по действующему — то же зачисление, отозванное и истёкшее — возвращается. */
+		/**
+		 * Зачислить ученика школы по почте; повтор по действующему — то же зачисление, отозванное и истёкшее — возвращается.
+		 * Незнакомая почта: владелец и администратор создают аккаунт, преподаватель — шлёт приглашение (`invited`, без зачисления).
+		 */
 		enroll: oc
 			.route({ method: 'POST', path: '/courses/{courseId}/enrollments', successStatus: 201 })
 			.input(EnrollInput)
-			.output(z.object({ outcome: z.enum(['enrolled', 'restored', 'already']), enrollment: EnrollmentRow })),
+			.output(
+				z.object({
+					outcome: z.enum(['enrolled', 'restored', 'already', 'invited']),
+					enrollment: EnrollmentRow.nullable(),
+				}),
+			),
 		/** Продлить доступ на `accessDays` дней от конца текущего срока (или от сегодня, если он вышел). */
 		extend: oc
 			.route({ method: 'POST', path: '/enrollments/{id}/extend' })
@@ -159,4 +189,36 @@ export const learningContract = {
 		revoke: oc.route({ method: 'POST', path: '/enrollments/{id}/revoke' }).input(ById).output(EnrollmentRow),
 		restore: oc.route({ method: 'POST', path: '/enrollments/{id}/restore' }).input(ById).output(EnrollmentRow),
 	},
+	invites: {
+		list: oc
+			.route({ method: 'GET', path: '/courses/{courseId}/invites' })
+			.input(z.object({ courseId: Id }))
+			.output(z.array(InviteRow)),
+		/** Создать ссылку-приглашение; сама ссылка (`url`) видна только в этом ответе. */
+		create: oc
+			.route({ method: 'POST', path: '/courses/{courseId}/invites', successStatus: 201 })
+			.input(InviteCreateInput)
+			.output(z.object({ invite: InviteRow, url: z.url() })),
+		revoke: oc.route({ method: 'POST', path: '/invites/{id}/revoke' }).input(ById).output(InviteRow),
+	},
+}
+
+// ── Присоединение по приглашению (4.1(б)): публично, страница /join/<токен> ────────────────────────────────────────────
+export const JoinToken = z.object({ token: z.string().min(20).max(100) })
+
+export const JoinPublic = z.object({
+	school: SchoolPublic,
+	courseTitle: z.string(),
+	/** Для адресного приглашения — почта, на которую оно выписано; для ссылки — пусто. */
+	email: z.string().nullable(),
+	expiresAt: DateTime,
+})
+
+export const joinContract = {
+	get: oc.route({ method: 'GET', path: '/join/{token}' }).input(JoinToken).output(JoinPublic),
+	/** Принять приглашение вошедшим пользователем: становится учеником школы и зачисляется на курс. */
+	accept: oc
+		.route({ method: 'POST', path: '/join/{token}/accept' })
+		.input(JoinToken)
+		.output(z.object({ courseId: Id, school: SchoolPublic })),
 }

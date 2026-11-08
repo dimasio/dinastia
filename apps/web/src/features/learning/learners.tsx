@@ -2,20 +2,38 @@
 import { Button, Input, Label, toast } from '@dinastia/ui'
 import { ResourcePage, type ResourceSearch } from '@dinastia/ui/resource'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { CourseTabs } from '../courses/course-tabs.tsx'
+import { InvitesSheet } from './invites-sheet.tsx'
 import { enrollmentsResource } from './resources/enrollments.ts'
 
 export function Learners(props: { courseId: string; search: ResourceSearch; onSearch: (s: ResourceSearch) => void }) {
 	const { courseId } = props
 	const resource = useMemo(() => enrollmentsResource({ courseId }), [courseId])
+	const { t } = useTranslation('learning')
+	const { data: me } = useQuery(meQuery())
+	const [invitesOpen, setInvitesOpen] = useState(false)
+	const canEnroll = me?.permissions.includes('learning.enroll') ?? false
 	return (
 		<div className="grid gap-4">
-			<CourseTabs courseId={courseId} active="learners" />
+			<CourseTabs
+				courseId={courseId}
+				active="learners"
+				actions={
+					canEnroll ? (
+						<Button variant="outline" size="sm" onClick={() => setInvitesOpen(true)} data-testid="invites-open">
+							<Link2 />
+							{t('invites.open')}
+						</Button>
+					) : undefined
+				}
+			/>
+			{canEnroll && <InvitesSheet courseId={courseId} open={invitesOpen} onOpenChange={setInvitesOpen} />}
 			<DefaultDays courseId={courseId} />
 			<ResourcePage resource={resource} search={props.search} onSearch={props.onSearch} />
 		</div>

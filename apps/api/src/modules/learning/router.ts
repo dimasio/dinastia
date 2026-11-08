@@ -1,6 +1,8 @@
 // Реализация контракта learn (скилл api-endpoints): процедуры ученика — mw.host → session → school → tenantTx → member
 // → can('learning.study'); логика — service.ts.
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
+import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { can } from '#/permissions.ts'
 import {
 	enrollByEmail,
@@ -10,6 +12,7 @@ import {
 	revokeEnrollment,
 	unlimitEnrollment,
 } from './enrollment.service.ts'
+import { acceptJoin, createLinkInvite, getJoin, listInvites, revokeInvite } from './invites.service.ts'
 import { completeLesson, getMyCourse, getMyLesson, listMyCourses, openLesson } from './service.ts'
 
 const chain = () => impl.learn
@@ -113,4 +116,48 @@ export const learningRouter = {
 			.use(can('learning.enroll'))
 			.handler(({ input, context }) => restoreEnrollment(schoolCtx(context), input.id)),
 	},
+	invites: {
+		list: impl.learning.invites.list
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.enroll'))
+			.handler(({ input, context }) => listInvites(schoolCtx(context), input.courseId)),
+		create: impl.learning.invites.create
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.enroll'))
+			.handler(({ input, context }) => createLinkInvite(schoolCtx(context), input)),
+		revoke: impl.learning.invites.revoke
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.enroll'))
+			.handler(({ input, context }) => revokeInvite(schoolCtx(context), input.id)),
+	},
+}
+
+/** Присоединение по приглашению (4.1(б)): сведения — публично, принятие — вошедшим пользователем (не обязательно участником школы). */
+export const joinRouter = {
+	get: impl.join.get
+		.use(mw.host)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.handler(({ input, context }) => getJoin(tenantCtx(context.db, context.school, context), input.token)),
+	accept: impl.join.accept
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(rateLimit({ name: 'learning.join', max: 20, windowSeconds: 3600, by: 'user' }))
+		.handler(({ input, context }) =>
+			acceptJoin(tenantCtx(context.db, context.school, context), input.token, context.user),
+		),
 }

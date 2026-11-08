@@ -148,6 +148,13 @@
       "when": 1794148408511,
       "tag": "0020_enrollment_revoked",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794151128193,
+      "tag": "0021_enrollment_invites",
+      "breakpoints": true
     }
   ]
 }

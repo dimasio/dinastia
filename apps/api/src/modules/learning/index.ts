@@ -1,13 +1,14 @@
 import { defineModule } from '#/kernel/module.ts'
+import { courseInvitationEmail } from './emails/course-invitation.tsx'
 import { enrolledEmail } from './emails/enrolled.tsx'
-import { expireEnrollmentsJob } from './jobs.ts'
+import { expireEnrollmentsJob, sendCourseInvitationJob } from './jobs.ts'
 import { permissions } from './permissions.ts'
-import { learningRouter, learnRouter } from './router.ts'
+import { joinRouter, learningRouter, learnRouter } from './router.ts'
 
 export default defineModule({
 	name: 'learning',
-	router: { learn: learnRouter, learning: learningRouter },
+	router: { learn: learnRouter, learning: learningRouter, join: joinRouter },
 	permissions,
-	jobs: [expireEnrollmentsJob],
-	emails: [enrolledEmail],
+	jobs: [expireEnrollmentsJob, sendCourseInvitationJob],
+	emails: [enrolledEmail, courseInvitationEmail],
 })

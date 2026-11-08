@@ -39,7 +39,7 @@ export function enrollmentsResource(opts: { courseId: string }) {
 		filters: [{ field: 'status', options: ENROLLMENT_STATUSES }],
 		create: {
 			schema: EnrollForm,
-			fields: { accessDays: { hint: true }, name: { hint: true } },
+			fields: { email: { hint: true }, accessDays: { hint: true }, name: { hint: true } },
 			submit: (values) =>
 				client.learning.enrollments.enroll({
 					courseId: opts.courseId,

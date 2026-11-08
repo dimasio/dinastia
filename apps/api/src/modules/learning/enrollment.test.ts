@@ -1,5 +1,6 @@
 // Зачисление, сроки и отзыв доступа (карточка 4.1): зачисление по почте, создание аккаунта, идемпотентность, срок,
 // продление, ночная задача истечения, отзыв и возврат, права и изоляция школ.
+import type { EnrollmentRow } from '@dinastia/contracts/learning'
 import { ORPCError } from '@orpc/client'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -23,6 +24,12 @@ afterAll(async () => {
 
 const failure = (e: unknown) => (e instanceof ORPCError ? (e.data as { code?: string }) : e)
 const fails = (p: Promise<unknown>) => p.then(() => 'ok', failure)
+/** Зачисление из ответа `enroll` (не приглашение). */
+const got = async (p: Promise<{ enrollment: EnrollmentRow | null }>) => {
+	const r = await p
+	if (!r.enrollment) throw new Error('ожидалось зачисление')
+	return r.enrollment
+}
 const DAY = 24 * 60 * 60 * 1000
 
 /** Школа с опубликованным курсом (один урок). */
@@ -53,14 +60,16 @@ describe('зачисление по почте', () => {
 		expect((await lastMailTo(email)).subject).toContain('Акварель')
 		expect(await t.as('student').learn.courses.list()).toMatchObject([{ id: course.id, revoked: false }])
 		const again = await t.as('teacher').learning.enrollments.enroll({ courseId: course.id, email: email.toUpperCase() })
-		expect(again).toMatchObject({ outcome: 'already', enrollment: { id: res.enrollment.id } })
+		expect(again).toMatchObject({ outcome: 'already', enrollment: { id: res.enrollment?.id } })
 	})
 
 	it('незнакомая почта: аккаунт создаёт администратор, преподаватель — нет', async () => {
 		const { t, course } = await setup()
 		const email = uniqueEmail('new')
-		expect(await fails(t.as('teacher').learning.enrollments.enroll({ courseId: course.id, email }))).toMatchObject({
-			code: 'ONLY_ADMIN_CREATES_ACCOUNTS',
+		// преподаватель аккаунтов не создаёт — приглашение на почту (4.1(б))
+		expect(await t.as('teacher').learning.enrollments.enroll({ courseId: course.id, email })).toEqual({
+			outcome: 'invited',
+			enrollment: null,
 		})
 		const res = await t.as('admin').learning.enrollments.enroll({ courseId: course.id, email, name: 'Новый Ученик' })
 		expect(res.outcome).toBe('enrolled')
@@ -95,7 +104,7 @@ describe('сроки', () => {
 	it('срок по умолчанию из курса, свой срок, продление и «без срока»', async () => {
 		const { t, c, course } = await setup(30)
 		const email = t.people.student.email
-		const { enrollment } = await c.learning.enrollments.enroll({ courseId: course.id, email })
+		const enrollment = await got(c.learning.enrollments.enroll({ courseId: course.id, email }))
 		const days = (iso: string | Date | null) => Math.round((new Date(iso as string).getTime() - Date.now()) / DAY)
 		expect(days(enrollment.expiresAt)).toBe(30)
 
@@ -110,12 +119,12 @@ describe('сроки', () => {
 			email: second.t.people.student.email,
 			accessDays: 7,
 		})
-		expect(days(own.enrollment.expiresAt)).toBe(7)
+		expect(days(own.enrollment?.expiresAt ?? null)).toBe(7)
 	})
 
 	it('просроченное показывается «истёк», ночная задача переводит в expired, продление и повторное зачисление возвращают доступ', async () => {
 		const { t, c, course } = await setup()
-		const { enrollment } = await c.learning.enrollments.enroll({ courseId: course.id, email: t.people.student.email })
+		const enrollment = await got(c.learning.enrollments.enroll({ courseId: course.id, email: t.people.student.email }))
 		await withTenant(t.school.id, (tx) =>
 			tx
 				.update(enrollments)
@@ -149,7 +158,7 @@ describe('отзыв и возврат', () => {
 	it('отозванный доступ закрывает курс, прогресс сохраняется, возврат открывает', async () => {
 		const { t, c, course, lesson } = await setup()
 		const student = t.as('student')
-		const { enrollment } = await c.learning.enrollments.enroll({ courseId: course.id, email: t.people.student.email })
+		const enrollment = await got(c.learning.enrollments.enroll({ courseId: course.id, email: t.people.student.email }))
 		await student.learn.lessons.open({ lessonId: lesson.id })
 		const done = await student.learn.courses.list()
 		const pct = done[0]?.progressPct
@@ -182,7 +191,7 @@ describe('отзыв и возврат', () => {
 	it('повторное зачисление отозванного возвращает доступ', async () => {
 		const { t, c, course } = await setup()
 		const email = t.people.student.email
-		const { enrollment } = await c.learning.enrollments.enroll({ courseId: course.id, email })
+		const enrollment = await got(c.learning.enrollments.enroll({ courseId: course.id, email }))
 		await c.learning.enrollments.revoke({ id: enrollment.id })
 		const res = await c.learning.enrollments.enroll({ courseId: course.id, email })
 		expect(res).toMatchObject({ outcome: 'restored', enrollment: { id: enrollment.id, status: 'active' } })
@@ -216,10 +225,12 @@ describe('список, права, изоляция', () => {
 	it('чужая школа не видит и не меняет зачисления', async () => {
 		const a = await setup()
 		const b = await setup()
-		const { enrollment } = await a.c.learning.enrollments.enroll({
-			courseId: a.course.id,
-			email: a.t.people.student.email,
-		})
+		const enrollment = await got(
+			a.c.learning.enrollments.enroll({
+				courseId: a.course.id,
+				email: a.t.people.student.email,
+			}),
+		)
 		expect(await fails(b.c.learning.enrollments.revoke({ id: enrollment.id }))).toMatchObject({
 			code: 'ENROLLMENT_NOT_FOUND',
 		})

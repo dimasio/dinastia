@@ -12,6 +12,7 @@ import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
 import { enrolledEmail } from './emails/enrolled.tsx'
+import { inviteByEmail } from './invites.service.ts'
 import { enrollments } from './schema.ts'
 
 type Enrollment = typeof enrollments.$inferSelect
@@ -35,7 +36,13 @@ export type EnrollOutcome = 'enrolled' | 'restored' | 'already'
  */
 export async function enroll(
 	ctx: BaseCtx,
-	input: { memberId: string; courseId: string; source?: Enrollment['source']; accessDays?: number | null },
+	input: {
+		memberId: string
+		courseId: string
+		source?: Enrollment['source']
+		accessDays?: number | null
+		inviteId?: string
+	},
 ): Promise<{ enrollment: Enrollment; outcome: EnrollOutcome }> {
 	const outline = await publishedOutline(ctx, input.courseId)
 	if (!outline) return fail.notFound('COURSE_NOT_FOUND')
@@ -56,7 +63,12 @@ export async function enroll(
 		if (live) return { enrollment: existing, outcome: 'already' }
 		const [row] = await ctx.db
 			.update(enrollments)
-			.set({ status: existing.completedAt ? 'completed' : 'active', revokedAt: null, expiresAt })
+			.set({
+				status: existing.completedAt ? 'completed' : 'active',
+				revokedAt: null,
+				expiresAt,
+				...(input.inviteId ? { inviteId: input.inviteId } : {}),
+			})
 			.where(eq(enrollments.id, existing.id))
 			.returning()
 		return { enrollment: row as Enrollment, outcome: 'restored' }
@@ -69,6 +81,7 @@ export async function enroll(
 			source: input.source ?? 'manual',
 			enrolledAt: now,
 			expiresAt,
+			inviteId: input.inviteId ?? null,
 		})
 		.returning()
 	return { enrollment: row as Enrollment, outcome: 'enrolled' }
@@ -136,8 +149,11 @@ export async function listEnrollments(ctx: SchoolCtx, input: EnrollmentListQuery
 	return toPage(items, total?.n ?? 0, input)
 }
 
-/** Участник-ученик по почте или создание аккаунта (только владелец и администратор): без пароля — вход по ссылке на почту. */
-async function studentByEmail(ctx: SchoolCtx, email: string, name: string | undefined) {
+/**
+ * Участник-ученик по почте или создание аккаунта (только владелец и администратор): без пароля — вход по ссылке на почту.
+ * Нет участника, а смотрит преподаватель — `null`: ему остаётся приглашение на почту.
+ */
+async function studentByEmail(ctx: SchoolCtx, email: string, name: string | undefined): Promise<string | null> {
 	const [found] = await ctx.db
 		.select({ memberId: members.id, role: members.role, status: members.status, userId: users.id })
 		.from(users)
@@ -150,7 +166,7 @@ async function studentByEmail(ctx: SchoolCtx, email: string, name: string | unde
 		return found.memberId
 	}
 	// нет участника: аккаунт и участника создаёт владелец или администратор
-	if (ctx.member.role !== 'owner' && ctx.member.role !== 'admin') return fail.forbidden('ONLY_ADMIN_CREATES_ACCOUNTS')
+	if (ctx.member.role !== 'owner' && ctx.member.role !== 'admin') return null
 	let userId = found?.userId
 	if (!userId) {
 		const created = await auth.api.signUpEmail({
@@ -174,6 +190,10 @@ export async function enrollByEmail(
 ) {
 	const email = input.email.trim().toLowerCase()
 	const memberId = await studentByEmail(ctx, email, input.name)
+	if (!memberId) {
+		await inviteByEmail(ctx, { courseId: input.courseId, email })
+		return { outcome: 'invited' as const, enrollment: null }
+	}
 	const { enrollment, outcome } = await enroll(ctx, {
 		memberId,
 		courseId: input.courseId,

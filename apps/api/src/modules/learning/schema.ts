@@ -1,8 +1,8 @@
 // Таблицы модуля learning (скилл db-schema, domain.md §1 «Обучение»). В 2.6 — сокращённо: зачисление и факты
 // прохождения уроков; потоки, дедлайны, `lesson_progress.status` — фаза 4 (доступность считается при чтении).
-import { tenantRef, tenantTable } from '@dinastia/db'
+import { pii, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
-import { index, integer, pgEnum, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { index, integer, pgEnum, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { members } from '#/kernel/members/schema.ts'
 import { courses, lessons } from '../courses/schema.ts'
 
@@ -25,12 +25,38 @@ export const enrollments = tenantTable(
 		completedAt: timestamp('completed_at', { withTimezone: true }),
 		/** Когда доступ отозван (`revoked`); прогресс сохраняется, «Вернуть доступ» снимает отметку (4.1). */
 		revokedAt: timestamp('revoked_at', { withTimezone: true }),
+		/** Приглашение, по которому зачислен (4.1(б)); без внешнего ключа — приглашения не удаляются, только отзываются. */
+		inviteId: uuid('invite_id'),
 		progressPct: integer('progress_pct').notNull().default(0),
 	},
 	(t) => [
 		tenantRef(t, t.memberId, members, 'cascade'),
 		tenantRef(t, t.courseId, courses, 'cascade'),
 		uniqueIndex().on(t.schoolId, t.memberId, t.courseId).where(sql`${t.status} in ('active', 'completed')`),
+		index().on(t.schoolId, t.courseId),
+	],
+)
+
+/**
+ * Приглашение на курс (4.1(б)): ссылка (`email` пуст, много использований) или адресное (`email`, одно использование, принять
+ * может только владелец почты). В БД — только хэш токена; ссылку видно один раз при создании.
+ */
+export const enrollmentInvites = tenantTable(
+	'enrollment_invites',
+	{
+		courseId: uuid('course_id').notNull(),
+		email: pii(text('email')),
+		tokenHash: text('token_hash').notNull().unique(),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		/** Лимит использований; null — без лимита. */
+		maxUses: integer('max_uses'),
+		uses: integer('uses').notNull().default(0),
+		createdByMemberId: uuid('created_by_member_id').notNull(),
+		revokedAt: timestamp('revoked_at', { withTimezone: true }),
+	},
+	(t) => [
+		tenantRef(t, t.courseId, courses, 'cascade'),
+		tenantRef(t, t.createdByMemberId, members, 'cascade'),
 		index().on(t.schoolId, t.courseId),
 	],
 )

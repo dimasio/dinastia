@@ -64,6 +64,9 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `learning.expire-enrollments`, 03:10 по Москве). `learningScope(ctx)` — точка ограничения списка куратору по группам (4.2).
 - API `learning.enrollments.*`; права `learning.read` (admin, teacher, curator), `learning.enroll` (admin, teacher).
 - Экран — вкладка «Ученики» курса: `features/learning/learners.tsx`, ресурс `resources/enrollments.ts` (фабрика на курс), срок по умолчанию — `courses.update`.
+- Приглашения (4.1(б)): `invites.service.ts` — `createLinkInvite`, `inviteByEmail` (задача `learning.send-course-invitation` выпускает токен), `getJoin`/`acceptJoin`;
+  API `learning.invites.*` и публичные `join.*`; экран — панель «Ссылки-приглашения» (`invites-sheet.tsx`) и страница `/join/<токен>` (`join-page.tsx`).
+  Токены — только хэш в БД; письма с токеном шлёт задача (`deliverEmail`), а не `ctx.mail.send`.
 - Статус в списке считается с учётом срока (`shownStatus`): просроченный active/completed — «expired» ещё до задачи.
 
 ## Завершение урока по результату (3.6)

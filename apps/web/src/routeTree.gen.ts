@@ -20,6 +20,7 @@ import { Route as DevBlocksRouteImport } from './routes/dev.blocks'
 import { Route as DevQuestionsRouteImport } from './routes/dev.questions'
 import { Route as DevRichTextRouteImport } from './routes/dev.rich-text'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
 import { Route as LearnProfileRouteImport } from './routes/learn/profile'
 import { Route as AdminCoursesIndexRouteImport } from './routes/admin/courses/index'
@@ -88,6 +89,11 @@ const DevRichTextRoute = DevRichTextRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearnIndexRoute = LearnIndexRouteImport.update({
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
+    | '/join/$token'
     | '/learn/profile'
     | '/admin/'
     | '/learn/'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
+    | '/join/$token'
     | '/learn/profile'
     | '/admin'
     | '/learn'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/dev/questions'
     | '/dev/rich-text'
     | '/invite/$token'
+    | '/join/$token'
     | '/learn/profile'
     | '/admin/'
     | '/learn/'
@@ -339,6 +351,7 @@ export interface RootRouteChildren {
   DevQuestionsRoute: typeof DevQuestionsRoute
   DevRichTextRoute: typeof DevRichTextRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  JoinTokenRoute: typeof JoinTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn/': {
@@ -587,6 +607,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevQuestionsRoute: DevQuestionsRoute,
   DevRichTextRoute: DevRichTextRoute,
   InviteTokenRoute: InviteTokenRoute,
+  JoinTokenRoute: JoinTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

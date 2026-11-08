@@ -63,12 +63,12 @@ status: draft
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `groups`                 | поток: `course_id`, `title`, `starts_at`, `ends_at`, `access_days`                                                                                                                                |
 | `group_curators`         | `group_id`, `member_id`                                                                                                                                                                           |
-| `enrollments`            | `member_id`, `course_id`, `group_id?`, `status` (`active`, `completed`, `expired`, `revoked`), `source` (`manual`, `invite`, `link`), `enrolled_at`, `expires_at`, `completed_at`, `revoked_at`, `progress_pct` |
+| `enrollments`            | `member_id`, `course_id`, `group_id?`, `status` (`active`, `completed`, `expired`, `revoked`), `source` (`manual`, `invite`, `link`), `enrolled_at`, `expires_at`, `completed_at`, `revoked_at`, `invite_id?`, `progress_pct` |
 | `lesson_progress`        | `enrollment_id`, `lesson_id`, `status` (`locked`, `available`, `in_progress`, `completed`), `available_at`, `opened_at`, `completed_at`                                                           |
 | `block_progress`         | `enrollment_id`, `lesson_id`, `block_key`, `status` (`not_started`, `done`, `graded`, `failed`), `score`, `max_score`, `completed_at`                                                             |
 | `block_<type>_responses` | ответ ученика интерактивного блока (если тип хранит ответ): `enrollment_id`, `block_key`, колонки ответа                                                                                          |
 | `deadlines`              | `course_id`, `group_id?`, `lesson_id`, `due_at` или `due_days` от начала                                                                                                                          |
-| `enrollment_invites`     | ссылки-приглашения курса: `course_id`, `group_id?`, `token`, `expires_at`, `max_uses`, `uses`                                                                                                     |
+| `enrollment_invites`     | приглашения курса: `course_id`, `group_id?` (с 4.2), `token_hash`, `email?` (адресное), `expires_at`, `max_uses?`, `uses`, `created_by_member_id`, `revoked_at`                                                                                                     |
 
 ### Сертификаты (`certificates`)
 
@@ -275,7 +275,7 @@ status: draft
 - **Вручную (4.1(а)).** Вкладка «Ученики» курса; `learning.enroll` — owner, admin, teacher; список — `learning.read` (+ curator). Почта
   ученика школы — зачисление сразу (источник `manual`) и письмо `learning.enrolled`. Незнакомую почту зачисляет только владелец или
   администратор: он **создаёт аккаунт** (без пароля, вход по ссылке на почту) и участника `student`; преподаватель получает
-  `ONLY_ADMIN_CREATES_ACCOUNTS` (с 4.1(б) вместо отказа — приглашение на почту). Сотрудник — `NOT_A_STUDENT`, заблокированный —
+  приглашение на почту (см. ниже). Сотрудник — `NOT_A_STUDENT`, заблокированный —
   `MEMBER_BLOCKED`, курс без публикации — `COURSE_NOT_FOUND`. Повтор по действующему — то же зачисление (`already`), истёкшее и
   отозванное возвращаются с прежним прогрессом (`restored`).
 - **Срок.** `expires_at` = момент зачисления + `courses.access_days` (поле на вкладке «Ученики»), либо свой срок при зачислении
@@ -283,6 +283,15 @@ status: draft
   показывается «Доступ закончился» сразу, задача `learning.expire-enrollments` (раз в сутки) переводит его в `expired`.
 - **Отзыв.** «Отозвать доступ» → `revoked` + `revoked_at`: курс не открывается, прогресс сохраняется; «Вернуть доступ» → `active`
   (или `completed`, если курс пройден), срок прежний (истёкший нужно продлить). Продлить и снять срок у отозванного нельзя.
+- **Приглашения (4.1(б)).** *Ссылка* (`learning.invites.create`, `learning.enroll`): токен 32 байта, в БД — хэш, ссылка видна один раз при
+  создании; срок (по умолчанию 30 дней), необязательный лимит, отзыв; статусы `active`/`expired`/`revoked`/`exhausted`. *Адресное*:
+  преподаватель зачисляет незнакомую почту — ей уходит письмо `learning.course-invitation` со ссылкой (токен выпускает задача
+  `learning.send-course-invitation`, в очереди его нет), одно использование, 7 дней, принять может только владелец почты
+  (`JOIN_EMAIL_MISMATCH`); повтор на ту же почту продлевает действующее.
+- **Присоединение** (`/join/<токен>`, `join.get` публично, `join.accept` для вошедшего): участник `student` создаётся, если его нет, затем
+  зачисление (источник `link`/`invite`, `enrollments.invite_id`). Использование считается один раз на человека (повтор — без расхода);
+  сотрудник — `NOT_A_STUDENT`, заблокированный — `MEMBER_BLOCKED`; отозванная, просроченная и исчерпанная — `JOIN_REVOKED`/`JOIN_EXPIRED`/
+  `JOIN_EXHAUSTED`. Принятие ограничено по частоте (20 в час на пользователя), строка приглашения блокируется на время принятия.
 - Все действия пишутся в журнал (`learning.enrollment.*`, `learning.account.created`).
 - При зачислении `lesson_progress` не создаётся — строки появляются при открытии уроков (доступность считается при чтении).
 - Срок доступа потока (`groups.access_days`) — с 4.2.
