@@ -1,6 +1,7 @@
 // Клиентский реестр блоков: иконка палитры и ленивые редактор/просмотр по типу (только web; api это не импортирует).
 import {
 	AppWindow,
+	ClipboardCheck,
 	Code,
 	FileDown,
 	Heading,
@@ -72,6 +73,11 @@ export const clientBlocks: Record<BlockType, ClientBlock> = {
 		icon: FileDown,
 		Editor: lazy(() => import('./file/editor.tsx')),
 		Viewer: lazy(() => import('./file/viewer.tsx')),
+	},
+	quiz: {
+		icon: ClipboardCheck,
+		Editor: lazy(() => import('./quiz/editor.tsx')),
+		Viewer: lazy(() => import('./quiz/viewer.tsx')),
 	},
 	// gen:block:client
 }

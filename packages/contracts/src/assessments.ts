@@ -5,6 +5,12 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { DateTime, Id, page, pageInput } from './common/index.ts'
 
+/** Лимиты блока «Тест» (3.3): общие для блока, редактора и сервера. */
+export const QUIZ_QUESTIONS_MAX = 50
+export const QUIZ_TAGS_MAX = 10
+export const QUIZ_TIME_MIN_SEC = 60
+export const QUIZ_TIME_MAX_SEC = 4 * 60 * 60
+
 export const TAG_NAME_MAX = 40
 export const TAGS_PER_QUESTION_MAX = 10
 
@@ -59,6 +65,13 @@ export const assessmentsContract = {
 			.input(QuestionListInput)
 			.output(page(QuestionRow)),
 		get: oc.route({ method: 'GET', path: '/questions/{id}' }).input(ById).output(BankQuestion),
+		/**
+		 * Вопросы по id для выбора в тесте (3.3): каждый id — к текущей ревизии вопроса; архивного или чужого нет — `question: null`.
+		 */
+		lookup: oc
+			.route({ method: 'POST', path: '/questions/lookup' })
+			.input(z.object({ ids: z.array(Id).max(50) }))
+			.output(z.array(z.object({ requestedId: Id, question: QuestionRow.nullable() }))),
 		create: oc
 			.route({ method: 'POST', path: '/courses/{courseId}/questions', successStatus: 201 })
 			.input(QuestionInput.extend({ courseId: Id }))

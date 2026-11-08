@@ -65,6 +65,7 @@ import { uploadFile } from '#/app/files.ts'
 import { client, orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { uploadVideo } from '#/app/video-upload.ts'
+import { QuizBlockEditor, type QuizData } from '#/features/assessments/quiz-block-editor.tsx'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -317,6 +318,7 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 									{list.map((block, i) => (
 										<BlockCard
 											key={block.id}
+											courseId={courseId}
 											block={block}
 											first={i === 0}
 											last={i === list.length - 1}
@@ -426,6 +428,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
 }
 
 function BlockCard(props: {
+	courseId: string
 	block: LessonBlock
 	first: boolean
 	last: boolean
@@ -513,15 +516,26 @@ function BlockCard(props: {
 					})}
 				</p>
 			)}
-			<BlockEditorHost
-				key={videoState(block)}
-				type={block.type}
-				value={block.data}
-				onChange={props.onChange}
-				files={block.files}
-				upload={upload}
-				testId={`block-${block.id}`}
-			/>
+			{block.type === 'quiz' ? (
+				// блоку «Тест» нужен банк вопросов курса (API) — редакторам блоков он недоступен (карточка 3.3)
+				<QuizBlockEditor
+					courseId={props.courseId}
+					value={block.data as unknown as QuizData}
+					onChange={props.onChange}
+					readOnly={false}
+					testId={`block-${block.id}`}
+				/>
+			) : (
+				<BlockEditorHost
+					key={videoState(block)}
+					type={block.type}
+					value={block.data}
+					onChange={props.onChange}
+					files={block.files}
+					upload={upload}
+					testId={`block-${block.id}`}
+				/>
+			)}
 		</li>
 	)
 }

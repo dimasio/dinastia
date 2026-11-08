@@ -170,5 +170,28 @@
 			"mb": "{{n}} МБ",
 			"kb": "{{n}} КБ"
 		}
+	},
+	"quiz": {
+		"title": "Тест",
+		"description": "Вопросы из банка курса с баллами, попытками и таймером",
+		"editorHint": "Тест настраивается в конструкторе урока. Вопросов: {{count}}.",
+		"facts": {
+			"questions_one": "{{count}} вопрос",
+			"questions_few": "{{count}} вопроса",
+			"questions_many": "{{count}} вопросов",
+			"questions_other": "{{count}} вопроса",
+			"pass": "Проходной балл — {{pct}}%",
+			"noTime": "Без ограничения по времени",
+			"time": "Время — {{minutes}} мин",
+			"attemptsUnlimited": "Попыток без ограничения",
+			"attempts_one": "{{count}} попытка",
+			"attempts_few": "{{count}} попытки",
+			"attempts_many": "{{count}} попыток",
+			"attempts_other": "{{count}} попытки"
+		},
+		"issues": {
+			"noQuestions": "в тесте нет вопросов",
+			"noTags": "не выбраны теги для случайных вопросов"
+		}
 	}
 }

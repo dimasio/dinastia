@@ -6,6 +6,7 @@ export * from './embed/table.ts'
 export * from './file/table.ts'
 export * from './heading/table.ts'
 export * from './image/table.ts'
+export * from './quiz/table.ts'
 export * from './text/table.ts'
 export * from './video/table.ts'
 // gen:block:tables

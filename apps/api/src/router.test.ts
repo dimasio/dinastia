@@ -198,6 +198,7 @@ describe('OpenAPI', () => {
 				'/blocks/{id}/video-upload',
 				'/courses/{courseId}/questions',
 				'/courses/{courseId}/question-tags',
+				'/questions/lookup',
 				'/questions/{id}',
 				'/questions/{id}/archive',
 				'/question-tags/{id}',

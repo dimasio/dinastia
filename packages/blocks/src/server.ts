@@ -14,6 +14,8 @@ import { heading } from './heading/definition.ts'
 import { blockHeading } from './heading/table.ts'
 import { image } from './image/definition.ts'
 import { blockImage } from './image/table.ts'
+import { quiz } from './quiz/definition.ts'
+import { blockQuiz, blockQuizQuestions, blockQuizTags } from './quiz/table.ts'
 import { type BlockStorage, defineBlockStorage } from './storage.ts'
 import { text } from './text/definition.ts'
 import { blockText } from './text/table.ts'
@@ -34,6 +36,7 @@ export const blockStorages: Readonly<Record<string, BlockStorage>> = {
 	embed: defineBlockStorage(embed, blockEmbed),
 	image: defineBlockStorage(image, blockImage),
 	file: defineBlockStorage(file, blockFile),
+	quiz: defineBlockStorage(quiz, blockQuiz, { questions: blockQuizQuestions, tags: blockQuizTags }),
 	// gen:block:storage
 }
 

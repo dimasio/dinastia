@@ -7,6 +7,7 @@ import { embed } from './embed/definition.ts'
 import { file } from './file/definition.ts'
 import { heading } from './heading/definition.ts'
 import { image } from './image/definition.ts'
+import { quiz } from './quiz/definition.ts'
 import { text } from './text/definition.ts'
 import { video } from './video/definition.ts'
 // gen:block:import
@@ -21,6 +22,7 @@ export const blocks = {
 	file,
 	embed,
 	divider,
+	quiz: quiz,
 	// gen:block:entry
 } satisfies Record<string, AnyBlockDef>
 

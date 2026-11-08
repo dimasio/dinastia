@@ -160,6 +160,66 @@ export async function listBank(ctx: SchoolCtx, input: QuestionListQuery) {
 	return toPage(items, total?.n ?? 0, input)
 }
 
+/**
+ * Текущие ревизии вопросов по id: вопрос, заменённый ревизией (D-035), подменяется последней; архивный или несуществующий —
+ * `null`. Нужен тесту (3.3): в нём хранится id вопроса на момент выбора.
+ */
+export async function resolveCurrent(
+	ctx: SchoolCtx,
+	ids: string[],
+): Promise<Map<string, typeof questions.$inferSelect | null>> {
+	const result = new Map<string, typeof questions.$inferSelect | null>(ids.map((id) => [id, null]))
+	// от каждого id идём вперёд по цепочке ревизий (revision_of → следующая) до текущей
+	let frontier = new Map(ids.map((id) => [id, id]))
+	for (let hop = 0; hop < 20 && frontier.size; hop++) {
+		const rows = await ctx.db
+			.select()
+			.from(questions)
+			.where(inArray(questions.id, [...frontier.values()]))
+		const next = new Map<string, string>()
+		for (const [origin, id] of frontier) {
+			const row = rows.find((r) => r.id === id)
+			if (!row) continue
+			if (row.isCurrent) result.set(origin, row.archivedAt ? null : row)
+			else {
+				const [child] = await ctx.db
+					.select({ id: questions.id })
+					.from(questions)
+					.where(eq(questions.revisionOf, row.id))
+					.limit(1)
+				if (child) next.set(origin, child.id)
+			}
+		}
+		frontier = next
+	}
+	return result
+}
+
+/** Строки списка по id вопросов (для редактора теста): порядок как во входе. */
+export async function lookupQuestions(ctx: SchoolCtx, ids: string[]) {
+	const resolved = await resolveCurrent(ctx, ids)
+	const rows = [...resolved.values()].filter((r): r is NonNullable<typeof r> => r !== null)
+	const tags = await tagsOf(
+		ctx,
+		rows.map((r) => r.id),
+	)
+	return ids.map((requestedId) => {
+		const r = resolved.get(requestedId)
+		const question: QuestionRow | null = r
+			? {
+					id: r.id,
+					type: r.type,
+					text: toPlainText(r.prompt as never, { maxLength: ROW_TEXT_MAX }).split('\n')[0] ?? '',
+					points: r.points,
+					tags: tags.get(r.id) ?? [],
+					createdAt: r.createdAt,
+					updatedAt: r.updatedAt,
+				}
+			: null
+		return { requestedId, question }
+	})
+}
+
 export async function getBankQuestion(ctx: SchoolCtx, id: string): Promise<BankQuestion> {
 	const q = await bankQuestion(ctx, id)
 	return toBank(q, (await tagsOf(ctx, [id])).get(id) ?? [])

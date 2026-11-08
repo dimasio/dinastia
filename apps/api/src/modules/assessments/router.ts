@@ -8,6 +8,7 @@ import {
 	getBankQuestion,
 	listBank,
 	listTags,
+	lookupQuestions,
 	removeTag,
 	renameTag,
 	updateBankQuestion,
@@ -33,6 +34,14 @@ export const assessmentsRouter = {
 			.use(mw.member)
 			.use(can('assessments.bank.read'))
 			.handler(({ input, context }) => getBankQuestion(schoolCtx(context), input.id)),
+		lookup: chain()
+			.questions.lookup.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('assessments.bank.read'))
+			.handler(({ input, context }) => lookupQuestions(schoolCtx(context), input.ids)),
 		create: chain()
 			.questions.create.use(mw.host)
 			.use(mw.session)
