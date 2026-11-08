@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorCode, errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
+import { AssignmentPanel } from '../assignment/assignment-panel.tsx'
 import { LessonList, useLockedText } from '../lesson-list.tsx'
 import { QuizPanel } from '../quiz/quiz-panel.tsx'
 
@@ -92,6 +93,8 @@ export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonI
 							// тест проходится через API попыток — панель теста вместо обычного просмотра (карточка 3.3)
 							block.type === 'quiz' ? (
 								<QuizPanel key={block.id} lessonId={lessonId} blockKey={block.blockKey} />
+							) : block.type === 'assignment' ? (
+								<AssignmentPanel key={block.id} lessonId={lessonId} blockKey={block.blockKey} />
 							) : (
 								<BlockViewerHost
 									key={block.id}

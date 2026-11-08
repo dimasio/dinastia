@@ -1,4 +1,6 @@
 // Реестр определений блоков (общий для сервера и клиента). Новый тип — `pnpm gen:block <type>` (маркеры gen:block).
+
+import { assignment } from './assignment/definition.ts'
 import { callout } from './callout/definition.ts'
 import { code } from './code/definition.ts'
 import type { AnyBlockDef } from './define.ts'
@@ -23,6 +25,7 @@ export const blocks = {
 	embed,
 	divider,
 	quiz: quiz,
+	assignment: assignment,
 	// gen:block:entry
 } satisfies Record<string, AnyBlockDef>
 

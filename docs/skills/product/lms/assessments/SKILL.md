@@ -74,3 +74,15 @@ description: Тесты и домашние задания в Dinastia — мо�
   `apps/web/src/features/learning/quiz/quiz-panel.tsx` (плеер подставляет её вместо `BlockViewerHost` для блоков `quiz`).
 - Правка вопроса с попытками — ревизия (`hasAnswers` по `attempt_questions`); `resolveCurrent` подменяет id вопроса текущей ревизией.
 - Нет (3.4–3.6): блок `assignment`, очередь проверки, ручная проверка `open_text`, завершение урока по результату теста.
+
+## Состояние (3.4)
+
+- Есть: блок `assignment` (`packages/blocks/src/assignment/`: формулировка, что принимать, число файлов, нужна ли проверка;
+  редактор — обычный, в `packages/blocks`), таблицы `submissions`, `submission_files`, `submission_comments`
+  (`modules/assessments/schema.ts`), `transitions.ts` (`transition`, `canTransition`, `isEditable` — единственное место
+  переходов статусов), `submission.service.ts` (`getAssignment`, `saveDraft`, `submitAssignment`, `reviewSubmission`), назначение
+  файла `assessments.submission-file` (`files.ts`), события `submission.submitted`/`submission.reviewed`, API `assignment.*`
+  (права `assessments.submit` — ученик, `assessments.review` — admin/teacher), панель задания в плеере
+  `apps/web/src/features/learning/assignment/assignment-panel.tsx` (подставляется вместо просмотра блока, как панель теста).
+- Нет (3.5–3.6): очередь проверки и экран проверки, переписка (ответы ученика, файлы к комментариям), куратор и его область,
+  письма ученику, завершение урока по принятому заданию.

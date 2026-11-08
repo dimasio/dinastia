@@ -9,3 +9,14 @@ export const quizSubmitted = defineEvent('quiz.submitted', z.object(attempt))
 
 /** Попытка оценена: `passed` известен (у попытки с `open_text` — после ручной проверки, 3.6). */
 export const quizGraded = defineEvent('quiz.graded', z.object({ ...attempt, passed: z.boolean() }))
+
+const submission = { submissionId: z.uuid(), enrollmentId: z.uuid(), lessonId: z.uuid(), blockKey: z.uuid() }
+
+/** Сдача отправлена (первая или повторная после доработки). */
+export const submissionSubmitted = defineEvent('submission.submitted', z.object(submission))
+
+/** Сдача проверена: принята, возвращена на доработку или отклонена (при автопринятии — `accepted` сразу). Подписчики — 3.5, 3.6. */
+export const submissionReviewed = defineEvent(
+	'submission.reviewed',
+	z.object({ ...submission, status: z.enum(['accepted', 'needs_revision', 'rejected']) }),
+)

@@ -4,6 +4,7 @@ import {
 	ClipboardCheck,
 	Code,
 	FileDown,
+	FilePenLine,
 	Heading,
 	Image,
 	type LucideIcon,
@@ -78,6 +79,11 @@ export const clientBlocks: Record<BlockType, ClientBlock> = {
 		icon: ClipboardCheck,
 		Editor: lazy(() => import('./quiz/editor.tsx')),
 		Viewer: lazy(() => import('./quiz/viewer.tsx')),
+	},
+	assignment: {
+		icon: FilePenLine,
+		Editor: lazy(() => import('./assignment/editor.tsx')),
+		Viewer: lazy(() => import('./assignment/viewer.tsx')),
 	},
 	// gen:block:client
 }

@@ -1,5 +1,7 @@
 // Сервер (apps/api): таблицы типов для drizzle-kit и пары «определение + таблицы» для ядра. Клиент это не импортирует.
 
+import { assignment } from './assignment/definition.ts'
+import { blockAssignment } from './assignment/table.ts'
 import { callout } from './callout/definition.ts'
 import { blockCallout } from './callout/table.ts'
 import { code } from './code/definition.ts'
@@ -37,6 +39,7 @@ export const blockStorages: Readonly<Record<string, BlockStorage>> = {
 	image: defineBlockStorage(image, blockImage),
 	file: defineBlockStorage(file, blockFile),
 	quiz: defineBlockStorage(quiz, blockQuiz, { questions: blockQuizQuestions, tags: blockQuizTags }),
+	assignment: defineBlockStorage(assignment, blockAssignment),
 	// gen:block:storage
 }
 

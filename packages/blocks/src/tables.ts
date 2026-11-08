@@ -1,4 +1,6 @@
 // Таблицы типов блоков — для drizzle-kit и клиента БД приложения (apps/api/src/db-schema.ts). Только таблицы и enum.
+
+export * from './assignment/table.ts'
 export * from './callout/table.ts'
 export * from './code/table.ts'
 export * from './divider/table.ts'

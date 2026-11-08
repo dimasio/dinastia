@@ -1,6 +1,6 @@
 // Таблицы модуля assessments (скилл db-schema, domain.md §1): теги банка вопросов курса. Сами вопросы — таблицы ядра
 // `questions`/`question_items` (@dinastia/db, D-052). Внешний ключ `course_id → courses` — составной, как у других таблиц.
-import { questionItems, questions, tenantRef, tenantTable } from '@dinastia/db'
+import { questionItems, questions, richText, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
 import {
 	boolean,
@@ -13,6 +13,8 @@ import {
 	uniqueIndex,
 	uuid,
 } from 'drizzle-orm/pg-core'
+import { members } from '#/kernel/members/schema.ts'
+import { files } from '#/kernel/storage/schema.ts'
 import { courses, lessons } from '../courses/schema.ts'
 import { enrollments } from '../learning/schema.ts'
 
@@ -140,5 +142,64 @@ export const quizAnswerItems = tenantTable(
 		tenantRef(t, t.answerId, quizAnswers, 'cascade'),
 		tenantRef(t, t.itemId, questionItems, 'no action'),
 		index().on(t.schoolId, t.answerId),
+	],
+)
+
+export const SUBMISSION_STATUSES = ['draft', 'submitted', 'needs_revision', 'accepted', 'rejected'] as const
+export const submissionStatus = pgEnum('submission_status', SUBMISSION_STATUSES)
+
+/**
+ * Сдача домашнего задания (карточка 3.4): одна запись на `(зачисление, урок, block_key)`; `revision` растёт при каждой
+ * отправке. Переходы статусов — только через `transition` (`transitions.ts`).
+ */
+export const submissions = tenantTable(
+	'submissions',
+	{
+		enrollmentId: uuid('enrollment_id').notNull(),
+		lessonId: uuid('lesson_id').notNull(),
+		blockKey: uuid('block_key').notNull(),
+		status: submissionStatus('status').notNull().default('draft'),
+		body: richText('body'),
+		revision: integer('revision').notNull().default(0),
+		reviewerMemberId: uuid('reviewer_member_id'),
+		submittedAt: timestamp('submitted_at', { withTimezone: true }),
+		reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+	},
+	(t) => [
+		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
+		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		tenantRef(t, t.reviewerMemberId, members, 'no action'),
+		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
+		index().on(t.schoolId, t.status, t.submittedAt),
+	],
+)
+
+/** Файлы сдачи (назначение `assessments.submission-file`); порядок — `position`. */
+export const submissionFiles = tenantTable(
+	'submission_files',
+	{
+		submissionId: uuid('submission_id').notNull(),
+		fileId: uuid('file_id').notNull(),
+		position: integer('position').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.submissionId, submissions, 'cascade'),
+		tenantRef(t, t.fileId, files, 'no action'),
+		uniqueIndex().on(t.schoolId, t.submissionId, t.fileId),
+	],
+)
+
+/** Комментарий проверяющего к сдаче (виден ученику); ответы ученика и файлы к комментариям — 3.5. */
+export const submissionComments = tenantTable(
+	'submission_comments',
+	{
+		submissionId: uuid('submission_id').notNull(),
+		authorMemberId: uuid('author_member_id').notNull(),
+		body: richText('body').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.submissionId, submissions, 'cascade'),
+		tenantRef(t, t.authorMemberId, members, 'no action'),
+		index().on(t.schoolId, t.submissionId, t.createdAt),
 	],
 )

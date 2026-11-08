@@ -234,7 +234,18 @@ status: draft
 
 ### Домашнее задание (блок `assignment`)
 
-- Статусы `submissions.status`: `draft → submitted → (needs_revision → submitted)* → accepted | rejected`.
+- Статусы `submissions.status`: `draft → submitted → (needs_revision → submitted)* → accepted | rejected`. Переходы — только через
+  `transition(from, to, actor)` (`modules/assessments/transitions.ts`): ученик отправляет из `draft` и `needs_revision`;
+  проверяющий решает по `submitted` (принять, на доработку, отклонить); при `requires_review = false` — «система» принимает
+  сразу при отправке. `accepted` и `rejected` — конечные; недопустимое — `SUBMISSION_STATE`.
+- Настройки блока (по умолчанию): принимаются текст и файлы, до 3 файлов (1–10), проверка обязательна. Ответ — форматированный
+  текст (профиль `comment`, до 10 000 знаков) и/или файлы (`assessments.submission-file`: картинки, PDF, Word, Excel,
+  PowerPoint, ZIP, TXT, CSV, MP3, MP4 до 100 МБ; привязывается только готовый файл, загруженный этим учеником); хотя бы одно
+  непустое (`SUBMISSION_EMPTY`). Одна запись на `(зачисление, урок, block_key)`; `revision` растёт при каждой отправке.
+- Ученик правит и отправляет только в `draft` и `needs_revision`; в остальных статусах — только чтение. Комментарий проверяющего
+  (`submission_comments`) обязателен при «на доработку» и «отклонить», виден ученику. Права: `assessments.submit` — ученик,
+  `assessments.review` — owner, admin, teacher (куратор — 3.5). Доступ ученика — как к уроку. События `submission.submitted`,
+  `submission.reviewed`. Оценки баллами нет. Завершение урока по принятому заданию — 3.6; очередь проверки, переписка и письма — 3.5.
 - Проверяет: преподаватель — любые; куратор — только своих групп. После `accepted` блок считается выполненным.
 
 ### Зачисление

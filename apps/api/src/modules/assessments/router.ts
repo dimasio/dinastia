@@ -14,6 +14,7 @@ import {
 	updateBankQuestion,
 } from './question.service.ts'
 import { getAttempt, getQuizState, resultOf, saveAnswer, startAttempt, submitAttempt } from './quiz.service.ts'
+import { getAssignment, reviewSubmission, saveDraft, submitAssignment } from './submission.service.ts'
 
 const chain = () => impl.assessments
 
@@ -146,4 +147,40 @@ export const quizRouter = {
 		.use(mw.member)
 		.use(can('assessments.attempt'))
 		.handler(({ input, context }) => resultOf(schoolCtx(context), input.attemptId)),
+}
+
+/** Домашнее задание (карточка 3.4): сдача ученика и проверка преподавателем. */
+export const assignmentRouter = {
+	get: impl.assignment.get
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.submit'))
+		.handler(({ input, context }) => getAssignment(schoolCtx(context), input)),
+	saveDraft: impl.assignment.saveDraft
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.submit'))
+		.handler(({ input, context }) => saveDraft(schoolCtx(context), input)),
+	submit: impl.assignment.submit
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.submit'))
+		.handler(({ input, context }) => submitAssignment(schoolCtx(context), input)),
+	review: impl.assignment.review
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => reviewSubmission(schoolCtx(context), input)),
 }

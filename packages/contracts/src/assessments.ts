@@ -3,13 +3,38 @@
 // (`@dinastia/questions`), сервер проверяет ею при записи.
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { DateTime, Id, page, pageInput } from './common/index.ts'
+import { CommentText, DateTime, Id, page, pageInput, RichText } from './common/index.ts'
 
 /** Лимиты блока «Тест» (3.3): общие для блока, редактора и сервера. */
 export const QUIZ_QUESTIONS_MAX = 50
 export const QUIZ_TAGS_MAX = 10
 export const QUIZ_TIME_MIN_SEC = 60
 export const QUIZ_TIME_MAX_SEC = 4 * 60 * 60
+
+/** Домашнее задание (3.4): файлов в сдаче и назначение файла сдачи (лимиты — их же проверяет форма). */
+export const ASSIGNMENT_MAX_FILES = 10
+export const SUBMISSION_FILE = {
+	purpose: 'assessments.submission-file',
+	maxSize: 100 * 1024 * 1024,
+	mime: [
+		'image/jpeg',
+		'image/png',
+		'image/webp',
+		'image/gif',
+		'application/pdf',
+		'application/msword',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'application/vnd.ms-excel',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'application/vnd.ms-powerpoint',
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		'application/zip',
+		'text/plain',
+		'text/csv',
+		'audio/mpeg',
+		'video/mp4',
+	] as const,
+}
 
 export const TAG_NAME_MAX = 40
 export const TAGS_PER_QUESTION_MAX = 10
@@ -126,6 +151,76 @@ export const AttemptResult = z.object({
 export type AttemptResult = z.infer<typeof AttemptResult>
 
 const QuizRef = z.object({ lessonId: Id, blockKey: Id })
+
+// ── Домашнее задание (карточка 3.4): namespace `assignment` ───────────────────────────────────────────────────────
+export const SUBMISSION_STATUSES = ['draft', 'submitted', 'needs_revision', 'accepted', 'rejected'] as const
+export const SubmissionStatus = z.enum(SUBMISSION_STATUSES)
+export const SUBMISSION_TEXT_MAX = 10_000
+
+const FileRef = z.object({ id: Id, name: z.string(), mime: z.string(), size: z.number().int(), url: z.string() })
+
+export const SubmissionComment = z.object({
+	id: Id,
+	authorName: z.string(),
+	body: CommentText,
+	createdAt: DateTime,
+})
+
+export const Submission = z.object({
+	id: Id,
+	status: SubmissionStatus,
+	body: CommentText.nullable(),
+	files: z.array(FileRef),
+	comments: z.array(SubmissionComment),
+	/** Сколько раз отправлено (0 — черновик ни разу не отправлялся). */
+	revision: z.number().int(),
+	submittedAt: DateTime.nullable(),
+	reviewedAt: DateTime.nullable(),
+})
+export type Submission = z.infer<typeof Submission>
+
+export const AssignmentState = z.object({
+	settings: z.object({
+		prompt: RichText,
+		allowText: z.boolean(),
+		allowFiles: z.boolean(),
+		maxFiles: z.number().int(),
+		requiresReview: z.boolean(),
+	}),
+	/** Файлы в формулировке (картинки): подписанные ссылки. */
+	promptFiles: z.record(
+		z.string(),
+		z.object({ url: z.string(), name: z.string(), mime: z.string(), size: z.number().int() }),
+	),
+	/** Сдача ученика; пусто — ещё не начинал. */
+	submission: Submission.nullable(),
+	/** Можно ли править и отправлять (нет сдачи, черновик или «нужна доработка»). */
+	canEdit: z.boolean(),
+})
+export type AssignmentState = z.infer<typeof AssignmentState>
+
+const Answer = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(ASSIGNMENT_MAX_FILES) })
+
+export const REVIEW_DECISIONS = ['accept', 'needs_revision', 'reject'] as const
+
+export const assignmentContract = {
+	get: oc.route({ method: 'GET', path: '/assignment/{lessonId}/{blockKey}' }).input(QuizRef).output(AssignmentState),
+	/** Сохранить черновик (или доработку): текст и файлы заменяются присланными. */
+	saveDraft: oc
+		.route({ method: 'PUT', path: '/assignment/{lessonId}/{blockKey}/draft' })
+		.input(QuizRef.extend(Answer.shape))
+		.output(AssignmentState),
+	/** Сохранить и отправить; при `requires_review = false` работа сразу принимается. */
+	submit: oc
+		.route({ method: 'POST', path: '/assignment/{lessonId}/{blockKey}/submit' })
+		.input(QuizRef.extend(Answer.shape))
+		.output(AssignmentState),
+	/** Проверка работы: принять, вернуть на доработку или отклонить; для двух последних комментарий обязателен. */
+	review: oc
+		.route({ method: 'POST', path: '/assignment/submissions/{submissionId}/review' })
+		.input(z.object({ submissionId: Id, decision: z.enum(REVIEW_DECISIONS), comment: CommentText.nullable() }))
+		.output(z.object({ id: Id, status: SubmissionStatus })),
+}
 const ByAttempt = z.object({ attemptId: Id })
 
 export const quizContract = {

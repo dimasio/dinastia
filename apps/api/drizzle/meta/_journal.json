@@ -113,6 +113,13 @@
       "when": 1794124119229,
       "tag": "0015_quiz_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794128367307,
+      "tag": "0016_assignment_submissions",
+      "breakpoints": true
     }
   ]
 }
