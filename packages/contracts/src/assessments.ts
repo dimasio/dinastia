@@ -58,6 +58,94 @@ export type CourseTag = z.infer<typeof CourseTag>
 
 const ById = z.object({ id: Id })
 
+// ── Прохождение теста (карточка 3.3): namespace `quiz`, процедуры ученика ──────────────────────────────────────────
+export const QUIZ_ATTEMPT_STATUSES = ['in_progress', 'submitted', 'graded'] as const
+export const QuizAttemptStatus = z.enum(QUIZ_ATTEMPT_STATUSES)
+export const QUIZ_SHOW_CORRECT = ['never', 'after_submit', 'after_pass'] as const
+
+export const AttemptSummary = z.object({
+	id: Id,
+	status: QuizAttemptStatus,
+	score: z.number(),
+	maxScore: z.number().int(),
+	/** Сдал ли; пусто — попытка ждёт ручной проверки или ещё идёт. */
+	passed: z.boolean().nullable(),
+	startedAt: DateTime,
+	deadlineAt: DateTime.nullable(),
+	submittedAt: DateTime.nullable(),
+})
+export type AttemptSummary = z.infer<typeof AttemptSummary>
+
+export const QuizState = z.object({
+	settings: z.object({
+		selection: z.enum(['fixed', 'random_by_tags']),
+		questionsCount: z.number().int(),
+		attemptsLimit: z.number().int(),
+		passScorePct: z.number().int(),
+		timeLimitSec: z.number().int().nullable(),
+		showCorrect: z.enum(QUIZ_SHOW_CORRECT),
+	}),
+	attempts: z.array(AttemptSummary),
+	activeAttemptId: Id.nullable(),
+	canStart: z.boolean(),
+	/** Лучшая попытка по доле баллов. */
+	best: z.object({ score: z.number(), maxScore: z.number().int() }).nullable(),
+})
+export type QuizState = z.infer<typeof QuizState>
+
+/** Вопрос попытки глазами ученика: данные — только `toPublic` снимка (верных ответов нет), порядок элементов — как в снимке. */
+export const AttemptQuestion = z.object({
+	id: Id,
+	type: z.string(),
+	points: z.number().int(),
+	data: z.unknown(),
+	response: z.unknown().nullable(),
+})
+export type AttemptQuestion = z.infer<typeof AttemptQuestion>
+
+export const AttemptView = z.object({
+	attempt: AttemptSummary,
+	questions: z.array(AttemptQuestion),
+	answered: z.number().int(),
+})
+export type AttemptView = z.infer<typeof AttemptView>
+
+export const ResultQuestion = AttemptQuestion.extend({
+	score: z.number().nullable(),
+	isCorrect: z.boolean().nullable(),
+	/** Разбор типа (верный ответ, пояснение). */
+	review: z.unknown(),
+})
+export const AttemptResult = z.object({
+	attempt: AttemptSummary,
+	pct: z.number().int(),
+	/** Показаны ли ответы и разбор по правилу `show_correct`; нет — `questions` пуст. */
+	revealed: z.boolean(),
+	questions: z.array(ResultQuestion),
+})
+export type AttemptResult = z.infer<typeof AttemptResult>
+
+const QuizRef = z.object({ lessonId: Id, blockKey: Id })
+const ByAttempt = z.object({ attemptId: Id })
+
+export const quizContract = {
+	/** Состояние теста для ученика: настройки, попытки, можно ли начать. */
+	get: oc.route({ method: 'GET', path: '/quiz/{lessonId}/{blockKey}' }).input(QuizRef).output(QuizState),
+	/** Начать попытку (или вернуть активную): снимок вопросов и порядка вариантов. */
+	start: oc.route({ method: 'POST', path: '/quiz/{lessonId}/{blockKey}/attempts' }).input(QuizRef).output(AttemptView),
+	attempt: oc.route({ method: 'GET', path: '/quiz/attempts/{attemptId}' }).input(ByAttempt).output(AttemptView),
+	/** Сохранить ответ на вопрос попытки; `null` — снять ответ. После срока — ATTEMPT_EXPIRED. */
+	answer: oc
+		.route({ method: 'PUT', path: '/quiz/attempts/{attemptId}/answers' })
+		.input(ByAttempt.extend({ attemptQuestionId: Id, response: z.unknown().nullable() }))
+		.output(z.object({ ok: z.literal(true) })),
+	submit: oc
+		.route({ method: 'POST', path: '/quiz/attempts/{attemptId}/submit' })
+		.input(ByAttempt)
+		.output(AttemptResult),
+	result: oc.route({ method: 'GET', path: '/quiz/attempts/{attemptId}/result' }).input(ByAttempt).output(AttemptResult),
+}
+
 export const assessmentsContract = {
 	questions: {
 		list: oc

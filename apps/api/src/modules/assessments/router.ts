@@ -13,6 +13,7 @@ import {
 	renameTag,
 	updateBankQuestion,
 } from './question.service.ts'
+import { getAttempt, getQuizState, resultOf, saveAnswer, startAttempt, submitAttempt } from './quiz.service.ts'
 
 const chain = () => impl.assessments
 
@@ -93,4 +94,56 @@ export const assessmentsRouter = {
 			.use(can('assessments.bank.manage'))
 			.handler(({ input, context }) => removeTag(schoolCtx(context), input.id)),
 	},
+}
+
+/** Прохождение теста (карточка 3.3): процедуры ученика. */
+export const quizRouter = {
+	get: impl.quiz.get
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => getQuizState(schoolCtx(context), input)),
+	start: impl.quiz.start
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => startAttempt(schoolCtx(context), input)),
+	attempt: impl.quiz.attempt
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => getAttempt(schoolCtx(context), input.attemptId)),
+	answer: impl.quiz.answer
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => saveAnswer(schoolCtx(context), input)),
+	submit: impl.quiz.submit
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => submitAttempt(schoolCtx(context), input.attemptId)),
+	result: impl.quiz.result
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.attempt'))
+		.handler(({ input, context }) => resultOf(schoolCtx(context), input.attemptId)),
 }

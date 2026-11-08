@@ -1,6 +1,6 @@
 // Контракт oRPC всего API (скилл api-endpoints). Новый модуль — `pnpm gen:module` добавит строки у маркеров.
 
-import { assessmentsContract } from './assessments.ts'
+import { assessmentsContract, quizContract } from './assessments.ts'
 import { coursesContract } from './courses.ts'
 import { filesContract } from './files.ts'
 import { learnContract } from './learning.ts'
@@ -15,6 +15,7 @@ export const contract = {
 	courses: coursesContract,
 	learn: learnContract,
 	assessments: assessmentsContract,
+	quiz: quizContract,
 	// gen:module:entry
 }
 

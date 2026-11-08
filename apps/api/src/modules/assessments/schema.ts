@@ -1,9 +1,20 @@
 // Таблицы модуля assessments (скилл db-schema, domain.md §1): теги банка вопросов курса. Сами вопросы — таблицы ядра
 // `questions`/`question_items` (@dinastia/db, D-052). Внешний ключ `course_id → courses` — составной, как у других таблиц.
-import { questions, tenantRef, tenantTable } from '@dinastia/db'
+import { questionItems, questions, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
-import { index, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
-import { courses } from '../courses/schema.ts'
+import {
+	boolean,
+	doublePrecision,
+	index,
+	integer,
+	pgEnum,
+	text,
+	timestamp,
+	uniqueIndex,
+	uuid,
+} from 'drizzle-orm/pg-core'
+import { courses, lessons } from '../courses/schema.ts'
+import { enrollments } from '../learning/schema.ts'
 
 /** Тег курса: свободная метка; имя уникально в курсе без учёта регистра. */
 export const questionTags = tenantTable(
@@ -31,5 +42,103 @@ export const questionTagLinks = tenantTable(
 		tenantRef(t, t.tagId, questionTags, 'cascade'),
 		uniqueIndex().on(t.schoolId, t.questionId, t.tagId),
 		index().on(t.schoolId, t.tagId),
+	],
+)
+
+export const QUIZ_ATTEMPT_STATUSES = ['in_progress', 'submitted', 'graded'] as const
+export const quizAttemptStatus = pgEnum('quiz_attempt_status', QUIZ_ATTEMPT_STATUSES)
+
+/**
+ * Попытка прохождения теста (карточка 3.3). `block_key` — стабильный ключ блока между версиями урока. `submitted` —
+ * отправлена, ждёт ручной проверки (`open_text`, 3.6); `graded` — оценена, `passed` известен.
+ */
+export const quizAttempts = tenantTable(
+	'quiz_attempts',
+	{
+		enrollmentId: uuid('enrollment_id').notNull(),
+		lessonId: uuid('lesson_id').notNull(),
+		blockKey: uuid('block_key').notNull(),
+		status: quizAttemptStatus('status').notNull().default('in_progress'),
+		/** Баллы автоматической проверки (с долями при частичном начислении). */
+		score: doublePrecision('score').notNull().default(0),
+		maxScore: integer('max_score').notNull().default(0),
+		passed: boolean('passed'),
+		startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+		/** Срок по серверным часам: `started_at + time_limit_sec`; без лимита времени — пусто. */
+		deadlineAt: timestamp('deadline_at', { withTimezone: true }),
+		submittedAt: timestamp('submitted_at', { withTimezone: true }),
+		gradedAt: timestamp('graded_at', { withTimezone: true }),
+	},
+	(t) => [
+		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
+		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
+		index().on(t.schoolId, t.status, t.deadlineAt),
+	],
+)
+
+/** Снимок вопроса попытки: конкретная ревизия и баллы на момент старта. */
+export const attemptQuestions = tenantTable(
+	'attempt_questions',
+	{
+		attemptId: uuid('attempt_id').notNull(),
+		questionId: uuid('question_id').notNull(),
+		position: integer('position').notNull(),
+		points: integer('points').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.attemptId, quizAttempts, 'cascade'),
+		tenantRef(t, t.questionId, questions, 'no action'),
+		uniqueIndex().on(t.schoolId, t.attemptId, t.position),
+		index().on(t.schoolId, t.questionId),
+	],
+)
+
+/** Порядок элементов вопроса в попытке (перемешивание фиксируется при старте). */
+export const attemptQuestionItems = tenantTable(
+	'attempt_question_items',
+	{
+		attemptQuestionId: uuid('attempt_question_id').notNull(),
+		itemId: uuid('item_id').notNull(),
+		position: integer('position').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.attemptQuestionId, attemptQuestions, 'cascade'),
+		tenantRef(t, t.itemId, questionItems, 'no action'),
+		uniqueIndex().on(t.schoolId, t.attemptQuestionId, t.itemId),
+	],
+)
+
+/** Ответ ученика на вопрос попытки: текст, число и оценка; выбранное, порядок и пары — `quiz_answer_items`. */
+export const quizAnswers = tenantTable(
+	'quiz_answers',
+	{
+		attemptQuestionId: uuid('attempt_question_id').notNull(),
+		textValue: text('text_value'),
+		numberValue: doublePrecision('number_value'),
+		/** Баллы за вопрос; пусто — ещё не оценён (ручная проверка). */
+		score: doublePrecision('score'),
+		isCorrect: boolean('is_correct'),
+		answeredAt: timestamp('answered_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		tenantRef(t, t.attemptQuestionId, attemptQuestions, 'cascade'),
+		uniqueIndex().on(t.schoolId, t.attemptQuestionId),
+	],
+)
+
+/** Выбранный вариант, элемент порядка (`position`) или пара (`item_id` → `matched_item_id`). */
+export const quizAnswerItems = tenantTable(
+	'quiz_answer_items',
+	{
+		answerId: uuid('answer_id').notNull(),
+		itemId: uuid('item_id').notNull(),
+		position: integer('position'),
+		matchedItemId: uuid('matched_item_id'),
+	},
+	(t) => [
+		tenantRef(t, t.answerId, quizAnswers, 'cascade'),
+		tenantRef(t, t.itemId, questionItems, 'no action'),
+		index().on(t.schoolId, t.answerId),
 	],
 )

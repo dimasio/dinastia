@@ -13,27 +13,33 @@ import { toPlainText } from '@dinastia/contracts/common'
 import { questions } from '@dinastia/db'
 import type { AnyColumn } from 'drizzle-orm'
 import { and, asc, count, eq, exists, inArray, isNull, sql } from 'drizzle-orm'
-import type { SchoolCtx } from '#/kernel/context.ts'
+import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import {
 	archiveQuestion,
 	createQuestion,
 	getQuestion,
+	reviseQuestion,
 	type StoredQuestion,
 	updateQuestion,
 } from '#/kernel/questions/questions.ts'
 import { courseOrFail } from '../courses/service.ts'
-import { questionTagLinks, questionTags } from './schema.ts'
+import { attemptQuestions, questionTagLinks, questionTags } from './schema.ts'
 
 /** Тексты вопроса для поиска: все текстовые узлы документа (а не служебные ключи JSON). */
 const promptText = sql`jsonb_path_query_array(${questions.prompt}, 'strict $.**.text')::text` as unknown as AnyColumn
 
 const ROW_TEXT_MAX = 160
 
-/** Есть ли у вопроса ответы учеников. Пока попыток нет (3.3) — всегда нет: правка на месте (D-052). */
-export async function hasAnswers(_ctx: SchoolCtx, _questionId: string): Promise<boolean> {
-	return false
+/** Есть ли у вопроса попытки (он вошёл в снимок хотя бы одной): тогда правка — новая ревизия (D-035). */
+export async function hasAnswers(ctx: BaseCtx, questionId: string): Promise<boolean> {
+	const [row] = await ctx.db
+		.select({ id: attemptQuestions.id })
+		.from(attemptQuestions)
+		.where(eq(attemptQuestions.questionId, questionId))
+		.limit(1)
+	return row !== undefined
 }
 
 /** Имена тегов: пробелы схлопнуты, без повторов (регистр не важен), не больше лимита. */
@@ -165,7 +171,7 @@ export async function listBank(ctx: SchoolCtx, input: QuestionListQuery) {
  * `null`. Нужен тесту (3.3): в нём хранится id вопроса на момент выбора.
  */
 export async function resolveCurrent(
-	ctx: SchoolCtx,
+	ctx: BaseCtx,
 	ids: string[],
 ): Promise<Map<string, typeof questions.$inferSelect | null>> {
 	const result = new Map<string, typeof questions.$inferSelect | null>(ids.map((id) => [id, null]))
@@ -239,15 +245,19 @@ export async function createBankQuestion(
 	)
 }
 
-/** Правка на месте, а у вопроса с ответами — новая ревизия (ядро: `reviseQuestion`, подключается с попытками, 3.3). */
+/**
+ * Правка на месте; у вопроса с попытками — новая ревизия (`reviseQuestion`, D-035): прежняя остаётся в снимках попыток, теги
+ * копируются, в ответе — новый id (экран вопроса переходит на него).
+ */
 export async function updateBankQuestion(
 	ctx: SchoolCtx,
 	input: { id: string; data: unknown; tags: string[] },
 ): Promise<BankQuestion> {
 	const prev = await bankQuestion(ctx, input.id)
 	const tags = normalizeTags(input.tags)
-	if (await hasAnswers(ctx, input.id)) fail.conflict('QUESTION_HAS_ANSWERS') // до 3.3 недостижимо
-	const q = await updateQuestion(ctx, input.id, input.data)
+	const q = (await hasAnswers(ctx, input.id))
+		? await reviseQuestion(ctx, input.id, input.data)
+		: await updateQuestion(ctx, input.id, input.data)
 	await setTags(ctx, prev.courseId, q.id, tags)
 	return getBankQuestion(ctx, q.id)
 }

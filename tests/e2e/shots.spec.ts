@@ -24,6 +24,7 @@ test.describe('@shots', () => {
 	})
 
 	test('песочницы: форматированный текст, блоки, вопросы', async ({ page }) => {
+		test.setTimeout(60_000) // три страницы и девять снимков: в полном прогоне под нагрузкой дольше 30 с
 		await page.goto('/dev/rich-text')
 		await expect(page.getByTestId('sandbox-description')).toBeVisible()
 		await shoot(page, 'dev-rich-text')

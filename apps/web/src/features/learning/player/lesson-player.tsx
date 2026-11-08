@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { errorCode, errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { LessonList, useLockedText } from '../lesson-list.tsx'
+import { QuizPanel } from '../quiz/quiz-panel.tsx'
 
 export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonId: string }) {
 	const { t } = useTranslation(['learning', 'errors'])
@@ -87,15 +88,20 @@ export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonI
 					<EmptyState icon={List} title={t('player.emptyTitle')} />
 				) : (
 					<article className="grid max-w-3xl gap-4" data-testid="player-lesson">
-						{page.blocks.map((block) => (
-							<BlockViewerHost
-								key={block.id}
-								type={block.type}
-								data={block.data}
-								files={block.files}
-								testId="player-block"
-							/>
-						))}
+						{page.blocks.map((block) =>
+							// тест проходится через API попыток — панель теста вместо обычного просмотра (карточка 3.3)
+							block.type === 'quiz' ? (
+								<QuizPanel key={block.id} lessonId={lessonId} blockKey={block.blockKey} />
+							) : (
+								<BlockViewerHost
+									key={block.id}
+									type={block.type}
+									data={block.data}
+									files={block.files}
+									testId="player-block"
+								/>
+							),
+						)}
 					</article>
 				)}
 

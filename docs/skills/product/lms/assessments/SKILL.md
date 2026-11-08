@@ -61,3 +61,16 @@ description: Тесты и домашние задания в Dinastia — мо�
   экран вопроса, ввод тегов, диалог «Теги курса»), маршруты `/admin/courses/$courseId/questions[/$questionId]`.
 - Ядро вопросов (`kernel/questions`) не менялось; редактор типа берётся из реестра (`clientQuestion`).
 - Нет (3.2+): остальные типы вопросов, блок `quiz`, попытки, задания, очередь проверки.
+
+## Состояние (3.3)
+
+- Есть: блок `quiz` (`packages/blocks/src/quiz/`: настройки, фиксированный список или случайные по тегам, `issues`), редактор в
+  конструкторе урока `apps/web/src/features/assessments/quiz-block-editor.tsx` (редакторам блоков API недоступен — конструктор
+  подставляет этот экран по типу блока; запасной `editor.tsx` блока — только заглушка), таблицы попыток (`quiz_attempts`,
+  `attempt_questions`, `attempt_question_items`, `quiz_answers`, `quiz_answer_items` в `modules/assessments/schema.ts`),
+  `quiz.service.ts` (`getQuizState`, `startAttempt`, `saveAnswer`, `finalizeAttempt`, `submitAttempt`, `resultOf`),
+  `answers.ts` (ответ ↔ строки по ключам `selected`/`order`/`pairs`/`text`/`value`), задача `assessments.expire-attempts`,
+  события `quiz.submitted`/`quiz.graded`, API `quiz.*` (право `assessments.attempt`), панель теста в плеере
+  `apps/web/src/features/learning/quiz/quiz-panel.tsx` (плеер подставляет её вместо `BlockViewerHost` для блоков `quiz`).
+- Правка вопроса с попытками — ревизия (`hasAnswers` по `attempt_questions`); `resolveCurrent` подменяет id вопроса текущей ревизией.
+- Нет (3.4–3.6): блок `assignment`, очередь проверки, ручная проверка `open_text`, завершение урока по результату теста.

@@ -124,7 +124,7 @@ export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<Cou
 }
 
 /** Курс урока для ученика: оглавление, зачисление, доступ к уроку; закрытый — LESSON_LOCKED. */
-async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
+export async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
 	const mine = await myEnrollments(ctx)
 	for (const enrollment of mine) {
 		const outline = await publishedOutline(ctx, enrollment.courseId)

@@ -100,6 +100,7 @@ test('тест: выбрать вопросы, настроить, предпр�
 
 	await test.step('случайные по тегам', async () => {
 		await page.getByTestId('block-palette-quiz').click()
+		await expect(page.getByTestId('lesson-block')).toHaveCount(2) // новый блок появился — иначе last() ещё прежний
 		const block2 = page.getByTestId('lesson-block').last()
 		await block2.getByTestId(/-selection-random_by_tags$/).check()
 		await expect(block2.getByTestId('lesson-block-issues')).toHaveText(

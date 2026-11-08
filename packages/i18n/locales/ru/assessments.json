@@ -119,5 +119,51 @@
 			"after_submit": "После сдачи",
 			"after_pass": "После успешной сдачи"
 		}
+	},
+	"quiz": {
+		"title": "Тест",
+		"facts": {
+			"questions_one": "{{count}} вопрос",
+			"questions_few": "{{count}} вопроса",
+			"questions_many": "{{count}} вопросов",
+			"questions_other": "{{count}} вопроса",
+			"pass": "Проходной балл — {{pct}}%",
+			"noTime": "Без ограничения по времени",
+			"time": "Время — {{minutes}} мин",
+			"attemptsUnlimited": "Попыток без ограничения · использовано {{used}}",
+			"attemptsOf": "Попытки: {{used}} из {{limit}}"
+		},
+		"best": "Лучший результат: {{score}} из {{max}} ({{pct}}%)",
+		"attemptN": "Попытка {{n}}",
+		"verdict": {
+			"active": "Идёт",
+			"pending": "Ждёт проверки",
+			"passed": "Сдал",
+			"failed": "Не сдал"
+		},
+		"result": "Результат",
+		"start": "Начать тест",
+		"continue": "Продолжить попытку",
+		"exhausted": "Попытки закончились",
+		"answered": "Отвечено {{done}} из {{total}}",
+		"timeLeft": "Осталось времени",
+		"saveError": "Не удалось сохранить ответ. Проверьте соединение — ответ сохранится при следующей правке.",
+		"questionN": "Вопрос {{n}} из {{total}}",
+		"points_one": "{{count}} балл",
+		"points_few": "{{count}} балла",
+		"points_many": "{{count}} баллов",
+		"points_other": "{{count}} балла",
+		"submit": "Сдать тест",
+		"confirmUnanswered_one": "Остался {{count}} вопрос без ответа. Сдать тест?",
+		"confirmUnanswered_few": "Остались {{count}} вопроса без ответа. Сдать тест?",
+		"confirmUnanswered_many": "Осталось {{count}} вопросов без ответа. Сдать тест?",
+		"confirmUnanswered_other": "Осталось {{count}} вопроса без ответа. Сдать тест?",
+		"scoreLine": "{{score}} из {{max}} · {{pct}}%",
+		"pendingHint": "В тесте есть вопросы с развёрнутым ответом — итог появится после проверки преподавателем.",
+		"hiddenHint": "Правильные ответы в этом тесте не показываются.",
+		"notGraded": "ждёт проверки",
+		"earned": "Баллы: {{score}} из {{max}}",
+		"again": "Пройти ещё раз",
+		"close": "Закрыть"
 	}
 }
