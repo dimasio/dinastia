@@ -7,6 +7,8 @@ const useSystemChrome = process.platform === 'darwin'
 export default defineConfig({
 	testDir: 'tests/e2e',
 	fullyParallel: false,
+	// два воркера: при четырёх на наборе из ~50 сценариев списки и переходы не успевают за ожиданиями (плавающие тесты)
+	workers: 2,
 	retries: process.env.CI ? 1 : 0,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {
