@@ -21,11 +21,15 @@ export function CoursePage({ courseId }: { courseId: string }) {
 	if (outline.isPending) return <Skeleton className="h-64 w-full" />
 	if (outline.error) return <EmptyState icon={BookOpen} title={t(errorText(outline.error), { ns: 'errors' })} />
 	const o = outline.data
-	if (o.course.expired)
+	if (o.course.expired || o.course.revoked)
 		return (
 			<>
 				{back}
-				<EmptyState icon={Clock} title={t('course.expiredTitle')} description={t('course.expiredDescription')} />
+				<EmptyState
+					icon={Clock}
+					title={o.course.revoked ? t('course.revokedTitle') : t('course.expiredTitle')}
+					description={o.course.revoked ? t('course.revokedDescription') : t('course.expiredDescription')}
+				/>
 			</>
 		)
 	return (

@@ -161,6 +161,7 @@
 	"tabs": {
 		"label": "Разделы курса",
 		"content": "Содержание",
-		"questions": "Вопросы"
+		"questions": "Вопросы",
+		"learners": "Ученики"
 	}
 }

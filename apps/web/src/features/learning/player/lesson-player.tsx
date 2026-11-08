@@ -57,7 +57,7 @@ export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonI
 	const page: PlayerLesson = lesson.data
 	const done = page.lesson.status === 'completed'
 	const nextReady = page.next && !page.next.locked ? page.next : null
-	const contents = outline.data && !outline.data.course.expired ? outline.data : null
+	const contents = outline.data && !outline.data.course.expired && !outline.data.course.revoked ? outline.data : null
 
 	return (
 		<div className="grid gap-6 lg:grid-cols-[16rem_1fr]">

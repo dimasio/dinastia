@@ -36,8 +36,8 @@ export function MyCourses() {
 									</div>
 									<CardContent className="grid gap-2 pb-4">
 										<h2 className="font-medium leading-snug">{c.title}</h2>
-										{c.expired ? (
-											<p className="text-destructive text-sm">{t('my.expired')}</p>
+										{c.expired || c.revoked ? (
+											<p className="text-destructive text-sm">{c.revoked ? t('my.revoked') : t('my.expired')}</p>
 										) : (
 											<ProgressBar pct={c.progressPct} label={t('my.progress', { pct: c.progressPct })} />
 										)}

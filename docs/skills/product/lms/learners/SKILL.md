@@ -55,7 +55,16 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `lesson.completed`, `enrollment.completed`, экраны `/learn`, `/learn/courses/$courseId`, плеер урока
   (`apps/web/src/features/learning/`). Доступность считается при чтении, `lesson_progress.status` не хранится.
 - Зачислить для разработки и e2e: `pnpm --filter @dinastia/api exec tsx src/enroll.ts <школа> <email> "<курс>" [sequential]`.
-- Нет (фаза 4): экраны и API зачисления, потоки, кураторы, дедлайны, drip-задача, сертификаты, аналитика.
+- Нет (фаза 4, дальше): потоки, кураторы, дедлайны, drip-задача, сертификаты, аналитика.
+
+## Зачисление (4.1)
+
+- `enrollment.service.ts`: `enroll` (внутренняя; `already`/`enrolled`/`restored`), `enrollByEmail` (аккаунт создаёт только owner/admin через
+  `auth.api.signUpEmail` со случайным паролем), `extend`/`unlimit`/`revoke`/`restore`, `listEnrollments`, `expireDueEnrollments` (задача
+  `learning.expire-enrollments`, 03:10 по Москве). `learningScope(ctx)` — точка ограничения списка куратору по группам (4.2).
+- API `learning.enrollments.*`; права `learning.read` (admin, teacher, curator), `learning.enroll` (admin, teacher).
+- Экран — вкладка «Ученики» курса: `features/learning/learners.tsx`, ресурс `resources/enrollments.ts` (фабрика на курс), срок по умолчанию — `courses.update`.
+- Статус в списке считается с учётом срока (`shownStatus`): просроченный active/completed — «expired» ещё до задачи.
 
 ## Завершение урока по результату (3.6)
 

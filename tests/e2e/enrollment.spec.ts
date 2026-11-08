@@ -1,0 +1,136 @@
+// Зачисление (карточка 4.1): вкладка «Ученики» — зачислить по почте, создать аккаунт, продлить, отозвать и вернуть доступ;
+// ученик видит отзыв доступа в «Моих курсах».
+import { expect, schoolUrl, test } from './fixtures.ts'
+import { waitForLink } from './mailpit.ts'
+
+const run = Date.now().toString(36)
+const COURSE = `Зачисление ${run}`
+const shots = (name: string) => ({ path: `test-results/screens/${name}.png`, fullPage: true })
+
+test('преподаватель зачисляет, продлевает, отзывает и возвращает доступ; администратор создаёт аккаунт', async ({
+	page,
+	loginAs,
+	browser,
+}) => {
+	test.setTimeout(120_000)
+	await loginAs('admin')
+	await page.goto(schoolUrl('demo', '/admin/courses'))
+	const courseId = await page.evaluate(async (title) => {
+		const call = async (path: string, body: unknown) => {
+			const r = await fetch(`/api/v1${path}`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify(body),
+			})
+			if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`)
+			return r.json()
+		}
+		const course = await call('/courses', { title })
+		const section = await call(`/courses/${course.id}/sections`, { title: 'Раздел' })
+		const lesson = await call(`/sections/${section.id}/lessons`, { title: 'Урок' })
+		const block = await (
+			await fetch(`/api/v1/lessons/${lesson.id}/blocks`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ type: 'text' }),
+			})
+		).json()
+		await fetch(`/api/v1/blocks/${block.id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				data: { body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Текст' }] }] } },
+			}),
+		})
+		await call(`/lessons/${lesson.id}/publish`, {})
+		await call(`/courses/${course.id}/publish`, {})
+		return course.id as string
+	}, COURSE)
+
+	await page.goto(schoolUrl('demo', `/admin/courses/${courseId}`))
+	await page.getByTestId('course-tab-learners').click()
+	await expect(page).toHaveURL(/\/learners$/)
+	await expect(page.getByText('На курсе пока нет учеников')).toBeVisible()
+
+	// срок по умолчанию
+	await page.getByTestId('default-days').fill('60')
+	await page.getByTestId('default-days-save').click()
+	await expect(page.getByText('Срок по умолчанию сохранён')).toBeVisible()
+
+	// зачисление ученика школы
+	await page.getByTestId('resource-enrollments-create').click()
+	const form = page.getByTestId('resource-enrollments-create-form')
+	await form.getByLabel('Email').fill('student1@demo.local')
+	await page.screenshot(shots('4.1-enroll-form'))
+	await form.getByTestId('resource-enrollments-create-form-submit').click()
+	await expect(page.getByText('Ученик зачислен')).toBeVisible()
+	const rows = page.getByTestId('resource-enrollments-row')
+	await expect(rows).toHaveCount(1)
+	await expect(rows.first()).toContainText('student1@demo.local')
+	await expect(rows.first()).toContainText('Учится')
+	expect(await waitForLink('student1@demo.local', new RegExp(`/learn/courses/${courseId}\\b`))).toContain(courseId)
+
+	// администратор создаёт аккаунт новой почтой
+	const email = `learner-${run}@e2e.local`
+	await page.getByTestId('resource-enrollments-create').click()
+	await form.getByLabel('Email').fill(email)
+	await form.getByLabel('Имя').fill('Новый Ученик')
+	await form.getByTestId('resource-enrollments-create-form-submit').click()
+	await expect(rows).toHaveCount(2)
+	await expect(rows.filter({ hasText: email })).toContainText('Новый Ученик')
+
+	// продление
+	const mine = rows.filter({ hasText: 'student1@demo.local' })
+	await mine.getByTestId('resource-enrollments-row-actions').click()
+	await page.getByTestId('resource-enrollments-action-extend').click()
+	await page.getByTestId('resource-enrollments-action-extend-form-submit').click()
+	await expect(page.getByText('доступ продлён')).toBeVisible()
+
+	// отзыв — ученик видит «Доступ отозван»
+	await mine.getByTestId('resource-enrollments-row-actions').click()
+	await page.getByTestId('resource-enrollments-action-revoke').click()
+	await page.screenshot(shots('4.1-revoke-confirm'))
+	await page.getByTestId('resource-enrollments-confirm').click()
+	await expect(mine).toContainText('Доступ отозван')
+
+	const student = await browser.newPage()
+	await student.goto(schoolUrl('demo', '/login'))
+	await student.evaluate(async () => {
+		const r = await fetch('/api/auth/sign-in/email', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ email: 'student1@demo.local', password: 'demo12345' }),
+		})
+		if (!r.ok) throw new Error(`вход: ${r.status}`)
+	})
+	await student.goto(schoolUrl('demo', `/learn/courses/${courseId}`))
+	await expect(student.getByText('Доступ к курсу отозван')).toBeVisible()
+	await student.screenshot(shots('4.1-student-revoked'))
+
+	// возврат
+	await mine.getByTestId('resource-enrollments-row-actions').click()
+	await page.getByTestId('resource-enrollments-action-restore').click()
+	await page.getByTestId('resource-enrollments-confirm').click()
+	await expect(mine).toContainText('Учится')
+	await student.reload()
+	await expect(student.getByText('Доступ к курсу отозван')).toHaveCount(0)
+	await page.screenshot(shots('4.1-learners'))
+	await student.close()
+})
+
+test('куратор видит учеников, но не зачисляет', async ({ page, loginAs }) => {
+	await loginAs('teacher')
+	const id = await page.evaluate(async (title) => {
+		const r = await fetch('/api/v1/courses', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ title }),
+		})
+		return (await r.json()).id as string
+	}, `Куратор ${run}`)
+	await loginAs('curator')
+	await page.goto(schoolUrl('demo', `/admin/courses/${id}/learners`))
+	await expect(page.getByText('На курсе пока нет учеников')).toBeVisible()
+	await expect(page.getByTestId('resource-enrollments-create')).toHaveCount(0)
+	await expect(page.getByTestId('default-days')).toHaveCount(0)
+})

@@ -9,7 +9,7 @@
 | [phase-1-registries](phase-1-registries/task.md) | 1 | done |
 | [phase-2-courses](phase-2-courses/task.md)       | 2    | done  |
 | [phase-3-assessments](phase-3-assessments/task.md) | 3    | done |
-| `phase-4-learners` (не создана)                  | 4    | backlog |
+| [phase-4-learners](phase-4-learners/task.md) | 4    | active |
 | `phase-5-launch` (не создана)                    | 5    | backlog |
 
 ## Запросы к ядру

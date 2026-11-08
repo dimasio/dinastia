@@ -9,46 +9,18 @@ import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { courseCards, type PublishedOutline, publishedOutline } from '../courses/service.ts'
 import { computeAccess, flatLessons, type LessonAccess, type ProgressFact } from './access.ts'
+import { enroll } from './enrollment.service.ts'
 import { enrollmentCompleted, lessonCompleted } from './events.ts'
 import { blockProgress, enrollments, lessonProgress } from './schema.ts'
 
-const DAY_MS = 24 * 60 * 60 * 1000
 type Enrollment = typeof enrollments.$inferSelect
 
-/**
- * Зачислить участника на курс (внутренняя функция: сид, тесты; экраны и API зачисления — фаза 4). Идемпотентно:
- * действующее зачисление возвращается как есть. Курс — опубликованный; срок доступа — из `courses.access_days`.
- */
+/** Зачислить участника на курс (внутренняя функция: сид, тесты, команда `enroll`); см. `enroll` в `enrollment.service.ts`. */
 export async function enrollMember(
 	ctx: BaseCtx,
 	input: { memberId: string; courseId: string; source?: Enrollment['source'] },
 ): Promise<Enrollment> {
-	const outline = await publishedOutline(ctx, input.courseId)
-	if (!outline) return fail.notFound('COURSE_NOT_FOUND')
-	if (outline.course.status !== 'published') return fail.conflict('COURSE_NOT_PUBLISHED')
-	const [existing] = await ctx.db
-		.select()
-		.from(enrollments)
-		.where(
-			and(
-				eq(enrollments.memberId, input.memberId),
-				eq(enrollments.courseId, input.courseId),
-				inArray(enrollments.status, ['active', 'completed']),
-			),
-		)
-	if (existing) return existing
-	const enrolledAt = ctx.now()
-	const [row] = await ctx.db
-		.insert(enrollments)
-		.values({
-			memberId: input.memberId,
-			courseId: input.courseId,
-			source: input.source ?? 'manual',
-			enrolledAt,
-			expiresAt: outline.course.accessDays ? new Date(enrolledAt.getTime() + outline.course.accessDays * DAY_MS) : null,
-		})
-		.returning()
-	return row as Enrollment
+	return (await enroll(ctx, input)).enrollment
 }
 
 /** Доступ закончился: срок вышел или зачисление помечено истёкшим. */
@@ -64,7 +36,10 @@ const myEnrollments = (ctx: SchoolCtx) =>
 		.select()
 		.from(enrollments)
 		.where(
-			and(eq(enrollments.memberId, ctx.member.id), inArray(enrollments.status, ['active', 'completed', 'expired'])),
+			and(
+				eq(enrollments.memberId, ctx.member.id),
+				inArray(enrollments.status, ['active', 'completed', 'expired', 'revoked']),
+			),
 		)
 
 /** Мои курсы: зачисленные, кроме черновиков; истёкшие — с признаком. */
@@ -81,7 +56,9 @@ export async function listMyCourses(ctx: SchoolCtx): Promise<MyCourse[]> {
 	const now = ctx.now()
 	return rows.flatMap((e) => {
 		const card = cards.get(e.courseId)
-		return card ? [{ ...card, progressPct: e.progressPct, expired: isExpired(e, now) }] : []
+		return card
+			? [{ ...card, progressPct: e.progressPct, expired: isExpired(e, now), revoked: e.status === 'revoked' }]
+			: []
 	})
 }
 
@@ -106,9 +83,10 @@ export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<Cou
 		coverUrl: card?.coverUrl ?? null,
 		progressPct: enrollment.progressPct,
 		expired,
+		revoked: enrollment.status === 'revoked',
 	}
-	// доступ закончился — оглавление не отдаём (названия уроков платные)
-	if (expired) return { course, sections: [], nextLessonId: null }
+	// доступ закончился или отозван — оглавление не отдаём (названия уроков платные)
+	if (expired || course.revoked) return { course, sections: [], nextLessonId: null }
 	const access = computeAccess(outline, enrollment, await factsOf(ctx, enrollment.id), ctx.now())
 	const byId = new Map(access.map((a) => [a.lessonId, a]))
 	return {
@@ -132,6 +110,7 @@ export async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
 		const outline = await publishedOutline(ctx, enrollment.courseId)
 		const lesson = outline && flatLessons(outline).find((l) => l.id === lessonId)
 		if (!outline || !lesson) continue
+		if (enrollment.status === 'revoked') return fail.forbidden('ENROLLMENT_REVOKED')
 		if (isExpired(enrollment, ctx.now())) return fail.forbidden('ENROLLMENT_EXPIRED')
 		const facts = await factsOf(ctx, enrollment.id)
 		const access = computeAccess(outline, enrollment, facts, ctx.now())

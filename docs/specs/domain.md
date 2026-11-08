@@ -63,7 +63,7 @@ status: draft
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `groups`                 | поток: `course_id`, `title`, `starts_at`, `ends_at`, `access_days`                                                                                                                                |
 | `group_curators`         | `group_id`, `member_id`                                                                                                                                                                           |
-| `enrollments`            | `member_id`, `course_id`, `group_id?`, `status` (`active`, `completed`, `expired`, `revoked`), `source` (`manual`, `invite`, `link`), `enrolled_at`, `expires_at`, `completed_at`, `progress_pct` |
+| `enrollments`            | `member_id`, `course_id`, `group_id?`, `status` (`active`, `completed`, `expired`, `revoked`), `source` (`manual`, `invite`, `link`), `enrolled_at`, `expires_at`, `completed_at`, `revoked_at`, `progress_pct` |
 | `lesson_progress`        | `enrollment_id`, `lesson_id`, `status` (`locked`, `available`, `in_progress`, `completed`), `available_at`, `opened_at`, `completed_at`                                                           |
 | `block_progress`         | `enrollment_id`, `lesson_id`, `block_key`, `status` (`not_started`, `done`, `graded`, `failed`), `score`, `max_score`, `completed_at`                                                             |
 | `block_<type>_responses` | ответ ученика интерактивного блока (если тип хранит ответ): `enrollment_id`, `block_key`, колонки ответа                                                                                          |
@@ -158,8 +158,7 @@ status: draft
   курса (разделы, затем уроки) завершён; `drip` — наступили `drip_date` или `enrolled_at + drip_days`; `inherit` — режим
   курса. Закрытый урок виден в оглавлении с причиной, открыть его нельзя (`LESSON_LOCKED`); чужой, неопубликованный или без
   зачисления — `LESSON_NOT_FOUND`. `expires_at` в прошлом — «доступ закончился» (`ENROLLMENT_EXPIRED`), оглавление не
-  отдаётся. Зачисление в 2.6 — только внутренняя `enrollMember` (идемпотентна; курс опубликован; `expires_at` из
-  `courses.access_days`); экраны и API — фаза 4.
+  отдаётся. Отозванное зачисление (`revoked`, 4.1) — «Доступ отозван» (`ENROLLMENT_REVOKED`), оглавление не отдаётся.
 
 ### Завершение урока (`lessons.completion_rule`)
 
@@ -272,9 +271,21 @@ status: draft
 
 ### Зачисление
 
-- Способы MVP: вручную сотрудником, по приглашению (email → magic link), по ссылке-приглашению курса.
-- При зачислении создаётся `members` с ролью `student` (если нет), `enrollments`, `lesson_progress` для уроков курса.
-- Срок доступа: `groups.access_days` или `courses.access_days`; истечение — задача `learning.expire-enrollments`.
+- Способы MVP: вручную сотрудником (4.1(а)), по приглашению на почту и по ссылке-приглашению курса (4.1(б)).
+- **Вручную (4.1(а)).** Вкладка «Ученики» курса; `learning.enroll` — owner, admin, teacher; список — `learning.read` (+ curator). Почта
+  ученика школы — зачисление сразу (источник `manual`) и письмо `learning.enrolled`. Незнакомую почту зачисляет только владелец или
+  администратор: он **создаёт аккаунт** (без пароля, вход по ссылке на почту) и участника `student`; преподаватель получает
+  `ONLY_ADMIN_CREATES_ACCOUNTS` (с 4.1(б) вместо отказа — приглашение на почту). Сотрудник — `NOT_A_STUDENT`, заблокированный —
+  `MEMBER_BLOCKED`, курс без публикации — `COURSE_NOT_FOUND`. Повтор по действующему — то же зачисление (`already`), истёкшее и
+  отозванное возвращаются с прежним прогрессом (`restored`).
+- **Срок.** `expires_at` = момент зачисления + `courses.access_days` (поле на вкладке «Ученики»), либо свой срок при зачислении
+  (`accessDays`); «Продлить» — на N дней от конца текущего срока (или от сегодня); «Снять срок» — без ограничения. Просроченное
+  показывается «Доступ закончился» сразу, задача `learning.expire-enrollments` (раз в сутки) переводит его в `expired`.
+- **Отзыв.** «Отозвать доступ» → `revoked` + `revoked_at`: курс не открывается, прогресс сохраняется; «Вернуть доступ» → `active`
+  (или `completed`, если курс пройден), срок прежний (истёкший нужно продлить). Продлить и снять срок у отозванного нельзя.
+- Все действия пишутся в журнал (`learning.enrollment.*`, `learning.account.created`).
+- При зачислении `lesson_progress` не создаётся — строки появляются при открытии уроков (доступность считается при чтении).
+- Срок доступа потока (`groups.access_days`) — с 4.2.
 
 ### Сертификат
 

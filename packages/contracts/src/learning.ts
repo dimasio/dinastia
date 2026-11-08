@@ -2,7 +2,7 @@
 // урок и отметки прохождения. Карточка — docs/tasks/phase-2-courses/changes/2.6-player.md.
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { DateTime, Id } from './common/index.ts'
+import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 import { LESSON_COMPLETION_RULES } from './courses.ts'
 
 export const LESSON_STATUSES = ['locked', 'available', 'in_progress', 'completed'] as const
@@ -24,6 +24,8 @@ export const MyCourse = z.object({
 	progressPct: z.number().int().min(0).max(100),
 	/** Доступ закончился (срок вышел) — курс виден, уроки закрыты. */
 	expired: z.boolean(),
+	/** Доступ отозван школой (4.1) — курс виден, уроки закрыты. */
+	revoked: z.boolean(),
 })
 export type MyCourse = z.infer<typeof MyCourse>
 
@@ -93,5 +95,68 @@ export const learnContract = {
 			.route({ method: 'POST', path: '/learn/lessons/{lessonId}/complete' })
 			.input(LessonById)
 			.output(LessonState),
+	},
+}
+
+// ── Зачисление (карточка 4.1): namespace `learning`, процедуры сотрудников ────────────────────────────────────────────
+export const ENROLLMENT_STATUSES = ['active', 'completed', 'expired', 'revoked'] as const
+export const EnrollmentStatus = z.enum(ENROLLMENT_STATUSES)
+export const ENROLLMENT_SOURCES = ['manual', 'invite', 'link'] as const
+export const ACCESS_DAYS = z.number().int().min(1).max(3650)
+
+/** Строка списка учеников курса; статус — с учётом срока (просроченный показывается «истёк» ещё до задачи). */
+export const EnrollmentRow = z.object({
+	id: Id,
+	studentName: z.string(),
+	studentEmail: z.string(),
+	status: EnrollmentStatus,
+	source: z.enum(ENROLLMENT_SOURCES),
+	enrolledAt: DateTime,
+	/** Конец доступа; пусто — без срока. */
+	expiresAt: DateTime.nullable(),
+	progressPct: z.number().int().min(0).max(100),
+})
+export type EnrollmentRow = z.infer<typeof EnrollmentRow>
+
+export const EnrollmentListInput = pageInput({
+	sorts: ['enrolledAt', 'studentName', 'progressPct'] as const,
+	defaultSort: 'enrolledAt',
+	defaultDir: 'desc',
+	filters: { status: EnrollmentStatus },
+}).extend({ courseId: Id })
+export type EnrollmentListQuery = z.output<typeof EnrollmentListInput>
+
+export const EnrollInput = z.object({
+	courseId: Id,
+	email: Email,
+	/** Срок доступа в днях; не указан — срок курса по умолчанию. */
+	accessDays: ACCESS_DAYS.optional(),
+	/** Имя — для нового аккаунта (его создают владелец и администраторы); не указано — часть почты до «@». */
+	name: z.string().trim().min(1).max(100).optional(),
+})
+
+const ById = z.object({ id: Id })
+
+export const learningContract = {
+	enrollments: {
+		list: oc
+			.route({ method: 'GET', path: '/courses/{courseId}/enrollments' })
+			.input(EnrollmentListInput)
+			.output(page(EnrollmentRow)),
+		/** Зачислить ученика школы по почте; повтор по действующему — то же зачисление, отозванное и истёкшее — возвращается. */
+		enroll: oc
+			.route({ method: 'POST', path: '/courses/{courseId}/enrollments', successStatus: 201 })
+			.input(EnrollInput)
+			.output(z.object({ outcome: z.enum(['enrolled', 'restored', 'already']), enrollment: EnrollmentRow })),
+		/** Продлить доступ на `accessDays` дней от конца текущего срока (или от сегодня, если он вышел). */
+		extend: oc
+			.route({ method: 'POST', path: '/enrollments/{id}/extend' })
+			.input(ById.extend({ accessDays: ACCESS_DAYS }))
+			.output(EnrollmentRow),
+		/** Снять срок: доступ без ограничения по времени. */
+		unlimit: oc.route({ method: 'POST', path: '/enrollments/{id}/unlimit' }).input(ById).output(EnrollmentRow),
+		/** Отозвать доступ (прогресс сохраняется). */
+		revoke: oc.route({ method: 'POST', path: '/enrollments/{id}/revoke' }).input(ById).output(EnrollmentRow),
+		restore: oc.route({ method: 'POST', path: '/enrollments/{id}/restore' }).input(ById).output(EnrollmentRow),
 	},
 }

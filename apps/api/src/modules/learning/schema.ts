@@ -23,6 +23,8 @@ export const enrollments = tenantTable(
 		/** Конец доступа; null — без срока. */
 		expiresAt: timestamp('expires_at', { withTimezone: true }),
 		completedAt: timestamp('completed_at', { withTimezone: true }),
+		/** Когда доступ отозван (`revoked`); прогресс сохраняется, «Вернуть доступ» снимает отметку (4.1). */
+		revokedAt: timestamp('revoked_at', { withTimezone: true }),
 		progressPct: integer('progress_pct').notNull().default(0),
 	},
 	(t) => [
