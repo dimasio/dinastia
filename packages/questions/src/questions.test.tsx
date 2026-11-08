@@ -94,8 +94,8 @@ describe('single_choice', () => {
 		expect(singleChoice.grade?.(ex, { selected: null })).toEqual({ score: 0, max: 2, isCorrect: false })
 	})
 
-	it('заготовка редактора проходит схему; без верного — NEED_ONE_CORRECT', () => {
-		expect(singleChoice.schema.safeParse(singleChoice.defaults()).success).toBe(true)
+	it('заготовка редактора схему не проходит (нужна формулировка и варианты, 3.2); без верного — NEED_ONE_CORRECT', () => {
+		expect(singleChoice.schema.safeParse(singleChoice.defaults()).success).toBe(false)
 		const r = singleChoice.schema.safeParse({ ...ex, options: ex.options.map((o) => ({ ...o, isCorrect: false })) })
 		expect(r.error?.issues[0]?.message).toBe('NEED_ONE_CORRECT')
 	})

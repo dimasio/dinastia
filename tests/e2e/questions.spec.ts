@@ -51,5 +51,5 @@ test('без верного варианта — понятная ошибка �
 	await expect(page.getByTestId('bank-prompt')).toBeVisible()
 	await page.getByTestId('bank-add-option').click()
 	await page.getByRole('button', { name: 'Удалить вариант 1' }).click() // удалили единственный верный
-	await expect(page.getByTestId('bank-invalid')).toHaveText('Отметьте ровно один верный вариант')
+	await expect(page.getByTestId('bank-invalid')).toContainText('Отметьте ровно один верный вариант') // среди прочих: пустая формулировка и варианты (3.2)
 })

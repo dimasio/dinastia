@@ -1,5 +1,6 @@
-import { CompactText, emptyDoc, Id, RichText } from '@dinastia/contracts/common'
+import { emptyDoc, Id, RichText } from '@dinastia/contracts/common'
 import { z } from 'zod'
+import { PromptText, requiredCompact } from '../common.ts'
 import { defineQuestion } from '../define.ts'
 
 const doc = (text: string) => ({
@@ -12,11 +13,11 @@ export const singleChoice = defineQuestion({
 	type: 'single_choice',
 	uses: { columns: [], items: ['option'] },
 	schema: z.object({
-		prompt: RichText,
+		prompt: PromptText,
 		explanation: RichText.nullable(),
 		points: z.number().int().min(1).max(100),
 		options: z
-			.array(z.object({ id: Id.optional(), body: CompactText, isCorrect: z.boolean() }))
+			.array(z.object({ id: Id.optional(), body: requiredCompact('OPTION_REQUIRED'), isCorrect: z.boolean() }))
 			.min(2)
 			.max(20)
 			.refine((o) => o.filter((x) => x.isCorrect).length === 1, { message: 'NEED_ONE_CORRECT' }),

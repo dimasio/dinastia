@@ -1,6 +1,5 @@
 // Экран вопроса банка (карточка 3.1): тип, редактор типа, теги, явное «Сохранить», «Как увидит ученик».
 // Редактор типа — из реестра (clientQuestion): проверку схемой делаем здесь, чтобы знать, можно ли сохранять.
-import { isEmptyDoc } from '@dinastia/contracts/common'
 import { questionDef, questionTypes } from '@dinastia/questions'
 import { clientQuestion, QuestionViewerHost } from '@dinastia/questions/client'
 import {
@@ -21,29 +20,15 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useBlocker, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, CircleHelp, Eye } from 'lucide-react'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { TagInput } from './tag-input.tsx'
+import { withTempIds } from './temp-ids.ts'
 
 const isCode = (m: string) => /^[A-Z_]+$/.test(m)
-
-/** Схема типа допускает пустую формулировку и пустые варианты (заготовка редактора проходит схему) — в банк такое не кладём. */
-function emptyField(data: unknown): 'promptRequired' | 'optionRequired' | null {
-	const d = data as Record<string, unknown>
-	const doc = (x: unknown) => (x && typeof x === 'object' && (x as { type?: string }).type === 'doc' ? x : null)
-	const prompt = doc(d.prompt)
-	if (prompt && isEmptyDoc(prompt as never)) return 'promptRequired'
-	for (const v of Object.values(d))
-		if (Array.isArray(v))
-			for (const item of v) {
-				const body = doc((item as { body?: unknown } | null)?.body)
-				if (body && isEmptyDoc(body as never)) return 'optionRequired'
-			}
-	return null
-}
 
 export function QuestionEditorPage(props: { courseId: string; questionId: string; type?: string | undefined }) {
 	const { t } = useTranslation(['assessments', 'errors'])
@@ -117,8 +102,11 @@ function EditorForm(props: {
 			? [...new Set(parsed.error.issues.map((i: { message: string }) => i.message).filter(isCode))]
 			: []
 	const dirty = JSON.stringify([parsed?.success ? parsed.data : value, tags]) !== saved
-	const empty = parsed?.success ? emptyField(parsed.data) : null
-	const valid = Boolean(parsed?.success) && !empty
+	const valid = Boolean(parsed?.success)
+	const previewData = useMemo(
+		() => (parsed?.success ? withTempIds(parsed.data as Record<string, unknown>) : null),
+		[parsed?.success, value],
+	)
 
 	useBlocker({
 		shouldBlockFn: () => dirty && canManage && !window.confirm(t('editor.leave')),
@@ -228,7 +216,7 @@ function EditorForm(props: {
 				</Button>
 			</div>
 
-			{preview && parsed?.success && (
+			{preview && previewData && (
 				<section
 					className="grid gap-2 rounded-lg border p-4"
 					aria-label={t('editor.preview')}
@@ -236,7 +224,7 @@ function EditorForm(props: {
 				>
 					<QuestionViewerHost
 						type={type}
-						data={def.toPublic(parsed.data)}
+						data={def.toPublic(previewData)}
 						response={response}
 						onChange={setResponse}
 						testId="question-preview-view"

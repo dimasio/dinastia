@@ -6,7 +6,7 @@ description: Реестр типов вопросов теста Dinastia (packa
 # Типы вопросов
 
 > Статус: сверено с кодом в 1.4 (реестр, хранение и ревизии в ядре, хосты, генератор, тип `single_choice`).
-> Банк вопросов курса (процедуры, теги) — 3.1; остальные типы MVP — 3.2; попытки, снимки, ответы (`quiz_answers`) — 3.3.
+> Банк вопросов курса (процедуры, теги) — 3.1; типы MVP — 3.2 (готово, семь типов); попытки, снимки, ответы (`quiz_answers`) — 3.3.
 
 Модель — реляционная (D-032, D-035, D-052), `docs/specs/domain.md` §1 «Тесты и задания». **Все типы хранятся в общих
 таблицах ядра** (`@dinastia/db`: `questions`, `question_items`); тип объявляет, какие колонки и виды элементов он
@@ -152,3 +152,23 @@ export default function SingleChoiceViewer({ data, response, onChange, review, t
 - проверка требует внешнего сервиса (запуск кода, AI-оценка) — не чистая функция;
 - типу нужны данные, которые не укладываются в общие таблицы (новая колонка, новый `kind`);
 - тип нужен вне тестов (опрос без правильного ответа — это блок, скилл `lesson-blocks`).
+
+## Типы MVP (3.2)
+
+| Тип | Колонки / элементы | Ответ ученика | Частичный балл |
+| --- | --- | --- | --- |
+| `single_choice` | `option` | `{ selected }` | нет |
+| `multiple_choice` | `scoring`; `option` | `{ selected: id[] }` | да |
+| `text_input` | `caseSensitive`; `accepted_text` (поле `accepted`) | `{ text }` | нет |
+| `number` | `numberAnswer`, `numberTolerance` | `{ value }` | нет |
+| `ordering` | `scoring`; `order_item` (поле `steps`, массив — в верном порядке, `correctPosition` = индекс) | `{ order: id[] }` | да |
+| `matching` | `scoring`; `match_left`/`match_right` (поля `left`, `right`, пара — общий `matchKey`) | `{ pairs: [{left, right}] }` | да |
+| `open_text` | — | `{ text }`, `manual: true` | — |
+
+- Общее — `packages/questions/src/common.ts` (`PromptText`, `requiredCompact`, `Points`, `Scoring`, `shuffled`, `normalizeText`,
+  `matchesPattern`, `roundScore`) и `shared.tsx` (`EditorFrame`, `ViewerFrame`): новый тип берёт их, а не копирует.
+- Схема типа не допускает пустую формулировку и пустые элементы (коды `PROMPT_REQUIRED`, `OPTION_REQUIRED`, `ITEM_REQUIRED`);
+  заготовка `defaults()` схему **не** проходит — редактор не сохраняет её, пока не заполнена.
+- Порядок элементов в `toPublic` у `ordering` и `matching` не раскрывает ответ: `shuffled()` сортирует по хэшу id, а не по
+  позиции; сервер в 3.3 перемешивает ещё и по попытке (`shuffle: 'items'`).
+- Предпросмотр несохранённого вопроса выдаёт элементам временные id (`features/assessments/temp-ids.ts`).

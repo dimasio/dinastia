@@ -1,12 +1,13 @@
 // Песочница вопросов (пункт 1.4): редактор в «банке» (QuestionEditorHost) → попытка по публичным данным
 // (toPublic, QuestionViewerHost) → проверка (grade) и разбор (review). Проверка здесь — в браузере ради демо;
 // в продукте только сервер (kernel/questions → gradeAnswer). Только в режиме разработки.
-import { questionDef } from '@dinastia/questions'
+import { questionDef, questionTypes } from '@dinastia/questions'
 import { QuestionEditorHost, QuestionViewerHost } from '@dinastia/questions/client'
 import { Badge, Button, Card, CardContent, PageHeader } from '@dinastia/ui'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { withTempIds } from '#/features/assessments/temp-ids.ts'
 
 export const Route = createFileRoute('/dev/questions')({
 	beforeLoad: () => {
@@ -15,17 +16,13 @@ export const Route = createFileRoute('/dev/questions')({
 	component: Sandbox,
 })
 
-const TYPE = 'single_choice'
-const def = questionDef(TYPE)
-/** У вариантов в банке есть id (их выдаёт сервер при сохранении) — в песочнице выдаём сами. */
-const withIds = (data: unknown) => {
-	const d = data as { options?: { id?: string }[] }
-	return { ...d, options: d.options?.map((o) => ({ ...o, id: o.id ?? crypto.randomUUID() })) }
-}
+const withIds = (data: unknown) => withTempIds(data as Record<string, unknown>)
 
 function Sandbox() {
 	const { t } = useTranslation()
 	const { t: tq } = useTranslation('questions')
+	const [type, setType] = useState('single_choice')
+	const def = questionDef(type)
 	const [saved, setSaved] = useState<unknown>(null)
 	const [attempt, setAttempt] = useState<unknown>(null)
 	const [response, setResponse] = useState<unknown>(null)
@@ -37,10 +34,30 @@ function Sandbox() {
 			<PageHeader title={t('devQuestions.title')} description={t('devQuestions.description')} />
 			<section className="grid gap-3" aria-label={t('devQuestions.bank')}>
 				<h2 className="font-semibold">{t('devQuestions.bank')}</h2>
+				<select
+					value={type}
+					onChange={(e) => {
+						setType(e.target.value)
+						setSaved(null)
+						setAttempt(null)
+						setResponse(null)
+						setGraded(null)
+					}}
+					className="h-10 w-fit rounded-md border bg-background px-2 text-sm"
+					aria-label={t('devQuestions.type')}
+					data-testid="sandbox-type"
+				>
+					{Object.keys(questionTypes).map((k) => (
+						<option key={k} value={k}>
+							{tq(`${k}.title` as 'single_choice.title')}
+						</option>
+					))}
+				</select>
 				<Card>
 					<CardContent>
 						<QuestionEditorHost
-							type={TYPE}
+							key={type}
+							type={type}
 							value={def.defaults()}
 							delayMs={100}
 							testId="bank"
@@ -68,7 +85,7 @@ function Sandbox() {
 					<Card>
 						<CardContent className="grid gap-4">
 							<QuestionViewerHost
-								type={TYPE}
+								type={type}
 								data={def.toPublic(attempt)}
 								response={response}
 								testId="attempt"
