@@ -3,11 +3,12 @@
 import {
 	ASSIGNMENT_MAX_FILES,
 	type AssignmentState,
+	COMMENT_FILES_MAX,
 	SUBMISSION_TEXT_MAX,
 	type Submission,
 } from '@dinastia/contracts/assessments'
-import { isEmptyDoc, toPlainText } from '@dinastia/contracts/common'
-import { and, asc, eq } from 'drizzle-orm'
+import { emptyDoc, isEmptyDoc, toPlainText } from '@dinastia/contracts/common'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { users } from '#/kernel/auth/schema.ts'
 import { listBlocks } from '#/kernel/blocks/blocks.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
@@ -16,8 +17,8 @@ import { members } from '#/kernel/members/schema.ts'
 import { files } from '#/kernel/storage/schema.ts'
 import { openLessonContext } from '../learning/service.ts'
 import { submissionReviewed, submissionSubmitted } from './events.ts'
-import { submissionFilePurpose } from './files.ts'
-import { submissionComments, submissionFiles, submissions } from './schema.ts'
+import { commentFilePurpose, submissionFilePurpose } from './files.ts'
+import { submissionCommentFiles, submissionComments, submissionFiles, submissions } from './schema.ts'
 import { isEditable, type SubmissionStatus, transition } from './transitions.ts'
 
 type Row = typeof submissions.$inferSelect
@@ -32,7 +33,7 @@ type DocValue = Submission['body']
 type Answer = { body: DocValue; fileIds: string[] }
 
 /** Настройки опубликованного блока урока; нет — QUIZ_NOT_FOUND-подобный ASSIGNMENT_NOT_FOUND. */
-async function blockOf(ctx: SchoolCtx, lessonId: string, blockKey: string) {
+export async function blockOf(ctx: SchoolCtx, lessonId: string, blockKey: string) {
 	const block = (await listBlocks(ctx, lessonId, 'published')).find(
 		(b) => b.blockKey === blockKey && b.type === 'assignment',
 	)
@@ -54,25 +55,92 @@ async function findRow(ctx: SchoolCtx, enrollmentId: string, lessonId: string, b
 	return row ?? null
 }
 
-async function viewOf(ctx: SchoolCtx, row: Row): Promise<Submission> {
+/** Комментарии по времени: автор, роль, текст и файлы со ссылками на скачивание. */
+export async function commentsOf(ctx: SchoolCtx, submissionId: string): Promise<Submission['comments']> {
+	const rows = await ctx.db
+		.select({
+			id: submissionComments.id,
+			body: submissionComments.body,
+			createdAt: submissionComments.createdAt,
+			name: users.name,
+			role: members.role,
+		})
+		.from(submissionComments)
+		.innerJoin(members, eq(members.id, submissionComments.authorMemberId))
+		.innerJoin(users, eq(users.id, members.userId))
+		.where(eq(submissionComments.submissionId, submissionId))
+		.orderBy(asc(submissionComments.createdAt), asc(submissionComments.id))
+	if (!rows.length) return []
+	const fileRows = await ctx.db
+		.select({
+			commentId: submissionCommentFiles.commentId,
+			id: files.id,
+			name: files.name,
+			mime: files.mime,
+			size: files.size,
+		})
+		.from(submissionCommentFiles)
+		.innerJoin(files, eq(files.id, submissionCommentFiles.fileId))
+		.where(
+			inArray(
+				submissionCommentFiles.commentId,
+				rows.map((r) => r.id),
+			),
+		)
+		.orderBy(asc(submissionCommentFiles.position))
+	const urls = new Map<string, string>()
+	for (const f of fileRows) urls.set(f.id, await ctx.files.signedUrl(f.id, { download: !f.mime.startsWith('image/') }))
+	return rows.map((c) => ({
+		id: c.id,
+		authorName: c.name,
+		authorRole: c.role,
+		body: c.body as never,
+		files: fileRows
+			.filter((f) => f.commentId === c.id)
+			.map(({ commentId: _, ...f }) => ({ ...f, url: urls.get(f.id) as string })),
+		createdAt: c.createdAt,
+	}))
+}
+
+/** Файлы комментария: готовые, назначения `assessments.comment-file`, загружены этим участником; не больше лимита. */
+export async function checkCommentFiles(ctx: SchoolCtx, fileIds: string[]): Promise<string[]> {
+	const ids = [...new Set(fileIds)]
+	if (ids.length > COMMENT_FILES_MAX) return fail.invalid('TOO_MANY_FILES')
+	for (const id of ids) {
+		const file = await ctx.files.get(id)
+		if (file?.status !== 'ready' || file.purpose !== commentFilePurpose.key || file.ownerMemberId !== ctx.member.id)
+			return fail.invalid('FILE_INVALID')
+	}
+	return ids
+}
+
+/** Комментарий в переписке: текст и/или файлы (пустой — COMMENT_REQUIRED). */
+export async function addComment(ctx: SchoolCtx, submissionId: string, input: { body: DocValue; fileIds: string[] }) {
+	const body = input.body && !isEmptyDoc(input.body) ? input.body : null
+	const ids = await checkCommentFiles(ctx, input.fileIds)
+	if (!body && ids.length === 0) return fail.invalid('COMMENT_REQUIRED')
+	if (body && toPlainText(body).length > SUBMISSION_TEXT_MAX) return fail.invalid('ANSWER_TOO_LONG')
+	const [comment] = await ctx.db
+		.insert(submissionComments)
+		// файл без текста — комментарий с пустым абзацем
+		.values({ submissionId, authorMemberId: ctx.member.id, body: (body ?? emptyDoc()) as never })
+		.returning({ id: submissionComments.id })
+	if (!comment) throw new Error('комментарий не создан')
+	if (ids.length)
+		await ctx.db
+			.insert(submissionCommentFiles)
+			.values(ids.map((fileId, position) => ({ commentId: comment.id, fileId, position })))
+	return comment.id
+}
+
+export async function viewOf(ctx: SchoolCtx, row: Row): Promise<Submission> {
 	const fileRows = await ctx.db
 		.select({ id: files.id, name: files.name, mime: files.mime, size: files.size })
 		.from(submissionFiles)
 		.innerJoin(files, eq(files.id, submissionFiles.fileId))
 		.where(eq(submissionFiles.submissionId, row.id))
 		.orderBy(asc(submissionFiles.position))
-	const commentRows = await ctx.db
-		.select({
-			id: submissionComments.id,
-			body: submissionComments.body,
-			createdAt: submissionComments.createdAt,
-			name: users.name,
-		})
-		.from(submissionComments)
-		.innerJoin(members, eq(members.id, submissionComments.authorMemberId))
-		.innerJoin(users, eq(users.id, members.userId))
-		.where(eq(submissionComments.submissionId, row.id))
-		.orderBy(asc(submissionComments.createdAt), asc(submissionComments.id))
+	const comments = await commentsOf(ctx, row.id)
 	return {
 		id: row.id,
 		status: row.status,
@@ -83,7 +151,7 @@ async function viewOf(ctx: SchoolCtx, row: Row): Promise<Submission> {
 				url: await ctx.files.signedUrl(f.id, { download: !f.mime.startsWith('image/') }),
 			})),
 		),
-		comments: commentRows.map((c) => ({ id: c.id, authorName: c.name, body: c.body as never, createdAt: c.createdAt })),
+		comments,
 		revision: row.revision,
 		submittedAt: row.submittedAt,
 		reviewedAt: row.reviewedAt,
@@ -199,18 +267,17 @@ const DECISION_STATUS = { accept: 'accepted', needs_revision: 'needs_revision', 
 /** Проверка работы преподавателем: принять / вернуть на доработку / отклонить; для двух последних нужен комментарий. */
 export async function reviewSubmission(
 	ctx: SchoolCtx,
-	input: { submissionId: string; decision: keyof typeof DECISION_STATUS; comment: DocValue },
+	input: { submissionId: string; decision: keyof typeof DECISION_STATUS; comment: DocValue; fileIds?: string[] },
 ): Promise<{ id: string; status: SubmissionStatus }> {
 	const [row] = await ctx.db.select().from(submissions).where(eq(submissions.id, input.submissionId)).for('update')
 	if (!row) return fail.notFound('SUBMISSION_NOT_FOUND')
 	const to = DECISION_STATUS[input.decision]
 	const comment = input.comment && !isEmptyDoc(input.comment) ? input.comment : null
-	if (to !== 'accepted' && !comment) return fail.invalid('COMMENT_REQUIRED')
+	const fileIds = input.fileIds ?? []
+	// комментарий — текст и/или файлы; при «на доработку» и «отклонить» он обязателен
+	if (to !== 'accepted' && !comment && fileIds.length === 0) return fail.invalid('COMMENT_REQUIRED')
 	const status = transition(row.status, to, 'reviewer')
-	if (comment)
-		await ctx.db
-			.insert(submissionComments)
-			.values({ submissionId: row.id, authorMemberId: ctx.member.id, body: comment as never })
+	if (comment || fileIds.length) await addComment(ctx, row.id, { body: comment, fileIds })
 	await ctx.db
 		.update(submissions)
 		.set({ status, reviewerMemberId: ctx.member.id, reviewedAt: ctx.now() })
@@ -228,4 +295,19 @@ export async function reviewSubmission(
 		diff: { from: row.status, to },
 	})
 	return { id: row.id, status }
+}
+
+/** Ответ ученика в переписке: пока работа «на проверке» или «нужна доработка»; статус не меняется. */
+export async function replyAsStudent(
+	ctx: SchoolCtx,
+	input: { lessonId: string; blockKey: string; body: DocValue; fileIds: string[] },
+): Promise<AssignmentState> {
+	const c = await openLessonContext(ctx, input.lessonId)
+	await blockOf(ctx, input.lessonId, input.blockKey)
+	const row = await findRow(ctx, c.enrollment.id, input.lessonId, input.blockKey)
+	if (!row) return fail.notFound('SUBMISSION_NOT_FOUND')
+	if (row.status !== 'submitted' && row.status !== 'needs_revision')
+		return fail.conflict('SUBMISSION_STATE', { from: row.status })
+	await addComment(ctx, row.id, input)
+	return stateOf(ctx, input)
 }

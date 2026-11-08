@@ -203,3 +203,18 @@ export const submissionComments = tenantTable(
 		index().on(t.schoolId, t.submissionId, t.createdAt),
 	],
 )
+
+/** Файлы комментария (назначение `assessments.comment-file`); порядок — `position`. */
+export const submissionCommentFiles = tenantTable(
+	'submission_comment_files',
+	{
+		commentId: uuid('comment_id').notNull(),
+		fileId: uuid('file_id').notNull(),
+		position: integer('position').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.commentId, submissionComments, 'cascade'),
+		tenantRef(t, t.fileId, files, 'no action'),
+		uniqueIndex().on(t.schoolId, t.commentId, t.fileId),
+	],
+)

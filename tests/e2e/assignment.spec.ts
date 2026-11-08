@@ -127,7 +127,7 @@ test('задание: черновик, отправка, доработка, п
 		await review(submissionId, 'needs_revision', 'Добавьте тени и перспективу')
 		await student.reload()
 		await expect(status).toHaveAttribute('data-status', 'needs_revision')
-		await expect(student.getByTestId('assignment-comment')).toContainText('Добавьте тени и перспективу')
+		await expect(student.getByTestId('assignment-comments-item')).toContainText('Добавьте тени и перспективу')
 		await expect(student.getByTestId('assignment-revision-hint')).toBeVisible()
 		await student.getByTestId('assignment-body').click()
 		await student.keyboard.press('End')

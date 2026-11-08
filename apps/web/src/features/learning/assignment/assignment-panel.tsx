@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { uploadFile } from '#/app/files.ts'
 import { client, orpc } from '#/app/orpc.ts'
+import { CommentComposer, CommentThread } from '#/features/assessments/comments.tsx'
 
 type Doc = NonNullable<Submission['body']>
 interface LocalFile {
@@ -133,14 +134,19 @@ function Assignment(props: {
 			{!settings.requiresReview && <p className="text-muted-foreground text-xs">{t('assignment.noReviewHint')}</p>}
 
 			{submission && submission.comments.length > 0 && (
-				<ul className="grid gap-2" data-testid="assignment-comments">
-					{submission.comments.map((c) => (
-						<li key={c.id} className="rounded-md bg-muted p-3 text-sm" data-testid="assignment-comment">
-							<p className="mb-1 font-medium">{t('assignment.commentBy', { name: c.authorName })}</p>
-							<RichTextView doc={c.body} />
-						</li>
-					))}
-				</ul>
+				<div className="grid gap-2">
+					<p className="font-medium text-sm">{t('assignment.reply.title')}</p>
+					<CommentThread comments={submission.comments} testId="assignment-comments" />
+				</div>
+			)}
+			{(status === 'submitted' || status === 'needs_revision') && (
+				<CommentComposer
+					testId="assignment-reply"
+					sendLabel={t('assignment.reply.send')}
+					onSend={async (v) => {
+						await apply(await client.assignment.reply({ lessonId: props.lessonId, blockKey: props.blockKey, ...v }))
+					}}
+				/>
 			)}
 
 			{canEdit ? (

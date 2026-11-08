@@ -14,7 +14,8 @@ import {
 	updateBankQuestion,
 } from './question.service.ts'
 import { getAttempt, getQuizState, resultOf, saveAnswer, startAttempt, submitAttempt } from './quiz.service.ts'
-import { getAssignment, reviewSubmission, saveDraft, submitAssignment } from './submission.service.ts'
+import { commentAsReviewer, getForReview, listQueue } from './review.service.ts'
+import { getAssignment, replyAsStudent, reviewSubmission, saveDraft, submitAssignment } from './submission.service.ts'
 
 const chain = () => impl.assessments
 
@@ -175,6 +176,14 @@ export const assignmentRouter = {
 		.use(mw.member)
 		.use(can('assessments.submit'))
 		.handler(({ input, context }) => submitAssignment(schoolCtx(context), input)),
+	reply: impl.assignment.reply
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.submit'))
+		.handler(({ input, context }) => replyAsStudent(schoolCtx(context), input)),
 	review: impl.assignment.review
 		.use(mw.host)
 		.use(mw.session)
@@ -183,4 +192,32 @@ export const assignmentRouter = {
 		.use(mw.member)
 		.use(can('assessments.review'))
 		.handler(({ input, context }) => reviewSubmission(schoolCtx(context), input)),
+}
+
+/** Очередь проверки (карточка 3.5): проверяющие — admin, teacher, curator (область — `reviewScope`). */
+export const reviewRouter = {
+	list: impl.review.list
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => listQueue(schoolCtx(context), input)),
+	get: impl.review.get
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => getForReview(schoolCtx(context), input.submissionId)),
+	comment: impl.review.comment
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.review'))
+		.handler(({ input, context }) => commentAsReviewer(schoolCtx(context), input)),
 }

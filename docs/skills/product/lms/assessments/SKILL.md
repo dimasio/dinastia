@@ -75,7 +75,7 @@ description: Тесты и домашние задания в Dinastia — мо�
 - Правка вопроса с попытками — ревизия (`hasAnswers` по `attempt_questions`); `resolveCurrent` подменяет id вопроса текущей ревизией.
 - Нет (3.4–3.6): блок `assignment`, очередь проверки, ручная проверка `open_text`, завершение урока по результату теста.
 
-## Состояние (3.4)
+## Состояние (3.4–3.5)
 
 - Есть: блок `assignment` (`packages/blocks/src/assignment/`: формулировка, что принимать, число файлов, нужна ли проверка;
   редактор — обычный, в `packages/blocks`), таблицы `submissions`, `submission_files`, `submission_comments`
@@ -84,5 +84,10 @@ description: Тесты и домашние задания в Dinastia — мо�
   файла `assessments.submission-file` (`files.ts`), события `submission.submitted`/`submission.reviewed`, API `assignment.*`
   (права `assessments.submit` — ученик, `assessments.review` — admin/teacher), панель задания в плеере
   `apps/web/src/features/learning/assignment/assignment-panel.tsx` (подставляется вместо просмотра блока, как панель теста).
-- Нет (3.5–3.6): очередь проверки и экран проверки, переписка (ответы ученика, файлы к комментариям), куратор и его область,
-  письма ученику, завершение урока по принятому заданию.
+- 3.5: очередь `/admin/review` (ресурс `reviewResource`, подписи курсов в фильтре кладутся в i18n на лету) и экран проверки
+  `/admin/review/$submissionId` (`features/assessments/review/`), переписка (`features/assessments/comments.tsx` — общая лента и
+  поле комментария для экрана проверки и панели ученика), API `review.list/get/comment`, `assignment.reply`, `assignment.review` с
+  `fileIds`, `review.service.ts` (`reviewScope`, `listQueue`, `getForReview`, `commentAsReviewer`), `submission_comment_files`,
+  файлы `assessments.comment-file`, письмо `emails/submission-reviewed.tsx` и подписчик `subscribers.ts`, право `assessments.review`
+  у куратора. **`reviewScope` — единственное место, где в фазе 4 включается ограничение куратора по потокам.**
+- Нет (3.6): завершение урока по принятому заданию и сданному тесту, ручная проверка `open_text` в попытках (строки другого вида в ту же очередь).

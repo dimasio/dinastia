@@ -36,6 +36,14 @@ export const SUBMISSION_FILE = {
 	] as const,
 }
 
+/** Файлы комментария в переписке по работе (3.5): до 3, те же типы и лимит, что у файлов сдачи. */
+export const COMMENT_FILES_MAX = 3
+export const COMMENT_FILE = {
+	purpose: 'assessments.comment-file',
+	maxSize: SUBMISSION_FILE.maxSize,
+	mime: SUBMISSION_FILE.mime,
+}
+
 export const TAG_NAME_MAX = 40
 export const TAGS_PER_QUESTION_MAX = 10
 
@@ -162,7 +170,10 @@ const FileRef = z.object({ id: Id, name: z.string(), mime: z.string(), size: z.n
 export const SubmissionComment = z.object({
 	id: Id,
 	authorName: z.string(),
+	/** Роль автора в школе: проверяющий или ученик. */
+	authorRole: z.enum(['owner', 'admin', 'teacher', 'curator', 'student']),
 	body: CommentText,
+	files: z.array(FileRef),
 	createdAt: DateTime,
 })
 
@@ -200,6 +211,7 @@ export const AssignmentState = z.object({
 export type AssignmentState = z.infer<typeof AssignmentState>
 
 const Answer = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(ASSIGNMENT_MAX_FILES) })
+const Reply = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(COMMENT_FILES_MAX) })
 
 export const REVIEW_DECISIONS = ['accept', 'needs_revision', 'reject'] as const
 
@@ -215,10 +227,23 @@ export const assignmentContract = {
 		.route({ method: 'POST', path: '/assignment/{lessonId}/{blockKey}/submit' })
 		.input(QuizRef.extend(Answer.shape))
 		.output(AssignmentState),
+	/** Ответ ученика в переписке (пока работа «на проверке» или «нужна доработка»); статус не меняется. */
+	reply: oc
+		.route({ method: 'POST', path: '/assignment/{lessonId}/{blockKey}/reply' })
+		.input(QuizRef.extend(Reply.shape))
+		.output(AssignmentState),
 	/** Проверка работы: принять, вернуть на доработку или отклонить; для двух последних комментарий обязателен. */
 	review: oc
 		.route({ method: 'POST', path: '/assignment/submissions/{submissionId}/review' })
-		.input(z.object({ submissionId: Id, decision: z.enum(REVIEW_DECISIONS), comment: CommentText.nullable() }))
+		.input(
+			z.object({
+				submissionId: Id,
+				decision: z.enum(REVIEW_DECISIONS),
+				comment: CommentText.nullable(),
+				/** Файлы к комментарию решения (до 3). */
+				fileIds: z.array(Id).max(COMMENT_FILES_MAX).default([]),
+			}),
+		)
 		.output(z.object({ id: Id, status: SubmissionStatus })),
 }
 const ByAttempt = z.object({ attemptId: Id })
@@ -283,4 +308,53 @@ export const assessmentsContract = {
 			.input(ById)
 			.output(z.object({ ok: z.literal(true) })),
 	},
+}
+
+// ── Очередь проверки (карточка 3.5): namespace `review`, процедуры проверяющего ───────────────────────────────────────
+export const ReviewRow = z.object({
+	id: Id,
+	studentName: z.string(),
+	studentEmail: z.string(),
+	courseId: Id,
+	courseTitle: z.string(),
+	lessonTitle: z.string(),
+	status: SubmissionStatus,
+	revision: z.number().int(),
+	submittedAt: DateTime.nullable(),
+})
+export type ReviewRow = z.infer<typeof ReviewRow>
+
+export const ReviewListInput = pageInput({
+	sorts: ['submittedAt'] as const,
+	defaultSort: 'submittedAt',
+	defaultDir: 'asc',
+	filters: { status: SubmissionStatus, courseId: Id },
+})
+export type ReviewListQuery = z.output<typeof ReviewListInput>
+
+export const ReviewDetail = z.object({
+	submission: Submission,
+	student: z.object({ name: z.string(), email: z.string() }),
+	course: z.object({ id: Id, title: z.string() }),
+	lesson: z.object({ id: Id, title: z.string() }),
+	/** Формулировка задания (опубликованная версия); блок могли убрать из урока — тогда пусто. */
+	prompt: RichText.nullable(),
+	promptFiles: z.record(
+		z.string(),
+		z.object({ url: z.string(), name: z.string(), mime: z.string(), size: z.number().int() }),
+	),
+})
+export type ReviewDetail = z.infer<typeof ReviewDetail>
+
+export const reviewContract = {
+	list: oc.route({ method: 'GET', path: '/review/submissions' }).input(ReviewListInput).output(page(ReviewRow)),
+	get: oc
+		.route({ method: 'GET', path: '/review/submissions/{submissionId}' })
+		.input(z.object({ submissionId: Id }))
+		.output(ReviewDetail),
+	/** Реплика проверяющего без решения (текст и/или файлы); в черновике — SUBMISSION_STATE. */
+	comment: oc
+		.route({ method: 'POST', path: '/review/submissions/{submissionId}/comments' })
+		.input(z.object({ submissionId: Id }).extend(Reply.shape))
+		.output(ReviewDetail),
 }

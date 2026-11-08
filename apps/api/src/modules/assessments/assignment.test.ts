@@ -232,15 +232,12 @@ describe('отправка и проверка', () => {
 })
 
 describe('доступ', () => {
-	it('права: ученик не проверяет, преподаватель не сдаёт; куратор не проверяет (3.5)', async () => {
+	it('права: ученик не проверяет, преподаватель не сдаёт; куратор проверяет (с 3.5)', async () => {
 		const s = await setup()
 		const sent = await s.student.assignment.submit({ ...s.ref, body: doc('Работа'), fileIds: [] })
 		const id = sent.submission?.id as string
 		expect(
 			await fails(s.student.assignment.review({ submissionId: id, decision: 'accept', comment: null })),
-		).toMatchObject({ code: 'NO_PERMISSION' })
-		expect(
-			await fails(s.t.as('curator').assignment.review({ submissionId: id, decision: 'accept', comment: null })),
 		).toMatchObject({ code: 'NO_PERMISSION' })
 		expect(await fails(s.t.as('teacher').assignment.get(s.ref))).toMatchObject({ code: 'NO_PERMISSION' })
 		expect(await fails(s.t.as('teacher').assignment.submit({ ...s.ref, body: doc('x'), fileIds: [] }))).toMatchObject({
