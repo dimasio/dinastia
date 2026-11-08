@@ -299,6 +299,20 @@ export async function renameLesson(ctx: SchoolCtx, input: { id: string; title: s
 	return toLesson(row as typeof lessons.$inferSelect)
 }
 
+/** Когда урок считается пройденным (`view`, `all_blocks`, `manual`); действует сразу, без публикации (domain.md §3). */
+export async function updateLessonSettings(
+	ctx: SchoolCtx,
+	input: { id: string; completionRule: Lesson['completionRule'] },
+) {
+	await lessonOrFail(ctx, input.id)
+	const [row] = await ctx.db
+		.update(lessons)
+		.set({ completionRule: input.completionRule })
+		.where(eq(lessons.id, input.id))
+		.returning()
+	return toLesson(row as typeof lessons.$inferSelect)
+}
+
 /** Переместить урок в позицию `index` раздела `sectionId` — только в пределах своего курса. */
 export async function moveLesson(ctx: SchoolCtx, input: { id: string; sectionId: string; index: number }) {
 	const lesson = await lessonOrFail(ctx, input.id)

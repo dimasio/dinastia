@@ -78,6 +78,8 @@ function Assignment(props: {
 	})
 	const apply = async (data: AssignmentState) => {
 		qc.setQueryData(props.queryKey, data)
+		// отправка без проверки сразу принимает работу и может завершить урок — обновляем статус урока и оглавление
+		await qc.invalidateQueries({ queryKey: orpc.learn.key() })
 	}
 	const run = async (action: 'saveDraft' | 'submit') => {
 		setBusy(true)

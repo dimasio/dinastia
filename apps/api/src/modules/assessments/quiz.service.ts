@@ -15,7 +15,7 @@ import {
 	type StoredQuestion,
 } from '#/kernel/questions/questions.ts'
 import { enrollments } from '../learning/schema.ts'
-import { openLessonContext } from '../learning/service.ts'
+import { openLessonContext, recordBlockResult } from '../learning/service.ts'
 import { type AnswerRows, decodeResponse, encodeResponse } from './answers.ts'
 import { quizGraded, quizSubmitted } from './events.ts'
 import { resolveCurrent } from './question.service.ts'
@@ -452,7 +452,16 @@ export async function finalizeAttempt(ctx: BaseCtx, attemptId: string) {
 		.returning()
 	const ids = { attemptId, enrollmentId: attempt.enrollmentId, lessonId: attempt.lessonId }
 	await ctx.emit(quizSubmitted, ids)
-	if (passed !== null) await ctx.emit(quizGraded, { ...ids, passed })
+	if (passed !== null) {
+		await ctx.emit(quizGraded, { ...ids, passed })
+		// результат блока «оценки» — урок с правилом `all_blocks` завершится, когда выполнены все такие блоки (3.6)
+		await recordBlockResult(ctx, {
+			enrollmentId: attempt.enrollmentId,
+			lessonId: attempt.lessonId,
+			blockKey: attempt.blockKey,
+			done: passed,
+		})
+	}
 	return done
 }
 

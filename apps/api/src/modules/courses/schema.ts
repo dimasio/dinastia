@@ -67,7 +67,8 @@ export const lessons = tenantTable(
 		accessMode: lessonAccessMode('access_mode').notNull().default('inherit'),
 		dripDays: integer('drip_days'),
 		dripDate: date('drip_date'),
-		completionRule: lessonCompletionRule('completion_rule').notNull().default('view'),
+		// новые уроки — «по заданиям и тестам» (3.6): без блоков-оценок это то же, что «при открытии»
+		completionRule: lessonCompletionRule('completion_rule').notNull().default('all_blocks'),
 	},
 	(t) => [
 		tenantRef(t, t.courseId, courses, 'cascade'),

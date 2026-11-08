@@ -107,7 +107,7 @@ describe('урок', () => {
 		expect(JSON.stringify(page.blocks)).not.toContain('ЧЕРНОВИК')
 		expect(page.prev).toMatchObject({ id: l1.id, locked: false })
 		expect(page.next).toMatchObject({ title: 'Урок 3', locked: false })
-		expect(page.lesson).toMatchObject({ courseTitle: 'Курс ученика', completionRule: 'view' })
+		expect(page.lesson).toMatchObject({ courseTitle: 'Курс ученика', completionRule: 'all_blocks' })
 	})
 
 	it('правило view: открыл — завершён, прогресс пересчитан; повтор не меняет; курс пройден — completed', async () => {

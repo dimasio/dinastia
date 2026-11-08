@@ -1,14 +1,16 @@
 // Ученик и прогресс (скилл lms-learners, карточка 2.6): зачисление (внутреннее, без API — API в фазе 4), оглавление,
 // урок, отметки прохождения. Курс и его уроки — только через публичный API модуля courses и ядро блоков.
+
+import { blockDef } from '@dinastia/blocks'
 import type { CourseOutline, LockedBy, MyCourse, PlayerLesson } from '@dinastia/contracts/learning'
 import { and, eq, inArray } from 'drizzle-orm'
-import { listPublicBlocks } from '#/kernel/blocks/blocks.ts'
+import { listBlocks, listPublicBlocks } from '#/kernel/blocks/blocks.ts'
 import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { courseCards, type PublishedOutline, publishedOutline } from '../courses/service.ts'
 import { computeAccess, flatLessons, type LessonAccess, type ProgressFact } from './access.ts'
 import { enrollmentCompleted, lessonCompleted } from './events.ts'
-import { enrollments, lessonProgress } from './schema.ts'
+import { blockProgress, enrollments, lessonProgress } from './schema.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 type Enrollment = typeof enrollments.$inferSelect
@@ -187,23 +189,107 @@ async function recalcProgress(ctx: BaseCtx, enrollment: Enrollment, outline: Pub
 	return pct
 }
 
+/** Завершить урок (идемпотентно): отметка, событие `lesson.completed` один раз, пересчёт прогресса курса. */
+async function completeLessonFor(
+	ctx: BaseCtx,
+	enrollment: Enrollment,
+	outline: PublishedOutline,
+	lessonId: string,
+	alreadyDone: boolean,
+) {
+	if (!alreadyDone) {
+		await ctx.db
+			.update(lessonProgress)
+			.set({ completedAt: ctx.now() })
+			.where(and(eq(lessonProgress.enrollmentId, enrollment.id), eq(lessonProgress.lessonId, lessonId)))
+		await ctx.emit(lessonCompleted, { enrollmentId: enrollment.id, lessonId, courseId: outline.course.id })
+	}
+	return recalcProgress(ctx, enrollment, outline)
+}
+
 async function markCompleted(
 	ctx: SchoolCtx,
 	c: Awaited<ReturnType<typeof openLessonContext>>,
 	lessonId: string,
 ): Promise<{ status: 'completed'; progressPct: number }> {
-	const fact = c.facts.get(lessonId)
-	if (!fact?.completedAt) {
-		await ctx.db
-			.update(lessonProgress)
-			.set({ completedAt: ctx.now() })
-			.where(and(eq(lessonProgress.enrollmentId, c.enrollment.id), eq(lessonProgress.lessonId, lessonId)))
-		await ctx.emit(lessonCompleted, { enrollmentId: c.enrollment.id, lessonId, courseId: c.outline.course.id })
-	}
-	return { status: 'completed', progressPct: await recalcProgress(ctx, c.enrollment, c.outline) }
+	const progressPct = await completeLessonFor(
+		ctx,
+		c.enrollment,
+		c.outline,
+		lessonId,
+		Boolean(c.facts.get(lessonId)?.completedAt),
+	)
+	return { status: 'completed', progressPct }
 }
 
-/** Открыл урок: фиксируем первый вход; правило `view` и `all_blocks` (пока нет блоков с ответами) — завершает сразу. */
+/** Блоки «оценки» опубликованной версии урока (`completion: 'grade'`: тест, задание) — ключи блоков. */
+async function gradeBlockKeys(ctx: BaseCtx, lessonId: string): Promise<string[]> {
+	const blocks = await listBlocks(ctx, lessonId, 'published')
+	return blocks.filter((b) => blockDef(b.type)?.completion === 'grade').map((b) => b.blockKey)
+}
+
+/** Выполнены ли все блоки «оценки» урока (нет таких блоков — выполнены). */
+async function gradeBlocksDone(ctx: BaseCtx, enrollmentId: string, lessonId: string): Promise<boolean> {
+	const keys = await gradeBlockKeys(ctx, lessonId)
+	if (!keys.length) return true
+	const rows = await ctx.db
+		.select({ blockKey: blockProgress.blockKey })
+		.from(blockProgress)
+		.where(
+			and(
+				eq(blockProgress.enrollmentId, enrollmentId),
+				eq(blockProgress.lessonId, lessonId),
+				eq(blockProgress.status, 'done'),
+			),
+		)
+	const done = new Set(rows.map((r) => r.blockKey))
+	return keys.every((k) => done.has(k))
+}
+
+/**
+ * Результат блока «оценки» (тест сдан с зачётом, задание принято — `done: true`; попытка или работа без зачёта — `false`):
+ * публичный вызов `learning` для `assessments`, в той же транзакции, что и решение. `done` не снимается. Затем урок с
+ * правилом `all_blocks` пересчитывается и при выполнении всех блоков «оценки» завершается (карточка 3.6).
+ */
+export async function recordBlockResult(
+	ctx: BaseCtx,
+	input: { enrollmentId: string; lessonId: string; blockKey: string; done: boolean },
+): Promise<void> {
+	const now = ctx.now()
+	const insert = ctx.db.insert(blockProgress).values({
+		enrollmentId: input.enrollmentId,
+		lessonId: input.lessonId,
+		blockKey: input.blockKey,
+		status: input.done ? 'done' : 'failed',
+		completedAt: input.done ? now : null,
+	})
+	await (input.done
+		? insert.onConflictDoUpdate({
+				target: [blockProgress.schoolId, blockProgress.enrollmentId, blockProgress.lessonId, blockProgress.blockKey],
+				set: { status: 'done', completedAt: now },
+			})
+		: insert.onConflictDoNothing())
+	if (!input.done) return
+	const [enrollment] = await ctx.db.select().from(enrollments).where(eq(enrollments.id, input.enrollmentId))
+	if (!enrollment || (enrollment.status !== 'active' && enrollment.status !== 'completed')) return
+	const outline = await publishedOutline(ctx, enrollment.courseId)
+	const lesson = outline && flatLessons(outline).find((l) => l.id === input.lessonId)
+	if (!outline || !lesson || lesson.completionRule !== 'all_blocks') return
+	const [fact] = await ctx.db
+		.select()
+		.from(lessonProgress)
+		.where(and(eq(lessonProgress.enrollmentId, enrollment.id), eq(lessonProgress.lessonId, input.lessonId)))
+	if (fact?.completedAt) return
+	if (!fact)
+		await ctx.db
+			.insert(lessonProgress)
+			.values({ enrollmentId: enrollment.id, lessonId: input.lessonId, openedAt: now })
+			.onConflictDoNothing()
+	if (await gradeBlocksDone(ctx, enrollment.id, input.lessonId))
+		await completeLessonFor(ctx, enrollment, outline, input.lessonId, false)
+}
+
+/** Открыл урок: фиксируем первый вход; `view` завершает сразу, `all_blocks` — когда выполнены все блоки «оценки», `manual` — кнопкой. */
 export async function openLesson(ctx: SchoolCtx, lessonId: string) {
 	const c = await openLessonContext(ctx, lessonId)
 	if (!c.facts.has(lessonId)) {
@@ -213,7 +299,9 @@ export async function openLesson(ctx: SchoolCtx, lessonId: string) {
 			.onConflictDoNothing()
 		c.facts.set(lessonId, { openedAt: ctx.now(), completedAt: null })
 	}
-	if (c.lesson.completionRule !== 'manual') return markCompleted(ctx, c, lessonId)
+	const rule = c.lesson.completionRule
+	if (rule === 'view' || (rule === 'all_blocks' && (await gradeBlocksDone(ctx, c.enrollment.id, lessonId))))
+		return markCompleted(ctx, c, lessonId)
 	return {
 		status: c.facts.get(lessonId)?.completedAt ? ('completed' as const) : ('in_progress' as const),
 		progressPct: c.enrollment.progressPct,

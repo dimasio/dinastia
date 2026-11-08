@@ -177,6 +177,11 @@ export const coursesContract = {
 			.input(z.object({ id: Id, title: ItemTitle }))
 			.output(Lesson),
 		move: oc.route({ method: 'POST', path: '/lessons/{id}/move' }).input(LessonMove).output(z.array(Lesson)),
+		/** Настройки урока: когда он считается пройденным (3.6). Не версионируются — действуют сразу. */
+		update: oc
+			.route({ method: 'PATCH', path: '/lessons/{id}/settings' })
+			.input(z.object({ id: Id, completionRule: z.enum(LESSON_COMPLETION_RULES) }))
+			.output(Lesson),
 		remove: oc
 			.route({ method: 'DELETE', path: '/lessons/{id}' })
 			.input(ById)

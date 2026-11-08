@@ -26,6 +26,7 @@ import {
 	renameLesson,
 	renameSection,
 	updateCourse,
+	updateLessonSettings,
 } from './service.ts'
 import { refreshVideo, startVideoUpload } from './video.service.ts'
 
@@ -141,6 +142,14 @@ export const coursesRouter = {
 			.use(mw.member)
 			.use(can('courses.manage'))
 			.handler(({ input, context }) => createLesson(schoolCtx(context), input)),
+		update: chain()
+			.lessons.update.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('courses.manage'))
+			.handler(({ input, context }) => updateLessonSettings(schoolCtx(context), input)),
 		rename: chain()
 			.lessons.rename.use(mw.host)
 			.use(mw.session)

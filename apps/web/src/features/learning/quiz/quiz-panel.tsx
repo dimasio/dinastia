@@ -19,7 +19,9 @@ export function QuizPanel({ lessonId, blockKey }: { lessonId: string; blockKey: 
 	const state = useQuery(stateQuery)
 	const [mode, setMode] = useState<Mode>({ kind: 'idle' })
 	const [busy, setBusy] = useState(false)
-	const refresh = () => qc.invalidateQueries({ queryKey: stateQuery.queryKey })
+	// сдача и оценка могут завершить урок — обновляем статус урока и оглавление сразу
+	const refreshLesson = () => qc.invalidateQueries({ queryKey: orpc.learn.key() })
+	const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: stateQuery.queryKey }), refreshLesson()])
 
 	const start = async () => {
 		setBusy(true)

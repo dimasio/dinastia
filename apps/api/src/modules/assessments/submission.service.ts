@@ -15,7 +15,7 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { files } from '#/kernel/storage/schema.ts'
-import { openLessonContext } from '../learning/service.ts'
+import { openLessonContext, recordBlockResult } from '../learning/service.ts'
 import { submissionReviewed, submissionSubmitted } from './events.ts'
 import { commentFilePurpose, submissionFilePurpose } from './files.ts'
 import { submissionCommentFiles, submissionComments, submissionFiles, submissions } from './schema.ts'
@@ -258,6 +258,12 @@ export async function submitAssignment(
 			.set({ status: transition(status, 'accepted', 'system'), reviewedAt: now })
 			.where(eq(submissions.id, row.id))
 		await ctx.emit(submissionReviewed, { ...ids, status: 'accepted' })
+		await recordBlockResult(ctx, {
+			enrollmentId: c.enrollment.id,
+			lessonId: input.lessonId,
+			blockKey: input.blockKey,
+			done: true,
+		})
 	}
 	return stateOf(ctx, input)
 }
@@ -288,6 +294,12 @@ export async function reviewSubmission(
 		lessonId: row.lessonId,
 		blockKey: row.blockKey,
 		status: to,
+	})
+	await recordBlockResult(ctx, {
+		enrollmentId: row.enrollmentId,
+		lessonId: row.lessonId,
+		blockKey: row.blockKey,
+		done: to === 'accepted',
 	})
 	await ctx.audit('assessments.submission.reviewed', {
 		entity: 'submission',

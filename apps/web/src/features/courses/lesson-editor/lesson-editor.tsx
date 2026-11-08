@@ -252,6 +252,32 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 					<LessonStatusBadge lesson={lesson.data} testId="lesson-status" />
 					{canManage && <SaveIndicator state={saveState} />}
 					{canManage && (
+						<select
+							value={lesson.data.completionRule}
+							aria-label={t('lesson.completion.label')}
+							title={t('lesson.completion.hint')}
+							className="h-9 rounded-md border bg-background px-2 text-sm"
+							onChange={async (e) => {
+								try {
+									const saved = await client.courses.lessons.update({
+										id: lessonId,
+										completionRule: e.target.value as 'view' | 'all_blocks' | 'manual',
+									})
+									qc.setQueryData(lessonQuery.queryKey, (prev) => (prev ? { ...prev, ...saved } : prev))
+								} catch (err) {
+									toast.error(t(errorText(err), { ns: 'errors' }))
+								}
+							}}
+							data-testid="lesson-completion"
+						>
+							{(['all_blocks', 'view', 'manual'] as const).map((r) => (
+								<option key={r} value={r}>
+									{t(`lesson.completion.${r}`)}
+								</option>
+							))}
+						</select>
+					)}
+					{canManage && (
 						<fieldset
 							aria-label={t('lesson.mode.label')}
 							className="inline-flex rounded-md border p-0.5"

@@ -190,6 +190,7 @@ describe('OpenAPI', () => {
 				'/sections/{sectionId}/lessons',
 				'/lessons/{id}',
 				'/lessons/{id}/move',
+				'/lessons/{id}/settings',
 				'/lessons/{id}/publish',
 				'/lessons/{lessonId}/blocks',
 				'/assignment/submissions/{submissionId}/review',

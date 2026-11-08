@@ -48,3 +48,27 @@ export const lessonProgress = tenantTable(
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId),
 	],
 )
+
+export const BLOCK_RESULTS = ['done', 'failed'] as const
+export const blockResult = pgEnum('block_result', BLOCK_RESULTS)
+
+/**
+ * Результат блока «оценки» (тест, задание) у ученика (карточка 3.6): `done` — тест сдан с зачётом / задание принято и это
+ * не снимается; `failed` — попытка или работа без зачёта (не понижает `done`). По `done` всех блоков `grade` урока
+ * завершается урок с правилом `all_blocks`.
+ */
+export const blockProgress = tenantTable(
+	'block_progress',
+	{
+		enrollmentId: uuid('enrollment_id').notNull(),
+		lessonId: uuid('lesson_id').notNull(),
+		blockKey: uuid('block_key').notNull(),
+		status: blockResult('status').notNull(),
+		completedAt: timestamp('completed_at', { withTimezone: true }),
+	},
+	(t) => [
+		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
+		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
+	],
+)
