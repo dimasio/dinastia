@@ -8,7 +8,7 @@
 | [phase-0-foundation](phase-0-foundation/task.md) | 0    | done  |
 | [phase-1-registries](phase-1-registries/task.md) | 1 | done |
 | [phase-2-courses](phase-2-courses/task.md)       | 2    | done  |
-| `phase-3-assessments` (не создана)               | 3    | backlog |
+| [phase-3-assessments](phase-3-assessments/task.md) | 3    | active |
 | `phase-4-learners` (не создана)                  | 4    | backlog |
 | `phase-5-launch` (не создана)                    | 5    | backlog |
 

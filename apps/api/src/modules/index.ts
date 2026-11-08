@@ -12,6 +12,7 @@ import {
 } from '#/kernel/registry.ts'
 import files from '#/kernel/storage/module.ts'
 import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
+import assessments from './assessments/index.ts'
 import courses from './courses/index.ts'
 import learning from './learning/index.ts'
 import schools from './schools/index.ts'
@@ -22,6 +23,7 @@ export const modules = {
 	schools,
 	courses,
 	learning,
+	assessments,
 	// gen:module:entry
 }
 

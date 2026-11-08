@@ -150,5 +150,10 @@
 		"changesDone_many": "Опубликовано {{count}} уроков",
 		"changesDone_other": "Опубликовано {{count}} урока",
 		"issueLessons": "Незаполненные блоки в уроках: {{list}}"
+	},
+	"tabs": {
+		"label": "Разделы курса",
+		"content": "Содержание",
+		"questions": "Вопросы"
 	}
 }

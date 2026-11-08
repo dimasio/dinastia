@@ -53,6 +53,7 @@ import { errorText } from '#/app/errors.ts'
 import { uploadFile } from '#/app/files.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { CourseTabs } from '../course-tabs.tsx'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type Section = Course['sections'][number]
@@ -184,6 +185,7 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 
 	return (
 		<div className="grid gap-6" data-testid="course-builder">
+			<CourseTabs courseId={course.id} active="content" />
 			<div className="grid gap-2">
 				<Link
 					to="/admin/courses"

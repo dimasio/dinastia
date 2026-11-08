@@ -51,3 +51,13 @@ description: Тесты и домашние задания в Dinastia — мо�
 
 - меняется формула балла или проходной логики у уже пройденных попыток (пересчитывать ли);
 - нужна взаимопроверка учениками, прокторинг, антиплагиат — вне MVP.
+
+## Состояние (3.1)
+
+- Есть: банк вопросов курса и теги — `apps/api/src/modules/assessments/` (`schema.ts` — `question_tags` с колонкой `label`,
+  `question_tag_links`; `question.service.ts` — список с поиском и фильтрами, теги, архив; `hasAnswers` пока всегда `false`),
+  права `assessments.bank.read/manage`, контракт `packages/contracts/src/assessments.ts` (`assessments.questions.*`,
+  `assessments.tags.*`), экраны `apps/web/src/features/assessments/` (банк на ресурсе-фабрике `questionsResource(курс, теги)`,
+  экран вопроса, ввод тегов, диалог «Теги курса»), маршруты `/admin/courses/$courseId/questions[/$questionId]`.
+- Ядро вопросов (`kernel/questions`) не менялось; редактор типа берётся из реестра (`clientQuestion`).
+- Нет (3.2+): остальные типы вопросов, блок `quiz`, попытки, задания, очередь проверки.

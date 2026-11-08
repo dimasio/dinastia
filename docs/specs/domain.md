@@ -43,7 +43,7 @@ status: draft
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `questions`                           | `course_id`, `type`, `prompt rich`, `explanation rich`, `points`, `scoring` (`all_or_nothing`, `partial`), `case_sensitive`, `number_answer`, `number_tolerance`, `revision_of` (ревизия, D-035), `is_current`, `archived_at`                      |
 | `question_items`                      | `question_id`, `kind` (`option`, `order_item`, `match_left`, `match_right`, `accepted_text`), `body rich` или `text`, `position`, `is_correct`, `correct_position`, `match_key`                                                                    |
-| `question_tags`, `question_tag_links` | теги банка курса: `course_id`, `name`; связь `question_id` ↔ `tag_id`                                                                                                                                                                              |
+| `question_tags`, `question_tag_links` | теги банка курса: `course_id`, `label` (в API `name`); связь `question_id` ↔ `tag_id`                                                                                                                                                                              |
 | `block_quiz`                          | `block_id` PK, `selection` (`fixed`, `random_by_tags`), `random_count`, `attempts_limit` (0 = без ограничений), `pass_score_pct`, `time_limit_sec`, `shuffle_questions`, `shuffle_options`, `show_correct` (`never`, `after_submit`, `after_pass`) |
 | `block_quiz_questions`                | `block_id`, `question_id` (для `fixed`), `position`                                                                                                                                                                                                |
 | `block_quiz_tags`                     | `block_id`, `tag_id` (для `random_by_tags`)                                                                                                                                                                                                        |
@@ -170,6 +170,21 @@ status: draft
   зачисление становится `completed` (`recalcProgress`, событие `enrollment.completed`). В 2.6: `view` завершает урок при
   открытии (`learn.lessons.open`), `manual` — «Завершить урок» (`learn.lessons.complete`), `all_blocks` = `view` до блоков с
   ответами (фаза 3); событие `lesson.completed` — один раз на урок.
+
+### Банк вопросов (модуль `assessments`, 3.1)
+
+- Банк принадлежит курсу; вопрос — один из типов реестра (`@dinastia/questions`), правила типа проверяет сервер схемой
+  типа. Список — текущие ревизии без архивных; поиск — по тексту вопроса (не по служебным ключам документа), фильтры —
+  тип и тег, сортировка — изменён, создан, баллы.
+- **Теги** — свободные метки курса: создаются по имени при сохранении вопроса, регистр не важен (`Алгебра` = `алгебра`),
+  имя 1–40 символов, до 10 на вопрос. Колонка `question_tags.label` (в API — `name`): имена `name` реестр проверок
+  считает возможными ПДн. Переименование (занятое имя — `TAG_EXISTS`) и удаление тега (связи снимаются, вопросы остаются).
+- «В архив» убирает вопрос из банка (прошлые попытки сохраняют его); вернуть нельзя; удалить насовсем нельзя. До
+  появления попыток (3.3) вопрос правится на месте; с ответами — ревизия (`reviseQuestion`, D-035), теги копируются.
+- Права: `assessments.bank.read` — owner, admin, teacher, curator; `assessments.bank.manage` — owner, admin, teacher.
+  Верные ответы видят только сотрудники с чтением банка; ученику — `toPublic` в попытке (3.3).
+- В банк не попадают пустая формулировка и пустые варианты: схема типа их допускает (заготовка редактора проходит схему),
+  экран вопроса не даёт сохранить.
 
 ### Тест (блок `quiz`)
 

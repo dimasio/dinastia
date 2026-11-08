@@ -3,6 +3,7 @@
 import type { MemberRole } from '@dinastia/contracts/schools'
 import { createCan, mergePermissions, permissionsOf } from './kernel/permissions.ts'
 import { permissions as files } from './kernel/storage/permissions.ts'
+import { permissions as assessments } from './modules/assessments/permissions.ts'
 import { permissions as courses } from './modules/courses/permissions.ts'
 import { permissions as learning } from './modules/learning/permissions.ts'
 import { permissions as schools } from './modules/schools/permissions.ts'
@@ -13,6 +14,7 @@ export const permissionMap = mergePermissions(
 	schools,
 	courses,
 	learning,
+	assessments,
 	// gen:module:permissions
 )
 
