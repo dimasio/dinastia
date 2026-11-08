@@ -8,6 +8,15 @@
 кураторы групп, `reviewScope`/`learningScope`** (карточка 4.2: шаги 1–3 и вопросы владельцу). Начать с чтения `docs/plan/roadmap.md`
 «Фаза 4», `lms-learners`, `plan.md` («Открытые вопросы фазы»).
 
+Сессия остановлена по лимиту токенов, сразу после коммита `6080105`. Ничего не начато сверх 4.1: карточки 4.2 нет, рабочее дерево чистое.
+Следующий шаг — написать карточку 4.2 (шаги 1–3 `change-workflow`: запрос, архитектура, целевая спека + вопросы владельцу) и ждать «рекомендации
+одобряю». Учесть в 4.2: `enrollments.group_id`, `enrollment_invites.group_id`, `groups.access_days`, `group_curators`, подключение
+`learningScope` (learning/enrollment.service.ts) и `reviewScope` (assessments) — куратор видит только своих.
+
+## Состояние проверок
+
+`pnpm check` зелёный (api 285 тестов). Полный e2e: 55 прошло, 1 плавающий (`question-bank.spec.ts`, при отдельном запуске зелёный).
+
 ## Состояние кода
 
 `main`, push не делался. Миграции до `0021_enrollment_invites`. Аккаунт ученика владелец/админ создают через `auth.api.signUpEmail`
