@@ -61,7 +61,10 @@ description: Ученики и прогресс в Dinastia — модуль lea
 - Дедлайны (4.4): срок — колонки урока `deadline_days`/`deadline_date`, расчёт — `deadlineOf` (как расписание: старт потока или
   зачисление, конец дня по Москве), в `computeAccess` — `dueAt`/`overdue`; дедлайн мягкий. Напоминания — `deadlines.service.ts`
   (одна выборка на курс со сроками, отметки `deadline_reminders`), письмо `emails/deadline-reminder.tsx`.
-- Нет (фаза 4, дальше): сертификаты, аналитика, кабинет ученика.
+- Кабинет ученика (4.5): `home.service.ts` `getMyHome` (`learn.home.get`) поверх `courseStates` (`service.ts`: потоки и факты
+  одной выборкой на все зачисления, запросы последовательно — одна транзакция); доработки — `assessments/revisions.service.ts`
+  (`assignment.revisions`); экран — `features/learning/my-courses.tsx`.
+- Нет (фаза 4, дальше): сертификаты, аналитика.
 
 ## Зачисление (4.1)
 

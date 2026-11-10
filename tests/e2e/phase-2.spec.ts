@@ -81,7 +81,7 @@ test('демо фазы 2: курс из 5 уроков собран и опуб
 		await student.goto(schoolUrl('demo', '/learn'))
 		const card = student.getByTestId('my-course').filter({ hasText: COURSE })
 		await expect(card).toBeVisible()
-		await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 0%')
+		await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 0 из 5 уроков')
 		await card.click()
 		const items = student.getByTestId('lesson-item')
 		await expect(items).toHaveCount(5)
@@ -99,9 +99,11 @@ test('демо фазы 2: курс из 5 уроков собран и опуб
 			if (i === 0) await shoot(student, 'phase-2-player')
 			if (i < 4) await student.getByTestId('player-next').click()
 		}
+		// пройденный курс — на вкладке «Пройденные» (4.5)
 		await student.goto(schoolUrl('demo', '/learn'))
+		await student.getByTestId('my-tab-completed').click()
 		await expect(student.getByTestId('my-course').filter({ hasText: COURSE }).getByTestId('progress-label')).toHaveText(
-			'Пройдено 100%',
+			'Пройдено 5 из 5 уроков',
 		)
 	})
 })

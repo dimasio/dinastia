@@ -27,8 +27,46 @@ export const MyCourse = z.object({
 	expired: z.boolean(),
 	/** Доступ отозван школой (4.1) — курс виден, уроки закрыты. */
 	revoked: z.boolean(),
+	/** Куда ведёт «Продолжить» (4.5): первый доступный незавершённый урок; у закрытого курса и пройденного целиком — null. */
+	nextLessonId: Id.nullable(),
+	/** До какого момента открыт доступ (4.5); null — без срока. */
+	expiresAt: DateTime.nullable(),
+	/** Когда курс пройден (4.5); null — ещё нет. */
+	completedAt: DateTime.nullable(),
+	/** Опубликованных уроков в курсе и пройденных учеником (4.5). */
+	lessonsTotal: z.number().int().min(0),
+	lessonsCompleted: z.number().int().min(0),
 })
 export type MyCourse = z.infer<typeof MyCourse>
+
+/** Урок со сроком в кабинете ученика (4.5). */
+export const HomeDeadline = z.object({
+	courseId: Id,
+	courseTitle: z.string(),
+	lessonId: Id,
+	lessonTitle: z.string(),
+	dueAt: DateTime,
+	overdue: z.boolean(),
+})
+export type HomeDeadline = z.infer<typeof HomeDeadline>
+
+/** Сводка кабинета ученика (4.5): где продолжить и ближайшие сроки по действующим курсам. */
+export const LearnHome = z.object({
+	/** Курс, где ученик был последним, и его следующий урок; null — продолжать нечего. */
+	continue: z
+		.object({
+			courseId: Id,
+			courseTitle: z.string(),
+			coverUrl: z.string().nullable(),
+			progressPct: z.number().int().min(0).max(100),
+			lessonId: Id,
+			lessonTitle: z.string(),
+		})
+		.nullable(),
+	/** Просроченные и со сроком в ближайшие 14 дней незавершённые доступные уроки, по сроку; до 10. */
+	deadlines: z.array(HomeDeadline),
+})
+export type LearnHome = z.infer<typeof LearnHome>
 
 export const OutlineLesson = z.object({
 	id: Id,
@@ -85,6 +123,8 @@ const LessonById = z.object({ lessonId: Id })
 const LessonState = z.object({ status: LessonStatus, progressPct: z.number().int().min(0).max(100) })
 
 export const learnContract = {
+	/** Сводка кабинета ученика (4.5). */
+	home: { get: oc.route({ method: 'GET', path: '/learn/home' }).output(LearnHome) },
 	courses: {
 		list: oc.route({ method: 'GET', path: '/learn/courses' }).output(z.array(MyCourse)),
 		get: oc

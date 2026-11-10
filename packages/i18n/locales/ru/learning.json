@@ -11,7 +11,20 @@
 		"open": "Открыть",
 		"expired": "Доступ закончился",
 		"cover": "Обложка курса",
-		"revoked": "Доступ отозван"
+		"revoked": "Доступ отозван",
+		"start": "Начать",
+		"repeat": "Повторить",
+		"lessons_one": "Пройдено {{done}} из {{count}} урока",
+		"lessons_few": "Пройдено {{done}} из {{count}} уроков",
+		"lessons_many": "Пройдено {{done}} из {{count}} уроков",
+		"lessons_other": "Пройдено {{done}} из {{count}} урока",
+		"until": "Доступ до {{date}}",
+		"tabsLabel": "Курсы по состоянию",
+		"tabs": {
+			"learning": "Учусь",
+			"completed": "Пройденные",
+			"closed": "Доступ закончился"
+		}
 	},
 	"course": {
 		"back": "Мои курсы",
@@ -235,5 +248,12 @@
 			"create": "Создать поток",
 			"save": "Сохранить"
 		}
+	},
+	"home": {
+		"continueTitle": "Продолжить обучение",
+		"nextLesson": "Следующий урок: {{title}}",
+		"deadlinesTitle": "Ближайшие сроки",
+		"revisionsTitle": "На доработке",
+		"revisionsHint": "Работу вернули с комментарием — исправьте её и отправьте снова."
 	}
 }

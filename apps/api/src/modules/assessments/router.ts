@@ -16,6 +16,7 @@ import {
 } from './question.service.ts'
 import { getAttempt, getQuizState, resultOf, saveAnswer, startAttempt, submitAttempt } from './quiz.service.ts'
 import { commentAsReviewer, getForReview, listQueue } from './review.service.ts'
+import { listMyRevisions } from './revisions.service.ts'
 import { getAssignment, replyAsStudent, reviewSubmission, saveDraft, submitAssignment } from './submission.service.ts'
 
 const chain = () => impl.assessments
@@ -153,6 +154,14 @@ export const quizRouter = {
 
 /** Домашнее задание (карточка 3.4): сдача ученика и проверка преподавателем. */
 export const assignmentRouter = {
+	revisions: impl.assignment.revisions
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('assessments.submit'))
+		.handler(({ context }) => listMyRevisions(schoolCtx(context))),
 	get: impl.assignment.get
 		.use(mw.host)
 		.use(mw.session)

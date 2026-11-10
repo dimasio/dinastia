@@ -24,7 +24,8 @@ export async function enrollMember(
 }
 
 /** Доступ закончился: срок вышел или зачисление помечено истёкшим. */
-const isExpired = (e: Enrollment, now: Date) => e.status === 'expired' || (e.expiresAt !== null && e.expiresAt <= now)
+export const isExpired = (e: Enrollment, now: Date) =>
+	e.status === 'expired' || (e.expiresAt !== null && e.expiresAt <= now)
 
 /** Зачисление для расчёта доступа: со стартом потока — «через N дней» считается от него (4.3). */
 async function accessBase(ctx: BaseCtx, e: Enrollment) {
@@ -38,7 +39,7 @@ async function factsOf(ctx: BaseCtx, enrollmentId: string): Promise<Map<string, 
 	return new Map(rows.map((r) => [r.lessonId, { openedAt: r.openedAt, completedAt: r.completedAt }]))
 }
 
-const myEnrollments = (ctx: SchoolCtx) =>
+export const myEnrollments = (ctx: SchoolCtx) =>
 	ctx.db
 		.select()
 		.from(enrollments)
@@ -49,52 +50,99 @@ const myEnrollments = (ctx: SchoolCtx) =>
 			),
 		)
 
-/** Мои курсы: зачисленные, кроме черновиков; истёкшие — с признаком. */
-export async function listMyCourses(ctx: SchoolCtx): Promise<MyCourse[]> {
-	const rows = await myEnrollments(ctx)
-	const cards = new Map(
-		(
-			await courseCards(
-				ctx,
-				rows.map((r) => r.courseId),
-			)
-		).map((c) => [c.id, c]),
-	)
+export const nextOf = (access: LessonAccess[]) =>
+	access.find((a) => a.status === 'available' || a.status === 'in_progress')
+
+export interface CourseState {
+	enrollment: Enrollment
+	/** null — курс снят в черновик или удалён. */
+	outline: PublishedOutline | null
+	facts: Map<string, ProgressFact>
+	/** Доступ истёк или отозван: уроки и их названия не показываются. */
+	closed: boolean
+	/** Доступ к урокам; у закрытого курса — пусто. */
+	access: LessonAccess[]
+}
+
+/** Состояние курсов ученика (4.5): оглавление, факты и доступ уроков — потоки и факты одной выборкой на все зачисления. */
+export async function courseStates(ctx: BaseCtx, rows: Enrollment[]): Promise<CourseState[]> {
+	if (!rows.length) return []
 	const now = ctx.now()
-	return rows.flatMap((e) => {
-		const card = cards.get(e.courseId)
-		return card
-			? [{ ...card, progressPct: e.progressPct, expired: isExpired(e, now), revoked: e.status === 'revoked' }]
-			: []
+	const groupIds = [...new Set(rows.flatMap((r) => (r.groupId ? [r.groupId] : [])))]
+	// последовательно: запросы идут в одной транзакции (одно соединение)
+	const starts = groupIds.length
+		? await ctx.db.select({ id: groups.id, startsAt: groups.startsAt }).from(groups).where(inArray(groups.id, groupIds))
+		: []
+	const factRows = await ctx.db
+		.select()
+		.from(lessonProgress)
+		.where(
+			inArray(
+				lessonProgress.enrollmentId,
+				rows.map((r) => r.id),
+			),
+		)
+	const outlines: (PublishedOutline | null)[] = []
+	for (const r of rows) outlines.push(await publishedOutline(ctx, r.courseId))
+	const startOf = new Map(starts.map((g) => [g.id, g.startsAt]))
+	const facts = new Map<string, Map<string, ProgressFact>>()
+	for (const f of factRows) {
+		const m = facts.get(f.enrollmentId) ?? new Map<string, ProgressFact>()
+		m.set(f.lessonId, { openedAt: f.openedAt, completedAt: f.completedAt })
+		facts.set(f.enrollmentId, m)
+	}
+	return rows.map((e, i) => {
+		const outline = outlines[i] ?? null
+		const f = facts.get(e.id) ?? new Map<string, ProgressFact>()
+		const closed = e.status === 'revoked' || isExpired(e, now)
+		const base = { enrolledAt: e.enrolledAt, groupStartsAt: e.groupId ? (startOf.get(e.groupId) ?? null) : null }
+		return {
+			enrollment: e,
+			outline,
+			facts: f,
+			closed,
+			access: outline && !closed ? computeAccess(outline, base, f, now) : [],
+		}
 	})
 }
 
-/** Зачисление участника на курс, который ему виден; иначе COURSE_NOT_FOUND (чужой и несуществующий не различаются). */
-async function enrollmentOrFail(ctx: SchoolCtx, courseId: string) {
-	const outline = await publishedOutline(ctx, courseId)
-	const [enrollment] = await myEnrollments(ctx).then((rows) => rows.filter((r) => r.courseId === courseId))
-	if (!outline || !enrollment) return fail.notFound('COURSE_NOT_FOUND')
-	return { outline, enrollment }
+function myCourse(card: Awaited<ReturnType<typeof courseCards>>[number], s: CourseState, now: Date): MyCourse {
+	const e = s.enrollment
+	const ids = s.outline ? flatLessons(s.outline).map((l) => l.id) : []
+	return {
+		...card,
+		progressPct: e.progressPct,
+		expired: isExpired(e, now),
+		revoked: e.status === 'revoked',
+		nextLessonId: nextOf(s.access)?.lessonId ?? null,
+		expiresAt: e.expiresAt,
+		completedAt: e.completedAt,
+		lessonsTotal: ids.length,
+		lessonsCompleted: ids.filter((id) => s.facts.get(id)?.completedAt).length,
+	}
 }
 
-const nextOf = (access: LessonAccess[]) => access.find((a) => a.status === 'available' || a.status === 'in_progress')
+/** Мои курсы: зачисленные, кроме черновиков; истёкшие — с признаком. */
+export async function listMyCourses(ctx: SchoolCtx): Promise<MyCourse[]> {
+	const states = await courseStates(ctx, await myEnrollments(ctx))
+	const byCourse = new Map(states.map((s) => [s.enrollment.courseId, s]))
+	const now = ctx.now()
+	return (await courseCards(ctx, [...byCourse.keys()])).flatMap((card) => {
+		const s = byCourse.get(card.id)
+		return s?.outline ? [myCourse(card, s, now)] : []
+	})
+}
 
 export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<CourseOutline> {
-	const { outline, enrollment } = await enrollmentOrFail(ctx, courseId)
+	const [enrollment] = await myEnrollments(ctx).then((rows) => rows.filter((r) => r.courseId === courseId))
+	const [state] = enrollment ? await courseStates(ctx, [enrollment]) : []
 	const [card] = await courseCards(ctx, [courseId])
-	const expired = isExpired(enrollment, ctx.now())
-	const course: MyCourse = {
-		id: courseId,
-		title: outline.course.title,
-		slug: card?.slug ?? '',
-		coverUrl: card?.coverUrl ?? null,
-		progressPct: enrollment.progressPct,
-		expired,
-		revoked: enrollment.status === 'revoked',
-	}
+	// чужой и несуществующий курс не различаются
+	if (!state?.outline || !card) return fail.notFound('COURSE_NOT_FOUND')
+	const { outline, access } = state
+	const course = myCourse({ ...card, title: outline.course.title }, state, ctx.now())
 	// доступ закончился или отозван — оглавление не отдаём (названия уроков платные)
-	if (expired || course.revoked) return { course, sections: [], nextLessonId: null }
-	const access = computeAccess(outline, await accessBase(ctx, enrollment), await factsOf(ctx, enrollment.id), ctx.now())
+	if (state.closed) return { course, sections: [], nextLessonId: null }
 	const byId = new Map(access.map((a) => [a.lessonId, a]))
 	return {
 		course,

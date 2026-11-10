@@ -14,12 +14,23 @@ import {
 	unlimitEnrollment,
 } from './enrollment.service.ts'
 import { createGroup, curatorOptions, listGroups, removeGroup, updateGroup } from './groups.service.ts'
+import { getMyHome } from './home.service.ts'
 import { acceptJoin, createLinkInvite, getJoin, listInvites, revokeInvite } from './invites.service.ts'
 import { completeLesson, getMyCourse, getMyLesson, listMyCourses, openLesson } from './service.ts'
 
 const chain = () => impl.learn
 
 export const learnRouter = {
+	home: {
+		get: chain()
+			.home.get.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.study'))
+			.handler(({ context }) => getMyHome(schoolCtx(context))),
+	},
 	courses: {
 		list: chain()
 			.courses.list.use(mw.host)

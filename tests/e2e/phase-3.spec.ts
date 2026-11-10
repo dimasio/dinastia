@@ -195,9 +195,11 @@ test('демо фазы 3: тест и задание → проверка ку�
 		await student.reload()
 		await expect(student.getByTestId('assignment-status')).toHaveAttribute('data-status', 'accepted')
 		await expect(student.getByTestId('player-done')).toBeVisible()
+		// пройденный курс — на вкладке «Пройденные» (4.5)
 		await student.goto(schoolUrl('demo', '/learn'))
+		await student.getByTestId('my-tab-completed').click()
 		await expect(student.getByTestId('my-course').filter({ hasText: COURSE }).getByTestId('progress-label')).toHaveText(
-			'Пройдено 100%',
+			'Пройдено 1 из 1 урока',
 		)
 		await shoot(student, 'phase-3-done')
 	})

@@ -223,7 +223,20 @@ const Reply = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(
 /** `allow_resubmit` — разрешить пересдачу отклонённой работы (4.3): «Отклонена» → «Нужна доработка». */
 export const REVIEW_DECISIONS = ['accept', 'needs_revision', 'reject', 'allow_resubmit'] as const
 
+/** Работа ученика, возвращённая на доработку (кабинет ученика, 4.5). */
+export const MyRevision = z.object({
+	submissionId: Id,
+	courseId: Id,
+	courseTitle: z.string(),
+	lessonId: Id,
+	lessonTitle: z.string(),
+	reviewedAt: DateTime.nullable(),
+})
+export type MyRevision = z.infer<typeof MyRevision>
+
 export const assignmentContract = {
+	/** Мои работы «Нужна доработка» по действующим курсам (4.5), сначала свежие. */
+	revisions: oc.route({ method: 'GET', path: '/assignment/revisions' }).output(z.array(MyRevision)),
 	get: oc.route({ method: 'GET', path: '/assignment/{lessonId}/{blockKey}' }).input(QuizRef).output(AssignmentState),
 	/** Сохранить черновик (или доработку): текст и файлы заменяются присланными. */
 	saveDraft: oc
