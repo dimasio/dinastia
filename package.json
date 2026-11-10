@@ -28,6 +28,7 @@
 		"db:reset": "pnpm --filter @dinastia/api db:reset",
 		"db:studio": "pnpm --filter @dinastia/api db:studio",
 		"db:seed": "pnpm --filter @dinastia/api db:seed",
+		"db:seed:trud": "pnpm --filter @dinastia/api db:seed:trud",
 		"e2e": "playwright test",
 		"e2e:shots": "playwright test --grep @shots",
 		"test:repeat": "pnpm --filter @dinastia/tools run test:repeat",
