@@ -29,7 +29,8 @@ description: Ученики и прогресс в Dinastia — модуль lea
   вызывается подписчиками, идемпотентно.
 - Drip: задача раз в 15 минут открывает уроки, у которых наступил срок, по всем школам (`forEachSchool`).
 - Публикация нового урока в курсе с пройденными учениками: `completed` у зачисления **не** снимается (правило MVP).
-- Куратор видит учеников **только своих групп** — общая политика `learning/policies.ts → groupScope(ctx)`.
+- Куратор видит учеников **только своих потоков** — общая политика `learning/policies.ts → groupScope(ctx)`
+  (по `enrollments`) и `enrollmentScope(ctx, колонка)` (по `enrollment_id` другой таблицы).
 - Аналитика — SQL-агрегаты по индексам `(school_id, course_id)`; тяжёлые выгрузки — фоновой задачей (`documents`).
 - Права: `learning.enroll` (owner, admin, teacher), `learning.groups.manage` (owner, admin, teacher),
   `learning.analytics` (+ curator в своих группах).
@@ -55,19 +56,32 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `lesson.completed`, `enrollment.completed`, экраны `/learn`, `/learn/courses/$courseId`, плеер урока
   (`apps/web/src/features/learning/`). Доступность считается при чтении, `lesson_progress.status` не хранится.
 - Зачислить для разработки и e2e: `pnpm --filter @dinastia/api exec tsx src/enroll.ts <школа> <email> "<курс>" [sequential]`.
-- Нет (фаза 4, дальше): потоки, кураторы, дедлайны, drip-задача, сертификаты, аналитика.
+- Нет (фаза 4, дальше): дедлайны, drip-задача, сертификаты, аналитика.
 
 ## Зачисление (4.1)
 
 - `enrollment.service.ts`: `enroll` (внутренняя; `already`/`enrolled`/`restored`), `enrollByEmail` (аккаунт создаёт только owner/admin через
   `auth.api.signUpEmail` со случайным паролем), `extend`/`unlimit`/`revoke`/`restore`, `listEnrollments`, `expireDueEnrollments` (задача
-  `learning.expire-enrollments`, 03:10 по Москве). `learningScope(ctx)` — точка ограничения списка куратору по группам (4.2).
+  `learning.expire-enrollments`, 03:10 по Москве). `learningScope(ctx)` = `groupScope` — куратор видит только свои потоки (4.2).
 - API `learning.enrollments.*`; права `learning.read` (admin, teacher, curator), `learning.enroll` (admin, teacher).
 - Экран — вкладка «Ученики» курса: `features/learning/learners.tsx`, ресурс `resources/enrollments.ts` (фабрика на курс), срок по умолчанию — `courses.update`.
 - Приглашения (4.1(б)): `invites.service.ts` — `createLinkInvite`, `inviteByEmail` (задача `learning.send-course-invitation` выпускает токен), `getJoin`/`acceptJoin`;
   API `learning.invites.*` и публичные `join.*`; экран — панель «Ссылки-приглашения» (`invites-sheet.tsx`) и страница `/join/<токен>` (`join-page.tsx`).
   Токены — только хэш в БД; письма с токеном шлёт задача (`deliverEmail`), а не `ctx.mail.send`.
 - Статус в списке считается с учётом срока (`shownStatus`): просроченный active/completed — «expired» ещё до задачи.
+
+## Потоки (4.2)
+
+- `groups.service.ts`: `listGroups` (куратор — свои), `createGroup`/`updateGroup` (кураторы — `setCurators`, только активные
+  сотрудники), `removeGroup` (сначала обнуляет `group_id` у зачислений и приглашений — ключи `no action`), `curatorOptions`,
+  `groupOfCourse` (поток этого курса или `GROUP_NOT_FOUND`), `groupExpiry` (срок потока от будущего старта или от зачисления).
+- `enroll(…, { groupId })`, `moveEnrollment`, приглашения с `groupId`; API `learning.groups.*`, `learning.enrollments.move`;
+  право `learning.groups.manage` (admin, teacher).
+- Экран — вкладка «Потоки» (`features/learning/groups.tsx`, свои компоненты: множественный выбор кураторов), колонка «Поток» на
+  «Учениках», поток в «Ссылках-приглашениях». Фильтр по потоку, выбор потока при зачислении и «Перевести в поток» в таблице —
+  ждут запроса к ядру `docs/tasks/requests/resource-dynamic-options.md` (API готово: `filters.groupId`, `enroll.groupId`, `move`).
+- Тесты: `groups.test.ts`; тестам проверки куратором нужен поток — `learning/testing.ts → intoCuratorGroup`, в e2e — команда
+  `src/enroll.ts … [режим] curator@demo.local`.
 
 ## Завершение урока по результату (3.6)
 

@@ -12,6 +12,7 @@ import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { drainJobs, lastMailTo, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { type Client, cleanupTestSchools, withTestSchool } from '#/test/school.ts'
 import { enrollMember } from '../learning/service.ts'
+import { intoCuratorGroup } from '../learning/testing.ts'
 
 beforeAll(startTestWorker)
 afterAll(async () => {
@@ -55,6 +56,8 @@ async function setup(n = 1, settings: Record<string, unknown> = {}) {
 			courseId: course.id,
 		})
 	})
+	// куратор проверяет только свои потоки (4.2)
+	await intoCuratorGroup(t, course.id)
 	return { t, c, course, refs, student: t.as('student') }
 }
 

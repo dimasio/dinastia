@@ -18,3 +18,4 @@
 
 | Запрос | Статус | Кто ждёт |
 | ------ | ------ | -------- |
+| [resource-dynamic-options](requests/resource-dynamic-options.md) — варианты выбора из данных в ресурсах | open | 4.2 |

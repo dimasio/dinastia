@@ -11,6 +11,7 @@ import { members } from '#/kernel/members/schema.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { cleanupTestSchools, withTestSchool } from '#/test/school.ts'
 import { enrollMember } from '../learning/service.ts'
+import { intoCuratorGroup } from '../learning/testing.ts'
 
 afterAll(async () => {
 	await cleanupTestSchools()
@@ -81,6 +82,8 @@ async function setup(opts: Opts) {
 			courseId: course.id,
 		})
 	})
+	// куратор проверяет только свои потоки (4.2)
+	await intoCuratorGroup(t, course.id)
 	const student = t.as('student')
 	const status = async () => (await student.learn.courses.get({ courseId: course.id })).sections[0]?.lessons[0]?.status
 	const progress = async () => (await student.learn.courses.get({ courseId: course.id })).course.progressPct

@@ -29,6 +29,7 @@ import {
 	updateLessonSettings,
 } from './modules/courses/service.ts'
 import { enroll, revokeEnrollment } from './modules/learning/enrollment.service.ts'
+import { createGroup } from './modules/learning/groups.service.ts'
 import { createLinkInvite } from './modules/learning/invites.service.ts'
 import { enrollments } from './modules/learning/schema.ts'
 import { openLesson } from './modules/learning/service.ts'
@@ -1898,13 +1899,60 @@ await withTenant(school.id, async (tx: Tx) => {
 		],
 	})
 
+	// Потоки (4.2) — до зачислений: ученики зачисляются сразу в поток. У куратора Анны Кузнецовой свои потоки;
+	// кто без потока, тот виден только преподавателям.
+	const groupOf = new Map<string, string>()
+	async function groupUp(
+		courseId: string,
+		input: { title: string; startsAgo: number; curators: string[]; students: string[] },
+	) {
+		const group = await createGroup(as('teacher', ago(input.startsAgo + 2)), {
+			courseId,
+			title: input.title,
+			startsAt: ago(input.startsAgo),
+			endsAt: ago(input.startsAgo - 45),
+			accessDays: null,
+			curatorIds: input.curators.map((k) => memberIds.get(k) as string),
+		})
+		for (const key of input.students) groupOf.set(`${courseId}:${key}`, group.id)
+	}
+	await groupUp(fire.courseId, {
+		title: 'Поток — октябрь',
+		startsAgo: 31,
+		curators: ['curator'],
+		students: ['petrov', 'zakharova', 'smirnova', 'popova', 'kozlov', 'lebedev'],
+	})
+	await groupUp(fire.courseId, {
+		title: 'Поток — ноябрь',
+		startsAgo: 16,
+		curators: ['curator', 'teacher'],
+		students: ['novikova', 'morozov', 'vasilieva', 'fedorov'],
+	})
+	await groupUp(courseA.courseId, {
+		title: 'Руководители участков',
+		startsAgo: 25,
+		curators: ['curator'],
+		students: ['petrov', 'smirnova', 'popova', 'kozlov', 'lebedev', 'vasilieva'],
+	})
+	await groupUp(courseA.courseId, {
+		title: 'Специалисты',
+		startsAgo: 13,
+		curators: ['teacher'],
+		students: ['novikova', 'morozov', 'fedorov', 'zakharova'],
+	})
+
 	// ═══ Ученики и прогресс ════════════════════════════════════════════════════════════════════════════════
 
 	const [a1, a2, a3, a4, a5, a6] = courseA.lessonIds as [string, string, string, string, string, string]
 	const aAssignment = await blockKeyOf(a3, 'assignment')
 	const aQuiz = await blockKeyOf(a6, 'quiz')
 	const enrollAs = (staff: string, student: string, courseId: string, at: Date, source: 'manual' | 'link' = 'manual') =>
-		enroll(as(staff, at), { memberId: memberIds.get(student) as string, courseId, source })
+		enroll(as(staff, at), {
+			memberId: memberIds.get(student) as string,
+			courseId,
+			source,
+			groupId: groupOf.get(`${courseId}:${student}`) ?? null,
+		})
 
 	const answerRisk = (good: boolean) =>
 		good

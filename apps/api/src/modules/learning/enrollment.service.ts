@@ -1,8 +1,9 @@
-// Зачисление, сроки и отзыв доступа (скилл lms-learners, карточка 4.1): зачисление по почте, продление, отзыв и возврат,
-// список учеников курса. Курс — публичный API модуля courses; аккаунты ученикам создают владелец и администраторы.
+// Зачисление, сроки и отзыв доступа (скилл lms-learners, карточки 4.1, 4.2): зачисление по почте (и в поток), продление, отзыв
+// и возврат, перевод между потоками, список учеников курса. Курс — публичный API модуля courses; аккаунты ученикам создают
+// владелец и администраторы.
 import { randomBytes } from 'node:crypto'
 import type { EnrollmentListQuery, EnrollmentRow } from '@dinastia/contracts/learning'
-import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 import { auth } from '#/kernel/auth/auth.ts'
 import { users } from '#/kernel/auth/schema.ts'
 import { appOrigin } from '#/kernel/config.ts'
@@ -12,27 +13,27 @@ import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
 import { enrolledEmail } from './emails/enrolled.tsx'
+import { groupExpiry, groupOfCourse } from './groups.service.ts'
 import { inviteByEmail } from './invites.service.ts'
-import { enrollments } from './schema.ts'
+import { groupScope } from './policies.ts'
+import { enrollments, groups } from './schema.ts'
 
 type Enrollment = typeof enrollments.$inferSelect
 const DAY_MS = 24 * 60 * 60 * 1000
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`)
 
-/**
- * Область списка учеников для проверяющих и преподавателей. До потоков (4.2) — все ученики школы (изоляция школ — RLS);
- * в 4.2 для куратора здесь появится ограничение по его группам.
- */
-export function learningScope(_ctx: SchoolCtx): SQL | undefined {
-	return undefined
+/** Область списка учеников: куратор — только ученики своих потоков (`groupScope`), остальные — вся школа (RLS). */
+export function learningScope(ctx: SchoolCtx): SQL | undefined {
+	return groupScope(ctx)
 }
 
 export type EnrollOutcome = 'enrolled' | 'restored' | 'already'
 
 /**
  * Зачислить участника на курс (внутренняя функция и основа `enrollByEmail`). Опубликованный курс; срок — `accessDays`
- * (не указан — срок курса по умолчанию, `null` — без срока). Действующее зачисление возвращается как есть (`already`);
- * отозванное и истёкшее — возвращаются с прежним прогрессом и новым сроком (`restored`).
+ * (не указан — срок потока, затем срок курса по умолчанию; `null` — без срока). Действующее зачисление возвращается как есть
+ * (`already`; указан поток — переводится в него); отозванное и истёкшее — возвращаются с прежним прогрессом и новым сроком
+ * (`restored`). Поток — этого курса, иначе GROUP_NOT_FOUND; не указан — поток зачисления не меняется.
  */
 export async function enroll(
 	ctx: BaseCtx,
@@ -42,14 +43,19 @@ export async function enroll(
 		source?: Enrollment['source']
 		accessDays?: number | null
 		inviteId?: string
+		groupId?: string | null
 	},
 ): Promise<{ enrollment: Enrollment; outcome: EnrollOutcome }> {
 	const outline = await publishedOutline(ctx, input.courseId)
 	if (!outline) return fail.notFound('COURSE_NOT_FOUND')
 	if (outline.course.status !== 'published') return fail.conflict('COURSE_NOT_PUBLISHED')
-	const days = input.accessDays === undefined ? outline.course.accessDays : input.accessDays
+	const group = input.groupId ? await groupOfCourse(ctx, input.groupId, input.courseId) : null
 	const now = ctx.now()
-	const expiresAt = days ? new Date(now.getTime() + days * DAY_MS) : null
+	const days = input.accessDays === undefined ? outline.course.accessDays : input.accessDays
+	const expiresAt =
+		(input.accessDays === undefined ? groupExpiry(group, now) : undefined) ??
+		(days ? new Date(now.getTime() + days * DAY_MS) : null)
+	const groupPatch = group ? { groupId: group.id } : {}
 	const [existing] = await ctx.db
 		.select()
 		.from(enrollments)
@@ -60,7 +66,15 @@ export async function enroll(
 		const live =
 			(existing.status === 'active' || existing.status === 'completed') &&
 			(!existing.expiresAt || existing.expiresAt > now)
-		if (live) return { enrollment: existing, outcome: 'already' }
+		if (live) {
+			if (!group || existing.groupId === group.id) return { enrollment: existing, outcome: 'already' }
+			const [moved] = await ctx.db
+				.update(enrollments)
+				.set(groupPatch)
+				.where(eq(enrollments.id, existing.id))
+				.returning()
+			return { enrollment: moved as Enrollment, outcome: 'already' }
+		}
 		const [row] = await ctx.db
 			.update(enrollments)
 			.set({
@@ -68,6 +82,7 @@ export async function enroll(
 				revokedAt: null,
 				expiresAt,
 				...(input.inviteId ? { inviteId: input.inviteId } : {}),
+				...groupPatch,
 			})
 			.where(eq(enrollments.id, existing.id))
 			.returning()
@@ -82,6 +97,7 @@ export async function enroll(
 			enrolledAt: now,
 			expiresAt,
 			inviteId: input.inviteId ?? null,
+			groupId: group?.id ?? null,
 		})
 		.returning()
 	return { enrollment: row as Enrollment, outcome: 'enrolled' }
@@ -102,6 +118,8 @@ const columns = (now: Date) => ({
 	enrolledAt: enrollments.enrolledAt,
 	expiresAt: enrollments.expiresAt,
 	progressPct: enrollments.progressPct,
+	groupId: enrollments.groupId,
+	groupTitle: groups.title,
 })
 
 async function rowOf(ctx: SchoolCtx, id: string): Promise<EnrollmentRow> {
@@ -110,7 +128,8 @@ async function rowOf(ctx: SchoolCtx, id: string): Promise<EnrollmentRow> {
 		.from(enrollments)
 		.innerJoin(members, eq(members.id, enrollments.memberId))
 		.innerJoin(users, eq(users.id, members.userId))
-		.where(eq(enrollments.id, id))
+		.leftJoin(groups, eq(groups.id, enrollments.groupId))
+		.where(and(eq(enrollments.id, id), learningScope(ctx)))
 	return row ?? fail.notFound('ENROLLMENT_NOT_FOUND')
 }
 
@@ -123,6 +142,11 @@ export async function listEnrollments(ctx: SchoolCtx, input: EnrollmentListQuery
 		eq(enrollments.courseId, input.courseId),
 		scope,
 		input.filters.status ? sql`${status} = ${input.filters.status}` : undefined,
+		input.filters.groupId === 'none'
+			? isNull(enrollments.groupId)
+			: input.filters.groupId
+				? eq(enrollments.groupId, input.filters.groupId)
+				: undefined,
 		like ? or(ilike(users.name, like), ilike(users.email, like)) : undefined,
 	)
 	const sort = { enrolledAt: enrollments.enrolledAt, studentName: users.name, progressPct: enrollments.progressPct }[
@@ -135,6 +159,7 @@ export async function listEnrollments(ctx: SchoolCtx, input: EnrollmentListQuery
 			.from(enrollments)
 			.innerJoin(members, eq(members.id, enrollments.memberId))
 			.innerJoin(users, eq(users.id, members.userId))
+			.leftJoin(groups, eq(groups.id, enrollments.groupId))
 			.where(where)
 			.orderBy(by(sort), asc(enrollments.id))
 			.limit(input.pageSize)
@@ -186,12 +211,20 @@ async function studentByEmail(ctx: SchoolCtx, email: string, name: string | unde
 /** Зачислить по почте: ученик школы — сразу; владелец и администратор — ещё и создают аккаунт; письмо «вас записали». */
 export async function enrollByEmail(
 	ctx: SchoolCtx,
-	input: { courseId: string; email: string; accessDays?: number | undefined; name?: string | undefined },
+	input: {
+		courseId: string
+		email: string
+		accessDays?: number | undefined
+		name?: string | undefined
+		groupId?: string | undefined
+	},
 ) {
 	const email = input.email.trim().toLowerCase()
+	// поток проверяется до создания аккаунта и приглашения
+	if (input.groupId) await groupOfCourse(ctx, input.groupId, input.courseId)
 	const memberId = await studentByEmail(ctx, email, input.name)
 	if (!memberId) {
-		await inviteByEmail(ctx, { courseId: input.courseId, email })
+		await inviteByEmail(ctx, { courseId: input.courseId, email, groupId: input.groupId })
 		return { outcome: 'invited' as const, enrollment: null }
 	}
 	const { enrollment, outcome } = await enroll(ctx, {
@@ -199,6 +232,7 @@ export async function enrollByEmail(
 		courseId: input.courseId,
 		source: 'manual',
 		...(input.accessDays !== undefined ? { accessDays: input.accessDays } : {}),
+		...(input.groupId ? { groupId: input.groupId } : {}),
 	})
 	if (outcome !== 'already') {
 		const [card] = await courseCards(ctx, [input.courseId])
@@ -266,6 +300,24 @@ export async function restoreEnrollment(ctx: SchoolCtx, id: string) {
 		.set({ status: e.completedAt ? 'completed' : 'active', revokedAt: null })
 		.where(eq(enrollments.id, e.id))
 	await ctx.audit('learning.enrollment.restored', { entity: 'enrollment', id: e.id })
+	return rowOf(ctx, e.id)
+}
+
+/** Перевести в поток курса или убрать из потока: срок и прогресс не меняются (4.2). */
+export async function moveEnrollment(ctx: SchoolCtx, input: { id: string; groupId: string | null }) {
+	const e = await ownEnrollment(ctx, input.id)
+	const group = input.groupId ? await groupOfCourse(ctx, input.groupId, e.courseId) : null
+	if ((group?.id ?? null) !== e.groupId) {
+		await ctx.db
+			.update(enrollments)
+			.set({ groupId: group?.id ?? null })
+			.where(eq(enrollments.id, e.id))
+		await ctx.audit('learning.enrollment.moved', {
+			entity: 'enrollment',
+			id: e.id,
+			diff: { from: e.groupId, to: group?.id ?? null },
+		})
+	}
 	return rowOf(ctx, e.id)
 }
 

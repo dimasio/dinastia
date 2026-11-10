@@ -12,8 +12,9 @@ import { members } from '#/kernel/members/schema.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
 import { courseInvitationEmail } from './emails/course-invitation.tsx'
 import { enroll } from './enrollment.service.ts'
+import { groupOfCourse } from './groups.service.ts'
 import { sendCourseInvitationJob } from './jobs.ts'
-import { enrollmentInvites } from './schema.ts'
+import { enrollmentInvites, groups } from './schema.ts'
 
 type Invite = typeof enrollmentInvites.$inferSelect
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -31,7 +32,7 @@ function statusOf(i: Invite, now: Date): InviteRow['status'] {
 	return 'active'
 }
 
-const rowOf = (i: Invite, now: Date): InviteRow => ({
+const rowOf = (i: Invite, now: Date, groupTitle: string | null): InviteRow => ({
 	id: i.id,
 	email: i.email,
 	status: statusOf(i, now),
@@ -39,7 +40,15 @@ const rowOf = (i: Invite, now: Date): InviteRow => ({
 	maxUses: i.maxUses,
 	uses: i.uses,
 	createdAt: i.createdAt,
+	groupId: i.groupId,
+	groupTitle: i.groupId ? groupTitle : null,
 })
+
+async function titleOf(ctx: BaseCtx, groupId: string | null) {
+	if (!groupId) return null
+	const [g] = await ctx.db.select({ title: groups.title }).from(groups).where(eq(groups.id, groupId))
+	return g?.title ?? null
+}
 
 async function publishedCourse(ctx: BaseCtx, courseId: string) {
 	const outline = await publishedOutline(ctx, courseId)
@@ -50,20 +59,22 @@ async function publishedCourse(ctx: BaseCtx, courseId: string) {
 
 export async function listInvites(ctx: SchoolCtx, courseId: string): Promise<InviteRow[]> {
 	const rows = await ctx.db
-		.select()
+		.select({ invite: enrollmentInvites, groupTitle: groups.title })
 		.from(enrollmentInvites)
+		.leftJoin(groups, eq(groups.id, enrollmentInvites.groupId))
 		.where(eq(enrollmentInvites.courseId, courseId))
 		.orderBy(desc(enrollmentInvites.createdAt))
 	const now = ctx.now()
-	return rows.map((r) => rowOf(r, now))
+	return rows.map((r) => rowOf(r.invite, now, r.groupTitle))
 }
 
 /** Ссылка-приглашение: токен в ответе один раз, дальше только хэш. */
 export async function createLinkInvite(
 	ctx: SchoolCtx,
-	input: { courseId: string; expiresInDays: number; maxUses?: number | undefined },
+	input: { courseId: string; expiresInDays: number; maxUses?: number | undefined; groupId?: string | undefined },
 ) {
 	await publishedCourse(ctx, input.courseId)
+	const group = input.groupId ? await groupOfCourse(ctx, input.groupId, input.courseId) : null
 	const token = newToken()
 	const [row] = await ctx.db
 		.insert(enrollmentInvites)
@@ -73,15 +84,16 @@ export async function createLinkInvite(
 			expiresAt: new Date(ctx.now().getTime() + input.expiresInDays * DAY_MS),
 			maxUses: input.maxUses ?? null,
 			createdByMemberId: ctx.member.id,
+			groupId: group?.id ?? null,
 		})
 		.returning()
 	const invite = row as Invite
 	await ctx.audit('learning.invite.created', {
 		entity: 'enrollment_invite',
 		id: invite.id,
-		diff: { courseId: input.courseId, maxUses: input.maxUses ?? null },
+		diff: { courseId: input.courseId, maxUses: input.maxUses ?? null, groupId: group?.id ?? null },
 	})
-	return { invite: rowOf(invite, ctx.now()), url: `${appOrigin(ctx.school.slug)}/join/${token}` }
+	return { invite: rowOf(invite, ctx.now(), group?.title ?? null), url: `${appOrigin(ctx.school.slug)}/join/${token}` }
 }
 
 export async function revokeInvite(ctx: SchoolCtx, id: string): Promise<InviteRow> {
@@ -93,18 +105,22 @@ export async function revokeInvite(ctx: SchoolCtx, id: string): Promise<InviteRo
 	if (!row) {
 		const [exists] = await ctx.db.select().from(enrollmentInvites).where(eq(enrollmentInvites.id, id))
 		if (!exists) return fail.notFound('INVITE_NOT_FOUND')
-		return rowOf(exists, ctx.now())
+		return rowOf(exists, ctx.now(), await titleOf(ctx, exists.groupId))
 	}
 	await ctx.audit('learning.invite.revoked', { entity: 'enrollment_invite', id })
-	return rowOf(row, ctx.now())
+	return rowOf(row, ctx.now(), await titleOf(ctx, row.groupId))
 }
 
 /**
  * Адресное приглашение на почту (преподаватель, незнакомая почта). Повтор на ту же почту и курс продлевает действующее.
  * Письмо уходит задачей, она же выпускает токен — в очереди его нет.
  */
-export async function inviteByEmail(ctx: SchoolCtx, input: { courseId: string; email: string }) {
+export async function inviteByEmail(
+	ctx: SchoolCtx,
+	input: { courseId: string; email: string; groupId?: string | undefined },
+) {
 	await publishedCourse(ctx, input.courseId)
+	const groupId = input.groupId ? (await groupOfCourse(ctx, input.groupId, input.courseId)).id : null
 	const expiresAt = new Date(ctx.now().getTime() + EMAIL_INVITE_DAYS * DAY_MS)
 	const [open] = await ctx.db
 		.select()
@@ -120,7 +136,7 @@ export async function inviteByEmail(ctx: SchoolCtx, input: { courseId: string; e
 	const [row] = open
 		? await ctx.db
 				.update(enrollmentInvites)
-				.set({ expiresAt, tokenHash: unusableHash(), createdByMemberId: ctx.member.id })
+				.set({ expiresAt, tokenHash: unusableHash(), createdByMemberId: ctx.member.id, groupId })
 				.where(eq(enrollmentInvites.id, open.id))
 				.returning()
 		: await ctx.db
@@ -132,6 +148,7 @@ export async function inviteByEmail(ctx: SchoolCtx, input: { courseId: string; e
 					expiresAt,
 					maxUses: 1,
 					createdByMemberId: ctx.member.id,
+					groupId,
 				})
 				.returning()
 	const invite = row as Invite
@@ -224,6 +241,7 @@ export async function acceptJoin(ctx: BaseCtx, token: string, user: { id: string
 		courseId: inv.courseId,
 		source: inv.email ? 'invite' : 'link',
 		inviteId: inv.id,
+		groupId: inv.groupId,
 	})
 	if (outcome !== 'already') {
 		await ctx.db

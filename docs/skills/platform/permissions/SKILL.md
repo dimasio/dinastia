@@ -80,12 +80,14 @@ if (!ctx.can('schools.members.manage')) fail.forbidden('NO_PERMISSION')
 ## Политика записи (с фазы 2)
 
 ```ts
-// apps/api/src/modules/assessments/policies.ts
-export function reviewScope(ctx: SchoolCtx) {
+// apps/api/src/modules/learning/policies.ts (4.2)
+export function groupScope(ctx: SchoolCtx) {
 	if (ctx.member.role !== 'curator') return undefined
 	return inArray(enrollments.groupId, curatorGroupIds(ctx)) // подзапрос по group_curators
 }
-// сервис: .where(and(eq(submissions.status, 'submitted'), reviewScope(ctx)))
+// по enrollment_id другой таблицы — без соединения с enrollments
+export const enrollmentScope = (ctx, col) => inArray(col, ctx.db.select({ id: enrollments.id }).from(enrollments).where(groupScope(ctx)))
+// сервис: .where(and(eq(submissions.id, id), enrollmentScope(ctx, submissions.enrollmentId)))
 ```
 
 Запись вне скоупа в `get` → `fail.notFound`, не `forbidden` (не раскрываем существование).

@@ -1,10 +1,15 @@
-// Панель «Ссылки-приглашения» на вкладке «Ученики» (карточка 4.1(б)): создать ссылку (срок, лимит), скопировать сразу
-// после создания (позже её не показать — в БД только хэш), список со статусами, отзыв.
+// Панель «Ссылки-приглашения» на вкладке «Ученики» (карточки 4.1(б), 4.2): создать ссылку (срок, лимит, поток), скопировать
+// сразу после создания (позже её не показать — в БД только хэш), список со статусами, отзыв.
 import {
 	Badge,
 	Button,
 	Input,
 	Label,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 	Sheet,
 	SheetContent,
 	SheetDescription,
@@ -19,12 +24,17 @@ import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 
+/** Значение «без потока» в выборе (у Select не бывает пустого значения). */
+const NONE = 'none'
+
 export function InvitesSheet(props: { courseId: string; open: boolean; onOpenChange: (o: boolean) => void }) {
 	const { courseId } = props
 	const { t } = useTranslation(['learning', 'errors', 'common'])
 	const qc = useQueryClient()
 	const listOpts = orpc.learning.invites.list.queryOptions({ input: { courseId } })
 	const invites = useQuery({ ...listOpts, enabled: props.open })
+	const groups = useQuery({ ...orpc.learning.groups.list.queryOptions({ input: { courseId } }), enabled: props.open })
+	const [groupId, setGroupId] = useState(NONE)
 	const [days, setDays] = useState('30')
 	const [limit, setLimit] = useState('')
 	const [created, setCreated] = useState<string>()
@@ -68,7 +78,12 @@ export function InvitesSheet(props: { courseId: string; open: boolean; onOpenCha
 						onSubmit={(e) => {
 							e.preventDefault()
 							if (!invalid && d !== null)
-								create.mutate({ courseId, expiresInDays: d, ...(l !== null ? { maxUses: l } : {}) })
+								create.mutate({
+									courseId,
+									expiresInDays: d,
+									...(l !== null ? { maxUses: l } : {}),
+									...(groupId !== NONE ? { groupId } : {}),
+								})
 						}}
 					>
 						<div className="grid grid-cols-2 gap-2">
@@ -93,6 +108,24 @@ export function InvitesSheet(props: { courseId: string; open: boolean; onOpenCha
 								/>
 							</div>
 						</div>
+						{Boolean(groups.data?.length) && (
+							<div className="grid gap-1">
+								<Label htmlFor="invite-group">{t('learning:invites.group')}</Label>
+								<Select value={groupId} onValueChange={setGroupId}>
+									<SelectTrigger id="invite-group" className="w-full" data-testid="invite-group">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={NONE}>{t('learning:invites.groupNone')}</SelectItem>
+										{groups.data?.map((g) => (
+											<SelectItem key={g.id} value={g.id}>
+												{g.title}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
 						<Button type="submit" disabled={invalid || create.isPending} data-testid="invite-create">
 							{t('learning:invites.create')}
 						</Button>
@@ -131,6 +164,12 @@ export function InvitesSheet(props: { courseId: string; open: boolean; onOpenCha
 								</Badge>
 								<span className="min-w-0 flex-1 truncate">
 									{i.email ?? t('learning:invites.kindLink')}
+									{i.groupTitle && (
+										<span className="text-muted-foreground">
+											{' '}
+											{t('learning:invites.inGroup', { title: i.groupTitle })}
+										</span>
+									)}
 									<span className="text-muted-foreground">
 										{' · '}
 										{t('learning:invites.uses', { uses: i.uses, max: i.maxUses ?? '∞' })}

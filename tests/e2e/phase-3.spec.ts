@@ -70,7 +70,18 @@ test('демо фазы 3: тест и задание → проверка ку�
 	}, COURSE)
 	execFileSync(
 		'pnpm',
-		['--filter', '@dinastia/api', 'exec', 'tsx', 'src/enroll.ts', 'demo', 'student1@demo.local', COURSE, 'open'],
+		[
+			'--filter',
+			'@dinastia/api',
+			'exec',
+			'tsx',
+			'src/enroll.ts',
+			'demo',
+			'student1@demo.local',
+			COURSE,
+			'open',
+			'curator@demo.local',
+		],
 		{
 			stdio: 'pipe',
 		},

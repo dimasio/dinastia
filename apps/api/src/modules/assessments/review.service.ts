@@ -10,17 +10,21 @@ import { toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courses, lessons } from '../courses/schema.ts'
+import { enrollmentScope, groupScope } from '../learning/policies.ts'
 import { enrollments } from '../learning/schema.ts'
 import { quizAttempts, submissions } from './schema.ts'
 import { addComment, viewOf } from './submission.service.ts'
 
 /**
- * Область проверяющего: какие работы он видит и может проверять. До потоков (фаза 4) — все работы школы (изоляция школ —
- * RLS); в фазе 4 для куратора здесь появится ограничение по `group_curators` — единственное место, которое надо менять.
+ * Область проверяющего: какие работы он видит и может проверять — условие на `enrollments` (очередь соединяет с ней).
+ * Куратор — только ученики своих потоков (4.2, `learning/policies.ts`); остальные — вся школа (изоляция школ — RLS).
  */
-export function reviewScope(_ctx: SchoolCtx): SQL | undefined {
-	return undefined
+export function reviewScope(ctx: SchoolCtx): SQL | undefined {
+	return groupScope(ctx)
 }
+
+/** Та же область по `enrollment_id` строки (сдача, попытка) — для выборок без соединения с `enrollments`. */
+export const reviewScopeOf = (ctx: SchoolCtx, enrollmentId: AnyColumn) => enrollmentScope(ctx, enrollmentId)
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`)
 
@@ -165,7 +169,7 @@ export async function listQueue(ctx: SchoolCtx, input: ReviewListQuery) {
 
 /** Работа, доступная проверяющему (по области); иначе SUBMISSION_NOT_FOUND. */
 async function scopedSubmission(ctx: SchoolCtx, submissionId: string) {
-	const scope = reviewScope(ctx)
+	const scope = reviewScopeOf(ctx, submissions.enrollmentId)
 	const [row] = await ctx.db
 		.select()
 		.from(submissions)

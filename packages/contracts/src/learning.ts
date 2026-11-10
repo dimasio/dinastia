@@ -116,14 +116,21 @@ export const EnrollmentRow = z.object({
 	/** Конец доступа; пусто — без срока. */
 	expiresAt: DateTime.nullable(),
 	progressPct: z.number().int().min(0).max(100),
+	/** Поток (4.2); пусто — без потока. */
+	groupId: Id.nullable(),
+	groupTitle: z.string().nullable(),
 })
 export type EnrollmentRow = z.infer<typeof EnrollmentRow>
+
+/** Фильтр списка учеников по потоку: id потока или `none` — без потока. */
+export const GROUP_NONE = 'none'
+export const GroupFilter = z.union([Id, z.literal(GROUP_NONE)])
 
 export const EnrollmentListInput = pageInput({
 	sorts: ['enrolledAt', 'studentName', 'progressPct'] as const,
 	defaultSort: 'enrolledAt',
 	defaultDir: 'desc',
-	filters: { status: EnrollmentStatus },
+	filters: { status: EnrollmentStatus, groupId: GroupFilter },
 }).extend({ courseId: Id })
 export type EnrollmentListQuery = z.output<typeof EnrollmentListInput>
 
@@ -134,6 +141,8 @@ export const EnrollInput = z.object({
 	accessDays: ACCESS_DAYS.optional(),
 	/** Имя — для нового аккаунта (его создают владелец и администраторы); не указано — часть почты до «@». */
 	name: z.string().trim().min(1).max(100).optional(),
+	/** Поток курса (4.2); не указан — без потока. */
+	groupId: Id.optional(),
 })
 
 const ById = z.object({ id: Id })
@@ -148,6 +157,9 @@ export const InviteRow = z.object({
 	maxUses: z.number().int().nullable(),
 	uses: z.number().int(),
 	createdAt: DateTime,
+	/** Поток, в который попадает принявший (4.2). */
+	groupId: Id.nullable(),
+	groupTitle: z.string().nullable(),
 })
 export type InviteRow = z.infer<typeof InviteRow>
 
@@ -157,7 +169,44 @@ export const InviteCreateInput = z.object({
 	expiresInDays: z.number().int().min(1).max(365).default(30),
 	/** Сколько человек могут присоединиться; не указан — без лимита. */
 	maxUses: z.number().int().min(1).max(10000).optional(),
+	/** Поток, в который попадает принявший (4.2); не указан — без потока. */
+	groupId: Id.optional(),
 })
+
+// ── Потоки (карточка 4.2) ─────────────────────────────────────────────────────────────────────────────────────────────
+export const GroupTitle = z.string().trim().min(1).max(120)
+
+/** Сотрудник — куратор потока или кандидат в кураторы. */
+export const GroupCurator = z.object({ memberId: Id, name: z.string(), email: z.string() })
+export type GroupCurator = z.infer<typeof GroupCurator>
+
+/** Поток курса в списке вкладки «Потоки». */
+export const GroupRow = z.object({
+	id: Id,
+	courseId: Id,
+	title: z.string(),
+	startsAt: DateTime.nullable(),
+	/** Для информации — доступ не ограничивает. */
+	endsAt: DateTime.nullable(),
+	/** Срок доступа зачисленных в поток, дней; пусто — срок курса. */
+	accessDays: z.number().int().nullable(),
+	students: z.number().int(),
+	curators: z.array(GroupCurator),
+})
+export type GroupRow = z.infer<typeof GroupRow>
+
+const GroupFields = z.object({
+	title: GroupTitle,
+	startsAt: DateTime.nullable().default(null),
+	endsAt: DateTime.nullable().default(null),
+	accessDays: ACCESS_DAYS.nullable().default(null),
+	/** Кураторы — участники школы (не ученики), до 20. */
+	curatorIds: z.array(Id).max(20).default([]),
+})
+export const GroupCreateInput = GroupFields.extend({ courseId: Id })
+export type GroupCreateInput = z.output<typeof GroupCreateInput>
+export const GroupUpdateInput = GroupFields.extend({ id: Id })
+export type GroupUpdateInput = z.output<typeof GroupUpdateInput>
 
 export const learningContract = {
 	enrollments: {
@@ -188,6 +237,31 @@ export const learningContract = {
 		/** Отозвать доступ (прогресс сохраняется). */
 		revoke: oc.route({ method: 'POST', path: '/enrollments/{id}/revoke' }).input(ById).output(EnrollmentRow),
 		restore: oc.route({ method: 'POST', path: '/enrollments/{id}/restore' }).input(ById).output(EnrollmentRow),
+		/** Перевести в поток курса или убрать из потока (`groupId: null`); срок и прогресс не меняются. */
+		move: oc
+			.route({ method: 'POST', path: '/enrollments/{id}/move' })
+			.input(ById.extend({ groupId: Id.nullable() }))
+			.output(EnrollmentRow),
+	},
+	groups: {
+		/** Потоки курса; куратор видит только свои. */
+		list: oc
+			.route({ method: 'GET', path: '/courses/{courseId}/groups' })
+			.input(z.object({ courseId: Id }))
+			.output(z.array(GroupRow)),
+		create: oc
+			.route({ method: 'POST', path: '/courses/{courseId}/groups', successStatus: 201 })
+			.input(GroupCreateInput)
+			.output(GroupRow),
+		/** Изменить поток целиком (кураторы — новым списком). */
+		update: oc.route({ method: 'PUT', path: '/groups/{id}' }).input(GroupUpdateInput).output(GroupRow),
+		/** Удалить поток: ученики и ссылки остаются в курсе без потока. */
+		remove: oc
+			.route({ method: 'DELETE', path: '/groups/{id}' })
+			.input(ById)
+			.output(z.object({ id: Id })),
+		/** Кого можно назначить куратором: активные сотрудники школы. */
+		curatorOptions: oc.route({ method: 'GET', path: '/groups/curator-options' }).output(z.array(GroupCurator)),
 	},
 	invites: {
 		list: oc

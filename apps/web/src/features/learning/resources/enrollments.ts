@@ -1,5 +1,5 @@
-// Ученики курса (скилл admin-resource, карточка 4.1): список с поиском и фильтром статуса, «Зачислить», продление срока,
-// отзыв и возврат доступа. Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
+// Ученики курса (скилл admin-resource, карточки 4.1, 4.2): список с поиском и фильтром статуса, колонка «Поток», «Зачислить»,
+// продление срока, отзыв и возврат доступа. Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
 
 import { Email } from '@dinastia/contracts/common'
 import { ACCESS_DAYS, ENROLLMENT_STATUSES, type EnrollmentListInput, EnrollmentRow } from '@dinastia/contracts/learning'
@@ -29,6 +29,7 @@ export function enrollmentsResource(opts: { courseId: string }) {
 		columns: [
 			{ field: 'studentName', sort: 'studentName' },
 			{ field: 'studentEmail' },
+			{ field: 'groupTitle', render: (row) => row.groupTitle ?? '—' },
 			{ field: 'status', render: 'badge', tone },
 			{ field: 'source', render: 'badge', tone: () => 'outline' },
 			{ field: 'enrolledAt', sort: 'enrolledAt', render: 'date' },

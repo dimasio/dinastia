@@ -46,7 +46,18 @@ test('проверка: очередь, работа, комментарий с 
 	}, COURSE)
 	execFileSync(
 		'pnpm',
-		['--filter', '@dinastia/api', 'exec', 'tsx', 'src/enroll.ts', 'demo', 'student1@demo.local', COURSE, 'open'],
+		[
+			'--filter',
+			'@dinastia/api',
+			'exec',
+			'tsx',
+			'src/enroll.ts',
+			'demo',
+			'student1@demo.local',
+			COURSE,
+			'open',
+			'curator@demo.local',
+		],
 		{
 			stdio: 'pipe',
 		},

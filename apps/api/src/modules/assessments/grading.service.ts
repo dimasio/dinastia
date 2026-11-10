@@ -1,5 +1,5 @@
 // Ручная проверка ответов `open_text` в попытках теста (скилл lms-assessments, карточка 3.6): попытка целиком для проверяющего,
-// оценки (баллы 0…максимум, шаг 0,5, комментарий), итог попытки после оценки всех ручных вопросов. Область — `reviewScope`.
+// оценки (баллы 0…максимум, шаг 0,5, комментарий), итог попытки после оценки всех ручных вопросов. Область — `reviewScopeOf`.
 import type { AttemptReview } from '@dinastia/contracts/assessments'
 import { isEmptyDoc } from '@dinastia/contracts/common'
 import { questionDef } from '@dinastia/questions'
@@ -14,12 +14,12 @@ import { recordBlockResult } from '../learning/service.ts'
 import { decodeResponse } from './answers.ts'
 import { quizGraded } from './events.ts'
 import { loadParts, publicInAttempt, settingsOf, summary } from './quiz.service.ts'
-import { reviewScope } from './review.service.ts'
+import { reviewScopeOf } from './review.service.ts'
 import { quizAnswers, quizAttempts } from './schema.ts'
 
 /** Попытка в области проверяющего; отправленная (не идущая) и с ручными вопросами — иначе ATTEMPT_NOT_FOUND. */
 async function scopedAttempt(ctx: SchoolCtx, attemptId: string) {
-	const scope = reviewScope(ctx)
+	const scope = reviewScopeOf(ctx, quizAttempts.enrollmentId)
 	const [row] = await ctx.db
 		.select()
 		.from(quizAttempts)

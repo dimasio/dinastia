@@ -15,6 +15,7 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { files } from '#/kernel/storage/schema.ts'
+import { enrollmentScope } from '../learning/policies.ts'
 import { openLessonContext, recordBlockResult } from '../learning/service.ts'
 import { submissionReviewed, submissionSubmitted } from './events.ts'
 import { commentFilePurpose, submissionFilePurpose } from './files.ts'
@@ -275,7 +276,12 @@ export async function reviewSubmission(
 	ctx: SchoolCtx,
 	input: { submissionId: string; decision: keyof typeof DECISION_STATUS; comment: DocValue; fileIds?: string[] },
 ): Promise<{ id: string; status: SubmissionStatus }> {
-	const [row] = await ctx.db.select().from(submissions).where(eq(submissions.id, input.submissionId)).for('update')
+	// область проверяющего (4.2): куратор решает только по работам своих потоков, чужая — «не найдено»
+	const [row] = await ctx.db
+		.select()
+		.from(submissions)
+		.where(and(eq(submissions.id, input.submissionId), enrollmentScope(ctx, submissions.enrollmentId)))
+		.for('update')
 	if (!row) return fail.notFound('SUBMISSION_NOT_FOUND')
 	const to = DECISION_STATUS[input.decision]
 	const comment = input.comment && !isEmptyDoc(input.comment) ? input.comment : null

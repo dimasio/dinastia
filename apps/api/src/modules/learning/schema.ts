@@ -1,5 +1,5 @@
-// Таблицы модуля learning (скилл db-schema, domain.md §1 «Обучение»). В 2.6 — сокращённо: зачисление и факты
-// прохождения уроков; потоки, дедлайны, `lesson_progress.status` — фаза 4 (доступность считается при чтении).
+// Таблицы модуля learning (скилл db-schema, domain.md §1 «Обучение»): потоки и их кураторы (4.2), зачисление, приглашения,
+// факты прохождения уроков; дедлайны, `lesson_progress.status` — дальше в фазе 4 (доступность считается при чтении).
 import { pii, tenantRef, tenantTable } from '@dinastia/db'
 import { sql } from 'drizzle-orm'
 import { index, integer, pgEnum, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
@@ -10,6 +10,38 @@ export const ENROLLMENT_STATUSES = ['active', 'completed', 'expired', 'revoked']
 export const ENROLLMENT_SOURCES = ['manual', 'invite', 'link'] as const
 export const enrollmentStatus = pgEnum('enrollment_status', ENROLLMENT_STATUSES)
 export const enrollmentSource = pgEnum('enrollment_source', ENROLLMENT_SOURCES)
+
+/**
+ * Поток курса (4.2): набор учеников с общим стартом и кураторами. Старт, окончание и срок доступа необязательны; окончание —
+ * для информации, доступ не ограничивает. Удаление — сервис сначала отвязывает зачисления и приглашения (ключи `no action`).
+ */
+export const groups = tenantTable(
+	'groups',
+	{
+		courseId: uuid('course_id').notNull(),
+		title: text('title').notNull(),
+		startsAt: timestamp('starts_at', { withTimezone: true }),
+		endsAt: timestamp('ends_at', { withTimezone: true }),
+		/** Срок доступа зачисленных в поток, дней; null — срок курса. */
+		accessDays: integer('access_days'),
+	},
+	(t) => [tenantRef(t, t.courseId, courses, 'cascade'), index().on(t.schoolId, t.courseId)],
+)
+
+/** Кураторы потока (4.2): куратор видит учеников и работы только своих потоков. */
+export const groupCurators = tenantTable(
+	'group_curators',
+	{
+		groupId: uuid('group_id').notNull(),
+		memberId: uuid('member_id').notNull(),
+	},
+	(t) => [
+		tenantRef(t, t.groupId, groups, 'cascade'),
+		tenantRef(t, t.memberId, members, 'cascade'),
+		uniqueIndex().on(t.schoolId, t.groupId, t.memberId),
+		index().on(t.schoolId, t.memberId),
+	],
+)
 
 /** Зачисление ученика на курс. Одно действующее (active/completed) на пару «участник — курс». */
 export const enrollments = tenantTable(
@@ -27,11 +59,15 @@ export const enrollments = tenantTable(
 		revokedAt: timestamp('revoked_at', { withTimezone: true }),
 		/** Приглашение, по которому зачислен (4.1(б)); без внешнего ключа — приглашения не удаляются, только отзываются. */
 		inviteId: uuid('invite_id'),
+		/** Поток (4.2); пусто — без потока. */
+		groupId: uuid('group_id'),
 		progressPct: integer('progress_pct').notNull().default(0),
 	},
 	(t) => [
 		tenantRef(t, t.memberId, members, 'cascade'),
 		tenantRef(t, t.courseId, courses, 'cascade'),
+		tenantRef(t, t.groupId, groups, 'no action'),
+		index().on(t.schoolId, t.groupId),
 		uniqueIndex().on(t.schoolId, t.memberId, t.courseId).where(sql`${t.status} in ('active', 'completed')`),
 		index().on(t.schoolId, t.courseId),
 	],
@@ -53,10 +89,13 @@ export const enrollmentInvites = tenantTable(
 		uses: integer('uses').notNull().default(0),
 		createdByMemberId: uuid('created_by_member_id').notNull(),
 		revokedAt: timestamp('revoked_at', { withTimezone: true }),
+		/** Поток, в который попадает принявший (4.2); пусто — без потока. */
+		groupId: uuid('group_id'),
 	},
 	(t) => [
 		tenantRef(t, t.courseId, courses, 'cascade'),
 		tenantRef(t, t.createdByMemberId, members, 'cascade'),
+		tenantRef(t, t.groupId, groups, 'no action'),
 		index().on(t.schoolId, t.courseId),
 	],
 )

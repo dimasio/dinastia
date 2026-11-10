@@ -20,7 +20,7 @@ export function Learners(props: { courseId: string; search: ResourceSearch; onSe
 	const [invitesOpen, setInvitesOpen] = useState(false)
 	const canEnroll = me?.permissions.includes('learning.enroll') ?? false
 	return (
-		<div className="grid gap-4">
+		<div className="grid grid-cols-[minmax(0,1fr)] gap-4">
 			<CourseTabs
 				courseId={courseId}
 				active="learners"

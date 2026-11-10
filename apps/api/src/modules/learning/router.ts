@@ -8,10 +8,12 @@ import {
 	enrollByEmail,
 	extendEnrollment,
 	listEnrollments,
+	moveEnrollment,
 	restoreEnrollment,
 	revokeEnrollment,
 	unlimitEnrollment,
 } from './enrollment.service.ts'
+import { createGroup, curatorOptions, listGroups, removeGroup, updateGroup } from './groups.service.ts'
 import { acceptJoin, createLinkInvite, getJoin, listInvites, revokeInvite } from './invites.service.ts'
 import { completeLesson, getMyCourse, getMyLesson, listMyCourses, openLesson } from './service.ts'
 
@@ -64,7 +66,7 @@ export const learnRouter = {
 	},
 }
 
-/** Зачисление и доступ (карточка 4.1): процедуры сотрудников. */
+/** Зачисление и доступ (карточка 4.1), потоки (4.2): процедуры сотрудников. */
 export const learningRouter = {
 	enrollments: {
 		list: impl.learning.enrollments.list
@@ -115,6 +117,56 @@ export const learningRouter = {
 			.use(mw.member)
 			.use(can('learning.enroll'))
 			.handler(({ input, context }) => restoreEnrollment(schoolCtx(context), input.id)),
+		move: impl.learning.enrollments.move
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.groups.manage'))
+			.handler(({ input, context }) => moveEnrollment(schoolCtx(context), input)),
+	},
+	groups: {
+		list: impl.learning.groups.list
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.read'))
+			.handler(({ input, context }) => listGroups(schoolCtx(context), input.courseId)),
+		create: impl.learning.groups.create
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.groups.manage'))
+			.handler(({ input, context }) => createGroup(schoolCtx(context), input)),
+		update: impl.learning.groups.update
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.groups.manage'))
+			.handler(({ input, context }) => updateGroup(schoolCtx(context), input)),
+		remove: impl.learning.groups.remove
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.groups.manage'))
+			.handler(({ input, context }) => removeGroup(schoolCtx(context), input.id)),
+		curatorOptions: impl.learning.groups.curatorOptions
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.groups.manage'))
+			.handler(({ context }) => curatorOptions(schoolCtx(context))),
 	},
 	invites: {
 		list: impl.learning.invites.list

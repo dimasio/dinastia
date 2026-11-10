@@ -1,4 +1,4 @@
-// Вкладки курса: «Содержание» (конструктор) и «Вопросы» (банк вопросов, карточка 3.1) — ссылки между экранами курса.
+// Вкладки курса: «Содержание» (конструктор), «Вопросы» (банк, 3.1), «Ученики» (4.1), «Потоки» (4.2) — ссылки между экранами курса.
 import { cn } from '@dinastia/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -15,7 +15,7 @@ export function CourseTabs({
 	actions,
 }: {
 	courseId: string
-	active: 'content' | 'questions' | 'learners'
+	active: 'content' | 'questions' | 'learners' | 'groups'
 	/** Справа от вкладок — действия экрана. */
 	actions?: ReactNode
 }) {
@@ -26,7 +26,7 @@ export function CourseTabs({
 	if (!canBank && !canLearners && !actions) return null
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b pb-2" data-testid="course-tabs">
-			<nav className="flex gap-1" aria-label={t('tabs.label')}>
+			<nav className="flex flex-wrap gap-1" aria-label={t('tabs.label')}>
 				<Link
 					to="/admin/courses/$courseId"
 					params={{ courseId }}
@@ -56,6 +56,17 @@ export function CourseTabs({
 						data-testid="course-tab-learners"
 					>
 						{t('tabs.learners')}
+					</Link>
+				)}
+				{canLearners && (
+					<Link
+						to="/admin/courses/$courseId/groups"
+						params={{ courseId }}
+						aria-current={active === 'groups' ? 'page' : undefined}
+						className={cn(LINK, active === 'groups' && 'bg-accent font-medium')}
+						data-testid="course-tab-groups"
+					>
+						{t('tabs.groups')}
 					</Link>
 				)}
 			</nav>

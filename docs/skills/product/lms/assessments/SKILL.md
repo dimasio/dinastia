@@ -15,7 +15,7 @@ description: Тесты и домашние задания в Dinastia — мо�
 | таблицы блоков `block_quiz`, `block_quiz_questions`, `block_quiz_tags`, `block_assignment`                                                                                                                                                      | `packages/blocks/src/{quiz,assignment}/table.ts`                    |
 | старт/сдача попытки, оценивание                                                                                                                                                                                                                 | `apps/api/src/modules/assessments/quiz.service.ts`                  |
 | сдача и проверка ДЗ                                                                                                                                                                                                                             | `apps/api/src/modules/assessments/submission.service.ts`            |
-| очередь проверки, политика куратора                                                                                                                                                                                                             | `apps/api/src/modules/assessments/policies.ts` → `reviewScope(ctx)` |
+| очередь проверки, политика куратора                                                                                                                                                                                                             | `review.service.ts` → `reviewScope(ctx)` / `reviewScopeOf(ctx, колонка)` (правило — `learning/policies.ts`) |
 | блоки `quiz`, `assignment`                                                                                                                                                                                                                      | `packages/blocks/src/quiz/`, `packages/blocks/src/assignment/`      |
 | типы вопросов                                                                                                                                                                                                                                   | `packages/questions/src/<type>/`                                    |
 | банк вопросов (ресурс), очередь проверки, экран проверки                                                                                                                                                                                        | `apps/web/src/features/assessments/`                                |
@@ -33,8 +33,9 @@ description: Тесты и домашние задания в Dinastia — мо�
   `submitted`, итог после ручной проверки. События `quiz.submitted`, `quiz.graded`.
 - ДЗ: переходы статусов только через `submission.service` (функция `transition(from, to, actor)` с таблицей
   разрешённых переходов); каждый переход — событие и письмо ученику.
-- Куратор видит и проверяет **только сдачи учеников своих групп**: `reviewScope(ctx)` добавляет условие по
-  `group_curators`; преподаватель/админ — все.
+- Куратор видит и проверяет **только сдачи и попытки учеников своих потоков** (4.2): `reviewScope(ctx)` — условие на `enrollments`
+  (очередь), `reviewScopeOf(ctx, <таблица>.enrollmentId)` — для выборок без соединения (карточка, оценка); `reviewSubmission` тоже
+  проверяет область. Преподаватель и админ — все.
 - Права: `assessments.bank.manage` (owner, admin, teacher), `assessments.review` (+ curator), ученик — собственные
   попытки и сдачи через процедуры `learn.*`.
 
@@ -89,7 +90,7 @@ description: Тесты и домашние задания в Dinastia — мо�
   поле комментария для экрана проверки и панели ученика), API `review.list/get/comment`, `assignment.reply`, `assignment.review` с
   `fileIds`, `review.service.ts` (`reviewScope`, `listQueue`, `getForReview`, `commentAsReviewer`), `submission_comment_files`,
   файлы `assessments.comment-file`, письмо `emails/submission-reviewed.tsx` и подписчик `subscribers.ts`, право `assessments.review`
-  у куратора. **`reviewScope` — единственное место, где в фазе 4 включается ограничение куратора по потокам.**
+  у куратора. С 4.2 область куратора — его потоки (правило — `learning/policies.ts`).
 - 3.6: результат блока → завершение урока (`learning.recordBlockResult` вызывается из `finalizeAttempt`, `grading.service.gradeAttempt`,
   `submitAssignment` (автопринятие), `reviewSubmission`); ручная проверка `open_text`: `grading.service.ts` (`getAttemptForReview`,
   `gradeAttempt`), очередь `listQueue` объединяет задания и попытки с ручными вопросами (`kind`), экран
