@@ -2,6 +2,7 @@
 import { Id } from '@dinastia/contracts/common'
 import { z } from 'zod'
 import { defineJob } from '#/kernel/jobs.ts'
+import { sendDeadlineReminders } from './deadlines.service.ts'
 import { expireDueEnrollments } from './enrollment.service.ts'
 import { sendCourseInvitation } from './invites.service.ts'
 import { recalcCourseProgress } from './service.ts'
@@ -26,6 +27,18 @@ export const recalcCourseProgressJob = defineJob({
 	handler: async (ctx, d) => {
 		const n = await recalcCourseProgress(ctx, d.courseId)
 		ctx.log.info({ courseId: d.courseId, count: n }, 'course progress recalculated')
+	},
+})
+
+/** Раз в день в 10:00 по Москве по всем школам: напоминания «завтра срок» и «срок прошёл» (4.4). */
+export const deadlineRemindersJob = defineJob({
+	name: 'learning.deadline-reminders',
+	schema: z.object({}),
+	scope: 'all-schools',
+	schedule: '0 10 * * *',
+	handler: async (ctx) => {
+		const n = await sendDeadlineReminders(ctx)
+		if (n) ctx.log.info({ count: n }, 'deadline reminders sent')
 	},
 })
 

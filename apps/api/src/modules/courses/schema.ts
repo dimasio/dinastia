@@ -67,6 +67,9 @@ export const lessons = tenantTable(
 		accessMode: lessonAccessMode('access_mode').notNull().default('inherit'),
 		dripDays: integer('drip_days'),
 		dripDate: date('drip_date'),
+		/** Срок сдачи (4.4): через N дней от старта потока ученика или зачисления — или до даты; до 23:59 по Москве. */
+		deadlineDays: integer('deadline_days'),
+		deadlineDate: date('deadline_date'),
 		// новые уроки — «по заданиям и тестам» (3.6): без блоков-оценок это то же, что «при открытии»
 		completionRule: lessonCompletionRule('completion_rule').notNull().default('all_blocks'),
 	},

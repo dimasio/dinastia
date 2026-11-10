@@ -11,6 +11,10 @@ export interface LessonAccess {
 	lessonId: string
 	status: LessonStatus
 	lockedBy: LockedBy | null
+	/** Срок сдачи (4.4); null — без срока. */
+	dueAt: Date | null
+	/** Срок прошёл, урок не завершён (мягкий дедлайн — урок не закрывается). */
+	overdue: boolean
 }
 
 export interface ProgressFact {
@@ -22,6 +26,24 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 /** «С даты» — с полуночи по Москве (часовой пояс школы как настройка — позже, 4.3). */
 export const dripDateStart = (date: string) => new Date(`${date}T00:00:00+03:00`)
+
+/** Конец дня по Москве (23:59:59.999) для даты `YYYY-MM-DD` — до него длится срок сдачи (4.4). */
+export const endOfMoscowDay = (date: string) => new Date(`${date}T23:59:59.999+03:00`)
+const moscowDate = (d: Date) => new Date(d.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+/**
+ * Срок сдачи урока ученику (4.4): дата — до конца этого дня по Москве; «через N дней» — до конца (по Москве) дня «старт потока
+ * (или зачисление) + N»; иначе срока нет.
+ */
+export function deadlineOf(
+	lesson: { deadlineDays: number | null; deadlineDate: string | null },
+	base: { enrolledAt: Date; groupStartsAt?: Date | null },
+): Date | null {
+	if (lesson.deadlineDate) return endOfMoscowDay(lesson.deadlineDate)
+	if (lesson.deadlineDays === null) return null
+	const from = base.groupStartsAt ?? base.enrolledAt
+	return endOfMoscowDay(moscowDate(new Date(from.getTime() + lesson.deadlineDays * DAY_MS)))
+}
 
 /** Урок по порядку курса: разделы, затем уроки в них. */
 export const flatLessons = (outline: PublishedOutline) => outline.sections.flatMap((s) => s.lessons)
@@ -57,6 +79,13 @@ export function computeAccess(
 				: fact
 					? 'in_progress'
 					: 'available'
-		return { lessonId: lesson.id, status, lockedBy }
+		const dueAt = deadlineOf(lesson, enrollment)
+		return {
+			lessonId: lesson.id,
+			status,
+			lockedBy,
+			dueAt,
+			overdue: Boolean(dueAt && now > dueAt && status !== 'completed'),
+		}
 	})
 }

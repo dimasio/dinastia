@@ -35,6 +35,10 @@ export const OutlineLesson = z.object({
 	title: z.string(),
 	status: LessonStatus,
 	lockedBy: LockedBy.nullable(),
+	/** Срок сдачи (4.4); пусто — без срока. */
+	dueAt: DateTime.nullable(),
+	/** Срок прошёл, урок не завершён (урок не закрывается). */
+	overdue: z.boolean(),
 })
 export const CourseOutline = z.object({
 	course: MyCourse,
@@ -68,6 +72,8 @@ export const PlayerLesson = z.object({
 		title: z.string(),
 		completionRule: z.enum(LESSON_COMPLETION_RULES),
 		status: LessonStatus,
+		dueAt: DateTime.nullable(),
+		overdue: z.boolean(),
 	}),
 	blocks: z.array(PlayerBlock),
 	prev: NavLesson.nullable(),

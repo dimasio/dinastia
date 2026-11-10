@@ -100,6 +100,28 @@ export const enrollmentInvites = tenantTable(
 	],
 )
 
+export const DEADLINE_REMINDER_KINDS = ['soon', 'overdue'] as const
+export const deadlineReminderKind = pgEnum('deadline_reminder_kind', DEADLINE_REMINDER_KINDS)
+
+/**
+ * Отправленные напоминания о сроке (4.4): «завтра срок» (`soon`) и «срок прошёл» (`overdue`) — каждое один раз на урок
+ * ученика; строка пишется в той же транзакции, что и постановка письма.
+ */
+export const deadlineReminders = tenantTable(
+	'deadline_reminders',
+	{
+		enrollmentId: uuid('enrollment_id').notNull(),
+		lessonId: uuid('lesson_id').notNull(),
+		kind: deadlineReminderKind('kind').notNull(),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
+		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.kind),
+	],
+)
+
 /** Факты по уроку: когда открыт и когда завершён (доступ и статусы — из них и порядка уроков). */
 export const lessonProgress = tenantTable(
 	'lesson_progress',

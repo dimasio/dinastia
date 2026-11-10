@@ -31,7 +31,9 @@
 		"lockedByLesson": "Откроется после урока «{{title}}»",
 		"lockedByDate": "Откроется {{date}}",
 		"revokedTitle": "Доступ к курсу отозван",
-		"revokedDescription": "Обратитесь в школу, чтобы вернуть доступ."
+		"revokedDescription": "Обратитесь в школу, чтобы вернуть доступ.",
+		"dueAt": "Сдать до {{date}}",
+		"overdue": "Срок прошёл {{date}}"
 	},
 	"player": {
 		"prev": "Назад",

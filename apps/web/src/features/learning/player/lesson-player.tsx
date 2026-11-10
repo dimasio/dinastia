@@ -12,11 +12,12 @@ import { useTranslation } from 'react-i18next'
 import { errorCode, errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { AssignmentPanel } from '../assignment/assignment-panel.tsx'
-import { LessonList, useLockedText } from '../lesson-list.tsx'
+import { LessonList, useDueText, useLockedText } from '../lesson-list.tsx'
 import { QuizPanel } from '../quiz/quiz-panel.tsx'
 
 export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonId: string }) {
 	const { t } = useTranslation(['learning', 'errors'])
+	const dueText = useDueText()
 	const qc = useQueryClient()
 	const [contentsOpen, setContentsOpen] = useState(false)
 	const lockedText = useLockedText()
@@ -56,6 +57,7 @@ export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonI
 	}
 	const page: PlayerLesson = lesson.data
 	const done = page.lesson.status === 'completed'
+	const due = dueText(page.lesson)
 	const nextReady = page.next && !page.next.locked ? page.next : null
 	const contents = outline.data && !outline.data.course.expired && !outline.data.course.revoked ? outline.data : null
 
@@ -83,7 +85,15 @@ export function LessonPlayer({ courseId, lessonId }: { courseId: string; lessonI
 				<h1 className="mb-1 font-semibold text-xl tracking-tight" data-testid="player-title">
 					{page.lesson.title}
 				</h1>
-				<p className="mb-6 text-muted-foreground text-sm">{page.lesson.courseTitle}</p>
+				<p className="mb-6 text-muted-foreground text-sm">
+					{page.lesson.courseTitle}
+					{due && (
+						<span className={page.lesson.overdue ? 'font-medium text-destructive' : undefined} data-testid="player-due">
+							{' · '}
+							{due}
+						</span>
+					)}
+				</p>
 
 				{page.blocks.length === 0 ? (
 					<EmptyState icon={List} title={t('player.emptyTitle')} />

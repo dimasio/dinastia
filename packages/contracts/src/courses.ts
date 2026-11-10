@@ -55,6 +55,10 @@ export const Lesson = z.object({
 	dripDays: z.number().int().nullable(),
 	/** …или с даты (`YYYY-MM-DD`, с полуночи по Москве). */
 	dripDate: z.string().nullable(),
+	/** Срок сдачи (4.4): через N дней от старта потока или зачисления… */
+	deadlineDays: z.number().int().nullable(),
+	/** …или до даты (`YYYY-MM-DD`); срок — до 23:59 по Москве. Оба пусто — без срока. */
+	deadlineDate: z.string().nullable(),
 	completionRule: z.enum(LESSON_COMPLETION_RULES),
 	publishedAt: DateTime.nullable(),
 	hasUnpublishedChanges: z.boolean(),
@@ -194,6 +198,9 @@ export const coursesContract = {
 					accessMode: z.enum(LESSON_ACCESS_MODES).optional(),
 					dripDays: z.number().int().min(0).max(3650).nullable().optional(),
 					dripDate: z.iso.date().nullable().optional(),
+					/** Срок сдачи (4.4): задать одно из двух — другое сбрасывается; оба `null` — без срока. */
+					deadlineDays: z.number().int().min(0).max(3650).nullable().optional(),
+					deadlineDate: z.iso.date().nullable().optional(),
 				}),
 			)
 			.output(Lesson),

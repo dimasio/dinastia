@@ -103,7 +103,14 @@ export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<Cou
 			title: s.title,
 			lessons: s.lessons.map((l) => {
 				const a = byId.get(l.id) as LessonAccess
-				return { id: l.id, title: l.title, status: a.status, lockedBy: a.status === 'locked' ? a.lockedBy : null }
+				return {
+					id: l.id,
+					title: l.title,
+					status: a.status,
+					lockedBy: a.status === 'locked' ? a.lockedBy : null,
+					dueAt: a.dueAt,
+					overdue: a.overdue,
+				}
 			}),
 		})),
 		nextLessonId: nextOf(access)?.lessonId ?? null,
@@ -131,6 +138,7 @@ export async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
 
 export async function getMyLesson(ctx: SchoolCtx, lessonId: string): Promise<PlayerLesson> {
 	const { outline, lesson, access, status } = await openLessonContext(ctx, lessonId)
+	const mine = access.find((a) => a.lessonId === lessonId)
 	const flat = flatLessons(outline)
 	const i = flat.findIndex((l) => l.id === lessonId)
 	const nav = (idx: number) => {
@@ -145,6 +153,8 @@ export async function getMyLesson(ctx: SchoolCtx, lessonId: string): Promise<Pla
 			title: lesson.title,
 			completionRule: lesson.completionRule,
 			status,
+			dueAt: mine?.dueAt ?? null,
+			overdue: mine?.overdue ?? false,
 		},
 		// секреты и черновик не уходят: только опубликованные строки через toPublic типа
 		blocks: (await listPublicBlocks(ctx, lessonId)).map((b) => ({

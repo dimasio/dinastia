@@ -103,6 +103,8 @@ export const toLesson = (l: typeof lessons.$inferSelect): Lesson => ({
 	accessMode: l.accessMode,
 	dripDays: l.dripDays,
 	dripDate: l.dripDate,
+	deadlineDays: l.deadlineDays,
+	deadlineDate: l.deadlineDate,
 	completionRule: l.completionRule,
 	publishedAt: l.publishedAt,
 	hasUnpublishedChanges: l.hasUnpublishedChanges,
@@ -329,6 +331,8 @@ export async function updateLessonSettings(
 		accessMode?: Lesson['accessMode'] | undefined
 		dripDays?: number | null | undefined
 		dripDate?: string | null | undefined
+		deadlineDays?: number | null | undefined
+		deadlineDate?: string | null | undefined
 	},
 ) {
 	const lesson = await lessonOrFail(ctx, input.id)
@@ -343,11 +347,25 @@ export async function updateLessonSettings(
 	if (mode === 'drip' && drip.dripDays === null && drip.dripDate === null) fail.invalid('DRIP_REQUIRED')
 	// одно из двух: дата важнее дней (так считает и доступ)
 	if (drip.dripDate !== null) drip.dripDays = null
+	// срок сдачи (4.4): одно из двух — заданное заменяет другое
+	const deadlineChanged = input.deadlineDays !== undefined || input.deadlineDate !== undefined
+	const deadline = !deadlineChanged
+		? {}
+		: input.deadlineDate
+			? { deadlineDate: input.deadlineDate, deadlineDays: null }
+			: { deadlineDays: input.deadlineDays ?? null, deadlineDate: null }
 	const [row] = await ctx.db
 		.update(lessons)
-		.set({ ...(input.completionRule ? { completionRule: input.completionRule } : {}), accessMode: mode, ...drip })
+		.set({
+			...(input.completionRule ? { completionRule: input.completionRule } : {}),
+			accessMode: mode,
+			...drip,
+			...deadline,
+		})
 		.where(eq(lessons.id, input.id))
 		.returning()
+	if (deadlineChanged)
+		await ctx.audit('courses.lesson.deadline-changed', { entity: 'lesson', id: lesson.id, diff: deadline })
 	if (input.accessMode !== undefined || input.dripDays !== undefined || input.dripDate !== undefined)
 		await ctx.audit('courses.lesson.access-changed', {
 			entity: 'lesson',
@@ -407,6 +425,8 @@ export interface PublishedOutline {
 			accessMode: 'inherit' | 'open' | 'sequential' | 'drip'
 			dripDays: number | null
 			dripDate: string | null
+			deadlineDays: number | null
+			deadlineDate: string | null
 			completionRule: 'view' | 'all_blocks' | 'manual'
 		}[]
 	}[]
@@ -449,6 +469,8 @@ export async function publishedOutline(ctx: BaseCtx, courseId: string): Promise<
 						accessMode: l.accessMode,
 						dripDays: l.dripDays,
 						dripDate: l.dripDate,
+						deadlineDays: l.deadlineDays,
+						deadlineDate: l.deadlineDate,
 						completionRule: l.completionRule,
 					})),
 			}))

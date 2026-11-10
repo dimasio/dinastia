@@ -1,4 +1,4 @@
-// Оглавление курса ученика: разделы и уроки со статусами; закрытый урок — с причиной (карточка 2.6).
+// Оглавление курса ученика: разделы и уроки со статусами; закрытый урок — с причиной (карточка 2.6); срок сдачи (4.4).
 import type { CourseOutline, LockedBy } from '@dinastia/contracts/learning'
 import { cn } from '@dinastia/ui'
 import { Link } from '@tanstack/react-router'
@@ -19,6 +19,21 @@ export function useLockedText() {
 					})
 }
 
+/** «Сдать до 12 декабря» / «Срок прошёл 12 декабря» (4.4); у пройденного урока срок не показывается. */
+export function useDueText() {
+	const { t, i18n } = useTranslation('learning')
+	return (lesson: { dueAt: Date | string | null; overdue: boolean; status: string }) =>
+		!lesson.dueAt || lesson.status === 'completed'
+			? null
+			: t(lesson.overdue ? 'course.overdue' : 'course.dueAt', {
+					date: new Date(lesson.dueAt).toLocaleDateString(i18n.language, {
+						day: 'numeric',
+						month: 'long',
+						timeZone: 'Europe/Moscow',
+					}),
+				})
+}
+
 export function LessonList({
 	outline,
 	currentId,
@@ -30,6 +45,7 @@ export function LessonList({
 }) {
 	const { t } = useTranslation('learning')
 	const lockedText = useLockedText()
+	const dueText = useDueText()
 	return (
 		<div className="grid gap-5" data-testid="lesson-list">
 			{outline.sections.map((section) => (
@@ -39,6 +55,7 @@ export function LessonList({
 						{section.lessons.map((lesson) => {
 							const Icon = ICON[lesson.status]
 							const reason = lockedText(lesson.lockedBy)
+							const due = dueText(lesson)
 							const body = (
 								<>
 									<Icon
@@ -49,6 +66,12 @@ export function LessonList({
 										<span className="truncate">{lesson.title}</span>
 										<span className="text-muted-foreground text-xs">
 											{reason ?? t(`course.status.${lesson.status}`)}
+											{due && (
+												<span className={cn(lesson.overdue && 'font-medium text-destructive')} data-testid="lesson-due">
+													{' · '}
+													{due}
+												</span>
+											)}
 										</span>
 									</span>
 								</>

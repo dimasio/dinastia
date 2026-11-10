@@ -1,15 +1,17 @@
 // Доступность уроков (карточка 4.3): «через N дней» — от старта потока или зачисления, «с даты» — с полуночи по Москве.
 import { describe, expect, it } from 'vitest'
 import type { PublishedOutline } from '../courses/service.ts'
-import { computeAccess, dripDateStart } from './access.ts'
+import { computeAccess, deadlineOf, dripDateStart } from './access.ts'
 
 const DAY = 24 * 60 * 60 * 1000
 const lesson = (id: string, extra: Partial<PublishedOutline['sections'][0]['lessons'][0]> = {}) => ({
 	id,
 	title: id,
 	accessMode: 'drip' as const,
-	dripDays: null,
-	dripDate: null,
+	dripDays: null as number | null,
+	dripDate: null as string | null,
+	deadlineDays: null as number | null,
+	deadlineDate: null as string | null,
 	completionRule: 'view' as const,
 	...extra,
 })
@@ -55,5 +57,31 @@ describe('расписание', () => {
 		const o = outline([lesson('l1', { dripDays: 30 })])
 		const facts = new Map([['l1', { openedAt: now, completedAt: now }]])
 		expect(computeAccess(o, { enrolledAt: now }, facts, now)[0]?.status).toBe('completed')
+	})
+})
+
+describe('срок сдачи (4.4)', () => {
+	it('дата — до 23:59 по Москве; «через N дней» — до конца дня старта потока или зачисления + N', () => {
+		const enrolledAt = new Date('2026-11-10T22:30:00Z') // 11 ноября, 01:30 по Москве
+		expect(deadlineOf({ deadlineDays: null, deadlineDate: '2026-12-01' }, { enrolledAt })?.toISOString()).toBe(
+			'2026-12-01T20:59:59.999Z',
+		)
+		expect(deadlineOf({ deadlineDays: 2, deadlineDate: null }, { enrolledAt })?.toISOString()).toBe(
+			'2026-11-13T20:59:59.999Z',
+		)
+		const groupStartsAt = new Date('2026-11-01T06:00:00Z')
+		expect(deadlineOf({ deadlineDays: 2, deadlineDate: null }, { enrolledAt, groupStartsAt })?.toISOString()).toBe(
+			'2026-11-03T20:59:59.999Z',
+		)
+		expect(deadlineOf({ deadlineDays: null, deadlineDate: null }, { enrolledAt })).toBeNull()
+	})
+
+	it('просрочен — срок прошёл и урок не завершён; урок при этом не закрыт', () => {
+		const o = outline([lesson('l1', { accessMode: 'open', deadlineDate: '2026-11-09' })])
+		const now = new Date('2026-11-10T12:00:00Z')
+		const [a] = computeAccess(o, { enrolledAt: new Date('2026-11-01T00:00:00Z') }, new Map(), now)
+		expect(a).toMatchObject({ status: 'available', overdue: true })
+		const done = new Map([['l1', { openedAt: now, completedAt: now }]])
+		expect(computeAccess(o, { enrolledAt: now }, done, now)[0]?.overdue).toBe(false)
 	})
 })

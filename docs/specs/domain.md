@@ -33,7 +33,7 @@ status: draft
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `courses`       | `title`, `slug`, `description rich`, `cover_file_id`, `status` (`draft`, `published`, `archived`), `default_access_mode`, `access_days`, `completion_threshold_pct`                                                                                                                                                                                                                                                                                                                                                                   |
 | `sections`      | `course_id`, `title`, `position`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `lessons`       | `section_id`, `course_id`, `title`, `position`, `published_at`, `has_unpublished_changes`, `access_mode` (`inherit`, `open`, `sequential`, `drip`), `drip_days`, `drip_date`, `completion_rule` (`view`, `all_blocks`, `manual`)                                                                                                                                                                                                                                                                                                      |
+| `lessons`       | `section_id`, `course_id`, `title`, `position`, `published_at`, `has_unpublished_changes`, `access_mode` (`inherit`, `open`, `sequential`, `drip`), `drip_days`, `drip_date`, `deadline_days`, `deadline_date` (срок сдачи, 4.4), `completion_rule` (`view`, `all_blocks`, `manual`)                                                                                                                                                                                                                                                                                                      |
 | `lesson_blocks` | `lesson_id`, `block_key uuid` (стабилен между черновиком и публикацией), `state` (`draft`, `published`), `type`, `position`, `is_required`; уникально `(lesson_id, state, block_key)` (D-033)                                                                                                                                                                                                                                                                                                                                         |
 | `block_<type>`  | данные типа блока, PK = FK `block_id → lesson_blocks.id on delete cascade` (+ `school_id`, RLS); дочерние таблицы типа — `block_<type>_<часть>` (D-034). MVP: `block_text (body rich)`, `block_heading (text, level)`, `block_image (file_id, caption, width)`, `block_video (source, provider, video_id, url, caption)`, `block_file (file_id, title)`, `block_embed (url, host, height)`, `block_callout (tone, body rich)`, `block_divider`, `block_code (language, code)`, `block_quiz` (см. ниже), `block_assignment` (см. ниже) |
 
@@ -67,7 +67,7 @@ status: draft
 | `lesson_progress`        | факты: `enrollment_id`, `lesson_id`, `opened_at`, `completed_at` (статус и доступность считаются при чтении, D-057, 4.3)                                                                            |
 | `block_progress`         | `enrollment_id`, `lesson_id`, `block_key`, `status` (`done`, `failed`), `completed_at` (3.6)                                                                                                         |
 | `block_<type>_responses` | ответ ученика интерактивного блока (если тип хранит ответ): `enrollment_id`, `block_key`, колонки ответа                                                                                          |
-| `deadlines`              | `course_id`, `group_id?`, `lesson_id`, `due_at` или `due_days` от начала                                                                                                                          |
+| `deadline_reminders`     | отправленные напоминания о сроке (4.4): `enrollment_id`, `lesson_id`, `kind` (`soon`, `overdue`), `sent_at`; уникально тройка                                                                       |
 | `enrollment_invites`     | приглашения курса: `course_id`, `group_id?` (с 4.2), `token_hash`, `email?` (адресное), `expires_at`, `max_uses?`, `uses`, `created_by_member_id`, `revoked_at`                                                                                                     |
 
 ### Сертификаты (`certificates`)
@@ -320,6 +320,20 @@ status: draft
 - **Область куратора** (`learning/policies.ts → groupScope`): ученики, работы и попытки — только учеников своих потоков; ученики без
   потока куратору не видны. Касается списка учеников, очереди проверки, карточки работы, решения по работе и ручной оценки теста.
 - Журнал: `learning.group.created/updated/deleted`, `learning.group.curators-changed`, `learning.enrollment.moved`.
+
+### Дедлайны (4.4)
+
+- Срок сдачи — настройка урока (`courses.lessons.update`: `deadlineDays` или `deadlineDate`; заданное заменяет другое, оба `null` —
+  без срока; `courses.manage`; действует сразу, без публикации; журнал `courses.lesson.deadline-changed`). Отдельной таблицы сроков по
+  потокам нет: разные даты потокам даёт «через N дней от старта потока».
+- Срок ученика (`learning/access.ts` `deadlineOf`): дата — до 23:59 по Москве этого дня; «через N дней» — до 23:59 по Москве дня
+  «старт потока ученика (или зачисление) + N». Считается при чтении, как доступность.
+- **Мягкий дедлайн**: после срока урок не закрывается, сдавать можно. Урок «просрочен» (`overdue`), если срок прошёл и урок не
+  завершён; ученик видит в оглавлении и в уроке «Сдать до …» / «Срок прошёл …» (у пройденного урока срок не показывается).
+- **Напоминания** — задача `learning.deadline-reminders` (all-schools, 10:00 по Москве): ученикам действующих зачислений (`active`,
+  срок доступа не истёк, участник не заблокирован) по незавершённым урокам — «завтра срок» (срок в ближайшие сутки) и «срок прошёл»
+  (просрочен не больше 3 дней назад); урок, ещё закрытый по расписанию, — без писем. Каждое — один раз на урок
+  (`deadline_reminders`, отметка в одной транзакции с постановкой письма `learning.deadline-reminder`).
 
 ### Сертификат
 

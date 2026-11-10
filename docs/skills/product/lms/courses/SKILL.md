@@ -51,7 +51,7 @@ description: Курсы и контент в Dinastia — модуль courses �
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | новый вид контента в уроке | новый блок — скилл `lesson-blocks`                                                                                                  |
 | новое поле курса           | `db-schema` (колонка `courses`), `api-endpoints`, ресурс `admin-resource`                                                           |
-| новое правило доступа      | `change-workflow`; значение enum `access_mode` (+ колонки параметров), правило в `computeAccess` (`learning/access.ts`), контракт `courses.lessons.update`, UI — `features/courses/access.tsx` (`LessonAccess`, `CourseAccess`) |
+| новое правило доступа      | `change-workflow`; значение enum `access_mode` (+ колонки параметров), правило в `computeAccess` (`learning/access.ts`), контракт `courses.lessons.update`, UI — `features/courses/access.tsx` (`LessonAccess`, `CourseAccess`; срок сдачи — `LessonDeadline`, 4.4) |
 | экран в конструкторе       | `web-screens` + `ui-kit`                                                                                                            |
 
 ## Остановись и спроси, если

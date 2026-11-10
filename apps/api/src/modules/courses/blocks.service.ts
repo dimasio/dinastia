@@ -45,6 +45,8 @@ export async function getLesson(ctx: SchoolCtx, id: string) {
 		accessMode: lesson.accessMode,
 		dripDays: lesson.dripDays,
 		dripDate: lesson.dripDate,
+		deadlineDays: lesson.deadlineDays,
+		deadlineDate: lesson.deadlineDate,
 		completionRule: lesson.completionRule,
 		publishedAt: lesson.publishedAt,
 		hasUnpublishedChanges: lesson.hasUnpublishedChanges,

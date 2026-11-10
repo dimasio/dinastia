@@ -11,11 +11,11 @@ description: Ученики и прогресс в Dinastia — модуль lea
 
 | Что                                                                                               | Где                                                   |
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| таблицы `groups`, `group_curators`, `enrollments`, `lesson_progress`, `deadlines`                 | `apps/api/src/modules/learning/schema.ts`             |
+| таблицы `groups`, `group_curators`, `enrollments`, `lesson_progress`, `deadline_reminders`        | `apps/api/src/modules/learning/schema.ts`             |
 | зачисление, отзыв, истечение                                                                      | `apps/api/src/modules/learning/enrollment.service.ts` |
 | доступ (`computeAccess`, чистая) и прогресс (`recalcProgress`, `recalcCourseProgress`)            | `learning/access.ts`, `learning/service.ts`           |
 | подписчики событий (`lesson.published`, `course.published`, `course.progress_rules_changed`)      | `apps/api/src/modules/learning/subscribers.ts`        |
-| задачи `learning.expire-enrollments`, `learning.recalc-course-progress` (дальше — напоминания)    | `apps/api/src/modules/learning/jobs.ts`               |
+| задачи `learning.expire-enrollments`, `learning.recalc-course-progress`, `learning.deadline-reminders` | `apps/api/src/modules/learning/jobs.ts`; напоминания — `deadlines.service.ts` |
 | аналитика (запросы-агрегаты)                                                                      | `apps/api/src/modules/learning/analytics.service.ts`  |
 | сертификаты                                                                                       | `apps/api/src/modules/certificates/`                  |
 | экраны: ученики курса, потоки, кабинет ученика                                                    | `apps/web/src/features/learning/`                     |
@@ -58,7 +58,10 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `lesson.completed`, `enrollment.completed`, экраны `/learn`, `/learn/courses/$courseId`, плеер урока
   (`apps/web/src/features/learning/`). Доступность считается при чтении, `lesson_progress.status` не хранится.
 - Зачислить для разработки и e2e: `pnpm --filter @dinastia/api exec tsx src/enroll.ts <школа> <email> "<курс>" [sequential]`.
-- Нет (фаза 4, дальше): дедлайны, сертификаты, аналитика, кабинет ученика.
+- Дедлайны (4.4): срок — колонки урока `deadline_days`/`deadline_date`, расчёт — `deadlineOf` (как расписание: старт потока или
+  зачисление, конец дня по Москве), в `computeAccess` — `dueAt`/`overdue`; дедлайн мягкий. Напоминания — `deadlines.service.ts`
+  (одна выборка на курс со сроками, отметки `deadline_reminders`), письмо `emails/deadline-reminder.tsx`.
+- Нет (фаза 4, дальше): сертификаты, аналитика, кабинет ученика.
 
 ## Зачисление (4.1)
 

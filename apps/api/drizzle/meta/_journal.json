@@ -162,6 +162,13 @@
       "when": 1794328807526,
       "tag": "0022_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794335396076,
+      "tag": "0023_lesson_deadlines",
+      "breakpoints": true
     }
   ]
 }

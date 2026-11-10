@@ -1899,6 +1899,15 @@ await withTenant(school.id, async (tx: Tx) => {
 		],
 	})
 
+	// Сроки сдачи (4.4): практика и итоговые тесты — через N дней от старта потока или зачисления
+	const deadlines: [string, number][] = [
+		[courseA.lessonIds[2] as string, 10],
+		[courseA.lessonIds[5] as string, 20],
+		[fire.lessonIds[10] as string, 14],
+		[fire.lessonIds[16] as string, 21],
+	]
+	for (const [id, days] of deadlines) await updateLessonSettings(as('teacher', ago(40)), { id, deadlineDays: days })
+
 	// Потоки (4.2) — до зачислений: ученики зачисляются сразу в поток. У куратора Анны Кузнецовой свои потоки;
 	// кто без потока, тот виден только преподавателям.
 	const groupOf = new Map<string, string>()
