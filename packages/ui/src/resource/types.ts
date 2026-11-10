@@ -47,10 +47,18 @@ export interface ColumnDef<Row, S extends string> {
 	tone?: (value: unknown) => BadgeTone
 }
 
+/**
+ * Вариант выбора: строка — значение, подпись из i18n (`labels` или `<ns>:<key>.values.<field>.<значение>`); объект — значение
+ * и готовая подпись из данных (поток, курс, тег — то, что известно только во время работы).
+ */
+export type OptionDef = string | { value: string; label: string }
+
+export const optionValue = (o: OptionDef) => (typeof o === 'string' ? o : o.value)
+
 export interface FilterDef<F extends string> {
 	field: F
-	/** Допустимые значения (тот же список, что в enum контракта). */
-	options: readonly string[]
+	/** Допустимые значения (тот же список, что в enum контракта) или значения с подписями из данных. */
+	options: readonly OptionDef[]
 	labels?: string
 }
 
@@ -60,8 +68,8 @@ export interface FieldOverride<V> {
 	/** По умолчанию — по типу zod: string→input, email→email, enum→select, boolean→switch, number→number,
 	 * RichText/CompactText/CommentText (@dinastia/contracts/common)→richtext с профилем схемы. */
 	widget?: Widget
-	/** Значения для select, если поле не enum. */
-	options?: readonly string[]
+	/** Значения для select, если поле не enum; объект — значение с подписью из данных. */
+	options?: readonly OptionDef[]
 	labels?: string
 	/** Подсказка под полем — строка `<ns>:<key>.hints.<field>`. */
 	hint?: boolean

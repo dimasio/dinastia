@@ -14,7 +14,8 @@ import { enrollmentsResource } from './resources/enrollments.ts'
 
 export function Learners(props: { courseId: string; search: ResourceSearch; onSearch: (s: ResourceSearch) => void }) {
 	const { courseId } = props
-	const resource = useMemo(() => enrollmentsResource({ courseId }), [courseId])
+	const groups = useQuery(orpc.learning.groups.list.queryOptions({ input: { courseId } }))
+	const resource = useMemo(() => enrollmentsResource({ courseId, groups: groups.data ?? [] }), [courseId, groups.data])
 	const { t } = useTranslation('learning')
 	const { data: me } = useQuery(meQuery())
 	const [invitesOpen, setInvitesOpen] = useState(false)

@@ -1,8 +1,14 @@
-// Ученики курса (скилл admin-resource, карточки 4.1, 4.2): список с поиском и фильтром статуса, колонка «Поток», «Зачислить»,
-// продление срока, отзыв и возврат доступа. Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
+// Ученики курса (скилл admin-resource, карточки 4.1, 4.2): список с поиском, фильтрами статуса и потока, «Зачислить» (в поток),
+// продление срока, отзыв и возврат доступа, перевод в другой поток. Варианты потока — из данных курса (подписи — названия). Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
 
 import { Email } from '@dinastia/contracts/common'
-import { ACCESS_DAYS, ENROLLMENT_STATUSES, type EnrollmentListInput, EnrollmentRow } from '@dinastia/contracts/learning'
+import {
+	ACCESS_DAYS,
+	ENROLLMENT_STATUSES,
+	type EnrollmentListInput,
+	EnrollmentRow,
+	GROUP_NONE,
+} from '@dinastia/contracts/learning'
 import { action, defineResource } from '@dinastia/ui/resource'
 import { z } from 'zod'
 import { client } from '#/app/orpc.ts'
@@ -14,12 +20,18 @@ export const EnrollForm = z.object({
 	email: Email,
 	name: z.string().trim().max(100).optional(),
 	accessDays: ACCESS_DAYS.optional(),
+	groupId: z.string().optional(),
 })
 
 const tone = (v: unknown) =>
 	v === 'active' ? 'default' : v === 'revoked' ? 'destructive' : v === 'expired' ? 'secondary' : 'outline'
 
-export function enrollmentsResource(opts: { courseId: string }) {
+/** Поток курса для выбора: id и название. */
+type GroupOption = { id: string; title: string }
+
+export function enrollmentsResource(opts: { courseId: string; groups?: readonly GroupOption[] }) {
+	const groups = (opts.groups ?? []).map((g) => ({ value: g.id, label: g.title }))
+	const hasGroups = groups.length > 0
 	return defineResource({
 		key: 'enrollments',
 		ns: 'learning',
@@ -37,16 +49,25 @@ export function enrollmentsResource(opts: { courseId: string }) {
 			{ field: 'progressPct', sort: 'progressPct', render: (row) => `${row.progressPct}%` },
 		],
 		search: true,
-		filters: [{ field: 'status', options: ENROLLMENT_STATUSES }],
+		filters: [
+			{ field: 'status', options: ENROLLMENT_STATUSES },
+			{ field: 'groupId', options: [...groups, GROUP_NONE] },
+		],
 		create: {
 			schema: EnrollForm,
-			fields: { email: { hint: true }, accessDays: { hint: true }, name: { hint: true } },
+			fields: {
+				email: { hint: true },
+				accessDays: { hint: true },
+				name: { hint: true },
+				groupId: { widget: 'select', options: groups, hint: true, visibleIf: () => hasGroups },
+			},
 			submit: (values) =>
 				client.learning.enrollments.enroll({
 					courseId: opts.courseId,
 					email: values.email,
 					...(values.name ? { name: values.name } : {}),
 					...(values.accessDays ? { accessDays: values.accessDays } : {}),
+					...(values.groupId ? { groupId: values.groupId } : {}),
 				}),
 		},
 		actions: [
@@ -56,6 +77,21 @@ export function enrollmentsResource(opts: { courseId: string }) {
 				form: { schema: z.object({ accessDays: ACCESS_DAYS }), initial: () => ({ accessDays: 30 }) },
 				run: (row: EnrollmentRow, values) =>
 					client.learning.enrollments.extend({ id: row.id, accessDays: values.accessDays }),
+			}),
+			action({
+				key: 'move',
+				perm: 'learning.groups.manage',
+				visible: () => hasGroups,
+				form: {
+					schema: z.object({ groupId: z.string() }),
+					fields: { groupId: { widget: 'select', options: [...groups, GROUP_NONE] } },
+					initial: (row: EnrollmentRow) => ({ groupId: row.groupId ?? GROUP_NONE }),
+				},
+				run: (row: EnrollmentRow, values) =>
+					client.learning.enrollments.move({
+						id: row.id,
+						groupId: values.groupId === GROUP_NONE ? null : values.groupId,
+					}),
 			}),
 			{
 				key: 'unlimit',

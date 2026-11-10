@@ -77,9 +77,9 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `groupOfCourse` (поток этого курса или `GROUP_NOT_FOUND`), `groupExpiry` (срок потока от будущего старта или от зачисления).
 - `enroll(…, { groupId })`, `moveEnrollment`, приглашения с `groupId`; API `learning.groups.*`, `learning.enrollments.move`;
   право `learning.groups.manage` (admin, teacher).
-- Экран — вкладка «Потоки» (`features/learning/groups.tsx`, свои компоненты: множественный выбор кураторов), колонка «Поток» на
-  «Учениках», поток в «Ссылках-приглашениях». Фильтр по потоку, выбор потока при зачислении и «Перевести в поток» в таблице —
-  ждут запроса к ядру `docs/tasks/requests/resource-dynamic-options.md` (API готово: `filters.groupId`, `enroll.groupId`, `move`).
+- Экран — вкладка «Потоки» (`features/learning/groups.tsx`, свои компоненты: множественный выбор кураторов); на «Учениках» —
+  колонка и фильтр «Поток», поток при зачислении, действие «Перевести в поток» (варианты `{ value, label }` из `groups.list`
+  передаются в фабрику ресурса); поток в «Ссылках-приглашениях».
 - Тесты: `groups.test.ts`; тестам проверки куратором нужен поток — `learning/testing.ts → intoCuratorGroup`, в e2e — команда
   `src/enroll.ts … [режим] curator@demo.local`.
 

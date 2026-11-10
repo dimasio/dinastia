@@ -28,7 +28,7 @@ import { can, useResourceEnv, useResourceT } from './context.tsx'
 import { toListInput } from './define.ts'
 import { ResourceForm } from './resource-form.tsx'
 import { ResourceTable } from './resource-table.tsx'
-import type { ActionDef, FormDef, ResourceDef, ResourceSearch } from './types.ts'
+import { type ActionDef, type FormDef, optionValue, type ResourceDef, type ResourceSearch } from './types.ts'
 
 const ALL = '__all'
 
@@ -155,8 +155,8 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 							<SelectContent>
 								<SelectItem value={ALL}>{t('common:resource.filterAll', { field: r(`fields.${f.field}`) })}</SelectItem>
 								{f.options.map((o) => (
-									<SelectItem key={o} value={o}>
-										{value(f.field, o, f.labels)}
+									<SelectItem key={optionValue(o)} value={optionValue(o)}>
+										{typeof o === 'string' ? value(f.field, o, f.labels) : o.label}
 									</SelectItem>
 								))}
 							</SelectContent>

@@ -71,6 +71,20 @@ describe('адрес → вход списка', () => {
 		})
 	})
 
+	it('варианты из данных: значение сравнивается по value', () => {
+		const byData = {
+			columns: [],
+			filters: [{ field: 'groupId', options: [{ value: 'g1', label: 'Поток 1' }, 'none'] }],
+		}
+		expect(toListInput(byData, { filters: { groupId: 'g1' } })).toEqual({
+			page: 1,
+			pageSize: 20,
+			filters: { groupId: 'g1' },
+		})
+		expect(toListInput(byData, { filters: { groupId: 'none' } }).filters).toEqual({ groupId: 'none' })
+		expect(toListInput(byData, { filters: { groupId: 'Поток 1' } }).filters).toBeUndefined()
+	})
+
 	it('битые параметры адреса не ломают экран', () => {
 		expect(resourceSearch.parse({ page: 'abc', dir: 'up', q: 'x', filters: 5 })).toEqual({ q: 'x' })
 		expect(resourceSearch.parse({ page: '3' })).toEqual({ page: 3 })

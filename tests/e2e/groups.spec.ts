@@ -112,7 +112,21 @@ test('поток с куратором: создание, ученики пот�
 	await expect(page.getByText(`Поток «${OTHER}» удалён`)).toBeVisible()
 	await expect(page.getByTestId('group-row')).toHaveCount(1)
 	await page.getByTestId('course-tab-learners').click()
-	await expect(page.getByTestId('resource-enrollments-row').filter({ hasText: 'student2@demo.local' })).toContainText(
-		'—',
-	)
+	const second = page.getByTestId('resource-enrollments-row').filter({ hasText: 'student2@demo.local' })
+	await expect(second).toContainText('—')
+
+	// перевод в поток из таблицы и фильтр по потоку
+	await second.getByTestId('resource-enrollments-row-actions').click()
+	await page.getByTestId('resource-enrollments-action-move').click()
+	await page.getByTestId('resource-enrollments-action-move-form-groupId').click()
+	await page.getByRole('option', { name: MINE }).click()
+	await page.getByTestId('resource-enrollments-action-move-form-submit').click()
+	await expect(second).toContainText(MINE)
+	await page.getByTestId('resource-enrollments-filter-groupId').click()
+	await page.getByRole('option', { name: 'Без потока' }).click()
+	await expect(page.getByText('Ничего не нашлось')).toBeVisible()
+	await page.getByTestId('resource-enrollments-filter-groupId').click()
+	await page.getByRole('option', { name: MINE }).click()
+	await expect(page.getByTestId('resource-enrollments-row')).toHaveCount(2)
+	await shoot(page, '4.2-learners-groups', { mobile: false })
 })

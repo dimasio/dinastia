@@ -13,7 +13,7 @@ import { Textarea } from '#/components/ui/textarea.tsx'
 import { RichTextEditor } from '#/rich-text/lazy.tsx'
 import { useResourceEnv, useResourceT } from './context.tsx'
 import { type FieldInfo, fieldsFromSchema } from './fields.ts'
-import type { FieldOverride, FormDef } from './types.ts'
+import { type FieldOverride, type FormDef, optionValue } from './types.ts'
 
 export interface ResourceFormProps {
 	ns: string
@@ -81,8 +81,8 @@ export function ResourceForm({
 								</SelectTrigger>
 								<SelectContent>
 									{(f.options ?? []).map((o) => (
-										<SelectItem key={o} value={o}>
-											{value(f.name, o, f.labels)}
+										<SelectItem key={optionValue(o)} value={optionValue(o)}>
+											{typeof o === 'string' ? value(f.name, o, f.labels) : o.label}
 										</SelectItem>
 									))}
 								</SelectContent>

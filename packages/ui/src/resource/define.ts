@@ -1,6 +1,14 @@
 // Описание ресурса и состояние списка (скилл admin-resource).
 import { z } from 'zod'
-import type { ActionDef, ListPage, ListParams, ResourceDef, ResourceSearch } from './types.ts'
+import {
+	type ActionDef,
+	type ListPage,
+	type ListParams,
+	type OptionDef,
+	optionValue,
+	type ResourceDef,
+	type ResourceSearch,
+} from './types.ts'
 
 // biome-ignore lint/suspicious/noExplicitAny: любая процедура списка (клиент oRPC — функция с необязательными опциями)
 type ListFn<Row> = (input: any, ...rest: any[]) => Promise<ListPage<Row>>
@@ -34,7 +42,7 @@ export const resourceSearch = z.object({
 export function toListInput(
 	def: {
 		columns: { sort?: string }[]
-		filters?: { field: string; options: readonly string[] }[]
+		filters?: { field: string; options: readonly OptionDef[] }[]
 		pageSize?: number
 		search?: boolean
 	},
@@ -51,7 +59,7 @@ export function toListInput(
 	const filters: Record<string, string> = {}
 	for (const f of def.filters ?? []) {
 		const value = search.filters?.[f.field]
-		if (value && f.options.includes(value)) filters[f.field] = value
+		if (value && f.options.some((o) => optionValue(o) === value)) filters[f.field] = value
 	}
 	if (Object.keys(filters).length) input.filters = filters
 	return input

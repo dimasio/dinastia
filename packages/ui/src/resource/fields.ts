@@ -1,13 +1,13 @@
 // Поля формы из zod-схемы (скилл admin-resource): тип контрола, обязательность, варианты enum.
 import { type RichTextProfile, richTextRegistry } from '@dinastia/contracts/common'
 import type { z } from 'zod'
-import type { FieldOverride, FormDef, Widget } from './types.ts'
+import type { FieldOverride, FormDef, OptionDef, Widget } from './types.ts'
 
 export interface FieldInfo {
 	name: string
 	widget: Widget
 	required: boolean
-	options?: readonly string[] | undefined
+	options?: readonly OptionDef[] | undefined
 	/** Профиль редактора для `richtext` — из схемы поля. */
 	richText?: RichTextProfile | undefined
 	labels?: string | undefined
