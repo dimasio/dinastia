@@ -16,7 +16,8 @@ const TABLE: Readonly<Record<SubmissionStatus, readonly { to: SubmissionStatus; 
 	],
 	needs_revision: [{ to: 'submitted', by: ['student'] }],
 	accepted: [],
-	rejected: [],
+	// пересдача отклонённой — решением проверяющего (4.3, `allow_resubmit`)
+	rejected: [{ to: 'needs_revision', by: ['reviewer'] }],
 }
 
 export const canTransition = (from: SubmissionStatus, to: SubmissionStatus, actor: Actor) =>

@@ -8,10 +8,20 @@ import { allJobs } from '#/kernel/registry.ts'
 import { startWorkers } from '#/kernel/worker-runtime.ts'
 
 let running: { boss: PgBoss; stop: () => Promise<void> } | null = null
+/**
+ * С какого момента ждать задачи (время БД при запуске воркера файла). Очередь общая у файлов одного процесса vitest: задачи,
+ * оставшиеся от прежних файлов (подписчики публикаций уроков и т. п.), при запуске удаляются, а `drainJobs` ждёт только свои (4.3).
+ */
+let since: Date | null = null
 
 /** Запустить обработчики всех зарегистрированных задач (регистрируй тестовые задачи до вызова). */
 export async function startTestWorker() {
 	if (running) return
+	since = (await db.execute<{ now: Date }>(sql`select now() as now`)).rows[0]?.now ?? null
+	// хвост прежних файлов этого процесса (их школы уже удалены) — иначе воркер разбирает его раньше задач файла
+	await db.execute(
+		sql`delete from ${sql.raw(BOSS_SCHEMA)}.job where state in ('created', 'retry') and created_on < ${since}`,
+	)
 	const boss = workerBoss()
 	await boss.start()
 	const stop = await startWorkers(boss, { pollingIntervalSeconds: 0.5 })
@@ -37,6 +47,7 @@ async function pendingRows(): Promise<{ name: string }[]> {
 	const rows = await db.execute<{ name: string }>(
 		sql`select name from ${sql.raw(BOSS_SCHEMA)}.job
 			where state in ('created', 'retry', 'active') and start_after <= now()
+			${since ? sql`and created_on >= ${since}` : sql``}
 			and name in (${sql.join(
 				names.map((n) => sql`${n}`),
 				sql`, `,

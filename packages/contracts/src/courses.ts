@@ -51,6 +51,10 @@ export const Lesson = z.object({
 	title: z.string(),
 	position: z.number().int(),
 	accessMode: z.enum(LESSON_ACCESS_MODES),
+	/** «По расписанию» (4.3): через N дней от старта потока или зачисления… */
+	dripDays: z.number().int().nullable(),
+	/** …или с даты (`YYYY-MM-DD`, с полуночи по Москве). */
+	dripDate: z.string().nullable(),
 	completionRule: z.enum(LESSON_COMPLETION_RULES),
 	publishedAt: DateTime.nullable(),
 	hasUnpublishedChanges: z.boolean(),
@@ -177,10 +181,21 @@ export const coursesContract = {
 			.input(z.object({ id: Id, title: ItemTitle }))
 			.output(Lesson),
 		move: oc.route({ method: 'POST', path: '/lessons/{id}/move' }).input(LessonMove).output(z.array(Lesson)),
-		/** Настройки урока: когда он считается пройденным (3.6). Не версионируются — действуют сразу. */
+		/**
+		 * Настройки урока: когда он считается пройденным (3.6) и когда открывается (4.3). Не версионируются — действуют сразу.
+		 * «По расписанию» (`drip`) — нужны `dripDays` или `dripDate` (иначе `DRIP_REQUIRED`).
+		 */
 		update: oc
 			.route({ method: 'PATCH', path: '/lessons/{id}/settings' })
-			.input(z.object({ id: Id, completionRule: z.enum(LESSON_COMPLETION_RULES) }))
+			.input(
+				z.object({
+					id: Id,
+					completionRule: z.enum(LESSON_COMPLETION_RULES).optional(),
+					accessMode: z.enum(LESSON_ACCESS_MODES).optional(),
+					dripDays: z.number().int().min(0).max(3650).nullable().optional(),
+					dripDate: z.iso.date().nullable().optional(),
+				}),
+			)
 			.output(Lesson),
 		remove: oc
 			.route({ method: 'DELETE', path: '/lessons/{id}' })

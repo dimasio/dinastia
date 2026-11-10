@@ -1,4 +1,4 @@
-// Таблица переходов статусов сдачи (карточка 3.4): допустимые и недопустимые, конечные статусы, кто что может.
+// Таблица переходов статусов сдачи (карточки 3.4, 4.3): допустимые и недопустимые, конечный статус, пересдача, кто что может.
 import { describe, expect, it } from 'vitest'
 import { AppError } from '#/kernel/errors.ts'
 import { SUBMISSION_STATUSES } from './schema.ts'
@@ -32,10 +32,15 @@ describe('переходы статусов сдачи', () => {
 		expect(canTransition('needs_revision', 'accepted', 'reviewer')).toBe(false)
 	})
 
-	it('accepted и rejected — конечные: из них нет ни одного перехода', () => {
-		for (const from of ['accepted', 'rejected'] as const)
-			for (const to of SUBMISSION_STATUSES)
-				for (const actor of ACTORS) expect(canTransition(from, to, from === to ? actor : actor)).toBe(false)
+	it('accepted — конечный: из него нет ни одного перехода', () => {
+		for (const to of SUBMISSION_STATUSES)
+			for (const actor of ACTORS) expect(canTransition('accepted', to, actor)).toBe(false)
+	})
+
+	it('rejected — только пересдача решением проверяющего (4.3): → needs_revision', () => {
+		for (const to of SUBMISSION_STATUSES)
+			for (const actor of ACTORS)
+				expect(canTransition('rejected', to, actor)).toBe(to === 'needs_revision' && actor === 'reviewer')
 	})
 
 	it('ни один статус не переходит сам в себя', () => {

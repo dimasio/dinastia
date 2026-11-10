@@ -269,9 +269,17 @@ export async function submitAssignment(
 	return stateOf(ctx, input)
 }
 
-const DECISION_STATUS = { accept: 'accepted', needs_revision: 'needs_revision', reject: 'rejected' } as const
+const DECISION_STATUS = {
+	accept: 'accepted',
+	needs_revision: 'needs_revision',
+	reject: 'rejected',
+	allow_resubmit: 'needs_revision',
+} as const
 
-/** Проверка работы преподавателем: принять / вернуть на доработку / отклонить; для двух последних нужен комментарий. */
+/**
+ * Проверка работы: принять / вернуть на доработку / отклонить / разрешить пересдачу отклонённой (4.3); кроме «принять» нужен
+ * комментарий. «На доработку» — только из «на проверке», пересдача — только из «отклонена».
+ */
 export async function reviewSubmission(
 	ctx: SchoolCtx,
 	input: { submissionId: string; decision: keyof typeof DECISION_STATUS; comment: DocValue; fileIds?: string[] },
@@ -284,6 +292,8 @@ export async function reviewSubmission(
 		.for('update')
 	if (!row) return fail.notFound('SUBMISSION_NOT_FOUND')
 	const to = DECISION_STATUS[input.decision]
+	if ((input.decision === 'allow_resubmit') !== (row.status === 'rejected'))
+		return fail.conflict('SUBMISSION_STATE', { from: row.status, to })
 	const comment = input.comment && !isEmptyDoc(input.comment) ? input.comment : null
 	const fileIds = input.fileIds ?? []
 	// комментарий — текст и/или файлы; при «на доработку» и «отклонить» он обязателен

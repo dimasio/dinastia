@@ -12,6 +12,7 @@ import { and, asc, count, eq, inArray, isNotNull, like, ne, or, sql } from 'driz
 import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
+import { courseProgressRulesChanged } from './events.ts'
 import { coverPurpose } from './files.ts'
 import { courses, lessons, sections } from './schema.ts'
 import { nextFreeSlug, slugify } from './slug.ts'
@@ -100,6 +101,8 @@ export const toLesson = (l: typeof lessons.$inferSelect): Lesson => ({
 	title: l.title,
 	position: l.position,
 	accessMode: l.accessMode,
+	dripDays: l.dripDays,
+	dripDate: l.dripDate,
 	completionRule: l.completionRule,
 	publishedAt: l.publishedAt,
 	hasUnpublishedChanges: l.hasUnpublishedChanges,
@@ -153,6 +156,15 @@ export async function updateCourse(ctx: SchoolCtx, input: CourseUpdate): Promise
 	}
 	const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
 	if (Object.keys(set).length) await ctx.db.update(courses).set(set).where(eq(courses.id, id))
+	// порог прохождения изменился — пересчитать прогресс учеников (4.3)
+	if (patch.completionThresholdPct !== undefined && patch.completionThresholdPct !== course.completionThresholdPct)
+		await ctx.emit(courseProgressRulesChanged, { courseId: id })
+	if (patch.defaultAccessMode !== undefined && patch.defaultAccessMode !== course.defaultAccessMode)
+		await ctx.audit('courses.course.access-changed', {
+			entity: 'course',
+			id,
+			diff: { from: course.defaultAccessMode, to: patch.defaultAccessMode },
+		})
 	// прежняя обложка больше нигде не используется — строка сейчас, объект — задачей после коммита
 	if (patch.coverFileId !== undefined && course.coverFileId && course.coverFileId !== patch.coverFileId)
 		await ctx.files.remove(course.coverFileId)
@@ -262,7 +274,12 @@ export async function moveSection(ctx: SchoolCtx, input: { id: string; index: nu
 export async function removeSection(ctx: SchoolCtx, id: string) {
 	const section = await sectionOrFail(ctx, id)
 	const [total] = await ctx.db.select({ n: count() }).from(lessons).where(eq(lessons.sectionId, id))
+	const [published] = await ctx.db
+		.select({ n: count() })
+		.from(lessons)
+		.where(and(eq(lessons.sectionId, id), isNotNull(lessons.publishedAt)))
 	await ctx.db.delete(sections).where(eq(sections.id, id))
+	if (published?.n) await ctx.emit(courseProgressRulesChanged, { courseId: section.courseId })
 	await ctx.audit('courses.section.removed', {
 		entity: 'section',
 		id,
@@ -299,17 +316,44 @@ export async function renameLesson(ctx: SchoolCtx, input: { id: string; title: s
 	return toLesson(row as typeof lessons.$inferSelect)
 }
 
-/** Когда урок считается пройденным (`view`, `all_blocks`, `manual`); действует сразу, без публикации (domain.md §3). */
+/**
+ * Настройки урока, действуют сразу, без публикации (domain.md §3): когда считается пройденным (`view`, `all_blocks`, `manual`)
+ * и когда открывается (4.3: как у курса, сразу, после предыдущего, по расписанию — через N дней или с даты). Не «по расписанию» —
+ * дни и дата сбрасываются; «по расписанию» без дней и даты — DRIP_REQUIRED.
+ */
 export async function updateLessonSettings(
 	ctx: SchoolCtx,
-	input: { id: string; completionRule: Lesson['completionRule'] },
+	input: {
+		id: string
+		completionRule?: Lesson['completionRule'] | undefined
+		accessMode?: Lesson['accessMode'] | undefined
+		dripDays?: number | null | undefined
+		dripDate?: string | null | undefined
+	},
 ) {
-	await lessonOrFail(ctx, input.id)
+	const lesson = await lessonOrFail(ctx, input.id)
+	const mode = input.accessMode ?? lesson.accessMode
+	const drip =
+		mode === 'drip'
+			? {
+					dripDays: input.dripDays !== undefined ? input.dripDays : lesson.dripDays,
+					dripDate: input.dripDate !== undefined ? input.dripDate : lesson.dripDate,
+				}
+			: { dripDays: null, dripDate: null }
+	if (mode === 'drip' && drip.dripDays === null && drip.dripDate === null) fail.invalid('DRIP_REQUIRED')
+	// одно из двух: дата важнее дней (так считает и доступ)
+	if (drip.dripDate !== null) drip.dripDays = null
 	const [row] = await ctx.db
 		.update(lessons)
-		.set({ completionRule: input.completionRule })
+		.set({ ...(input.completionRule ? { completionRule: input.completionRule } : {}), accessMode: mode, ...drip })
 		.where(eq(lessons.id, input.id))
 		.returning()
+	if (input.accessMode !== undefined || input.dripDays !== undefined || input.dripDate !== undefined)
+		await ctx.audit('courses.lesson.access-changed', {
+			entity: 'lesson',
+			id: lesson.id,
+			diff: { accessMode: mode, ...drip },
+		})
 	return toLesson(row as typeof lessons.$inferSelect)
 }
 
@@ -339,6 +383,8 @@ export async function removeLesson(ctx: SchoolCtx, id: string) {
 	const lesson = await lessonOrFail(ctx, id)
 	await ctx.db.delete(lessons).where(eq(lessons.id, id))
 	await ctx.audit('courses.lesson.removed', { entity: 'lesson', id, diff: { title: lesson.title } })
+	// опубликованный урок учитывался в прогрессе учеников (4.3)
+	if (lesson.publishedAt) await ctx.emit(courseProgressRulesChanged, { courseId: lesson.courseId })
 	return { ok: true as const }
 }
 

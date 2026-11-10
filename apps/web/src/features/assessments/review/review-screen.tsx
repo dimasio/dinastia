@@ -57,7 +57,7 @@ export function ReviewScreen({ submissionId }: { submissionId: string }) {
 		qc.invalidateQueries({ queryKey: ['resource', 'review'] })
 	}
 	const decide =
-		(decision: 'accept' | 'needs_revision' | 'reject') =>
+		(decision: 'accept' | 'needs_revision' | 'reject' | 'allow_resubmit') =>
 		async (v: { body: ReviewDetail['prompt']; fileIds: string[] }) => {
 			await client.assignment.review({ submissionId, decision, comment: v.body, fileIds: v.fileIds })
 			toast.success(t(`review.decided.${decision}`))
@@ -125,7 +125,7 @@ export function ReviewScreen({ submissionId }: { submissionId: string }) {
 							await refresh(await client.review.comment({ submissionId, body: v.body, fileIds: v.fileIds }))
 						}}
 						decisions={
-							final
+							s.status === 'accepted'
 								? []
 								: s.status === 'submitted'
 									? [
@@ -138,7 +138,16 @@ export function ReviewScreen({ submissionId }: { submissionId: string }) {
 											},
 											{ key: 'reject', label: t('review.reject'), variant: 'destructive', run: decide('reject') },
 										]
-									: []
+									: s.status === 'rejected'
+										? [
+												{
+													key: 'allow-resubmit',
+													label: t('review.allowResubmit'),
+													variant: 'outline',
+													run: decide('allow_resubmit'),
+												},
+											]
+										: []
 						}
 					>
 						{!final && s.status === 'submitted' && (

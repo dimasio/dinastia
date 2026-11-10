@@ -1,5 +1,5 @@
-// Ученик и прогресс (скилл lms-learners, карточка 2.6): зачисление (внутреннее, без API — API в фазе 4), оглавление,
-// урок, отметки прохождения. Курс и его уроки — только через публичный API модуля courses и ядро блоков.
+// Ученик и прогресс (скилл lms-learners, карточки 2.6, 4.3): зачисление (внутреннее), оглавление, урок, отметки прохождения,
+// пересчёт прогресса курса. Курс и его уроки — только через публичный API модуля courses и ядро блоков.
 
 import { blockDef } from '@dinastia/blocks'
 import type { CourseOutline, LockedBy, MyCourse, PlayerLesson } from '@dinastia/contracts/learning'
@@ -11,7 +11,7 @@ import { courseCards, type PublishedOutline, publishedOutline } from '../courses
 import { computeAccess, flatLessons, type LessonAccess, type ProgressFact } from './access.ts'
 import { enroll } from './enrollment.service.ts'
 import { enrollmentCompleted, lessonCompleted } from './events.ts'
-import { blockProgress, enrollments, lessonProgress } from './schema.ts'
+import { blockProgress, enrollments, groups, lessonProgress } from './schema.ts'
 
 type Enrollment = typeof enrollments.$inferSelect
 
@@ -25,6 +25,13 @@ export async function enrollMember(
 
 /** Доступ закончился: срок вышел или зачисление помечено истёкшим. */
 const isExpired = (e: Enrollment, now: Date) => e.status === 'expired' || (e.expiresAt !== null && e.expiresAt <= now)
+
+/** Зачисление для расчёта доступа: со стартом потока — «через N дней» считается от него (4.3). */
+async function accessBase(ctx: BaseCtx, e: Enrollment) {
+	if (!e.groupId) return { enrolledAt: e.enrolledAt, groupStartsAt: null }
+	const [g] = await ctx.db.select({ startsAt: groups.startsAt }).from(groups).where(eq(groups.id, e.groupId))
+	return { enrolledAt: e.enrolledAt, groupStartsAt: g?.startsAt ?? null }
+}
 
 async function factsOf(ctx: BaseCtx, enrollmentId: string): Promise<Map<string, ProgressFact>> {
 	const rows = await ctx.db.select().from(lessonProgress).where(eq(lessonProgress.enrollmentId, enrollmentId))
@@ -87,7 +94,7 @@ export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<Cou
 	}
 	// доступ закончился или отозван — оглавление не отдаём (названия уроков платные)
 	if (expired || course.revoked) return { course, sections: [], nextLessonId: null }
-	const access = computeAccess(outline, enrollment, await factsOf(ctx, enrollment.id), ctx.now())
+	const access = computeAccess(outline, await accessBase(ctx, enrollment), await factsOf(ctx, enrollment.id), ctx.now())
 	const byId = new Map(access.map((a) => [a.lessonId, a]))
 	return {
 		course,
@@ -113,7 +120,7 @@ export async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
 		if (enrollment.status === 'revoked') return fail.forbidden('ENROLLMENT_REVOKED')
 		if (isExpired(enrollment, ctx.now())) return fail.forbidden('ENROLLMENT_EXPIRED')
 		const facts = await factsOf(ctx, enrollment.id)
-		const access = computeAccess(outline, enrollment, facts, ctx.now())
+		const access = computeAccess(outline, await accessBase(ctx, enrollment), facts, ctx.now())
 		const mineAccess = access.find((a) => a.lessonId === lessonId) as LessonAccess
 		if (mineAccess.status === 'locked')
 			return fail.forbidden('LESSON_LOCKED', { lockedBy: mineAccess.lockedBy as LockedBy })
@@ -166,6 +173,21 @@ async function recalcProgress(ctx: BaseCtx, enrollment: Enrollment, outline: Pub
 		.where(eq(enrollments.id, enrollment.id))
 	if (completes) await ctx.emit(enrollmentCompleted, { enrollmentId: enrollment.id, courseId: outline.course.id })
 	return pct
+}
+
+/**
+ * Пересчитать прогресс всех учеников курса (4.3, задача `learning.recalc-course-progress`): после публикации и удаления уроков,
+ * смены порога. Идемпотентно; пройденный курс остаётся пройденным, отозванные не трогаются.
+ */
+export async function recalcCourseProgress(ctx: BaseCtx, courseId: string): Promise<number> {
+	const outline = await publishedOutline(ctx, courseId)
+	if (!outline) return 0
+	const rows = await ctx.db
+		.select()
+		.from(enrollments)
+		.where(and(eq(enrollments.courseId, courseId), inArray(enrollments.status, ['active', 'completed', 'expired'])))
+	for (const e of rows) await recalcProgress(ctx, e, outline)
+	return rows.length
 }
 
 /** Завершить урок (идемпотентно): отметка, событие `lesson.completed` один раз, пересчёт прогресса курса. */

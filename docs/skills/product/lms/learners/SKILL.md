@@ -13,9 +13,9 @@ description: Ученики и прогресс в Dinastia — модуль lea
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | таблицы `groups`, `group_curators`, `enrollments`, `lesson_progress`, `deadlines`                 | `apps/api/src/modules/learning/schema.ts`             |
 | зачисление, отзыв, истечение                                                                      | `apps/api/src/modules/learning/enrollment.service.ts` |
-| доступ (`computeAccess` в `access.ts`, чистая) и прогресс (`recalcProgress` в `service.ts`)        | `apps/api/src/modules/learning/progress.service.ts`   |
-| подписчики событий (`lesson.completed`, `quiz.graded`, `submission.reviewed`, `lesson.published`) | `apps/api/src/modules/learning/events.ts`             |
-| задачи `learning.drip-unlock`, `learning.expire-enrollments`, `learning.deadline-reminders`       | `apps/api/src/modules/learning/jobs.ts`               |
+| доступ (`computeAccess`, чистая) и прогресс (`recalcProgress`, `recalcCourseProgress`)            | `learning/access.ts`, `learning/service.ts`           |
+| подписчики событий (`lesson.published`, `course.published`, `course.progress_rules_changed`)      | `apps/api/src/modules/learning/subscribers.ts`        |
+| задачи `learning.expire-enrollments`, `learning.recalc-course-progress` (дальше — напоминания)    | `apps/api/src/modules/learning/jobs.ts`               |
 | аналитика (запросы-агрегаты)                                                                      | `apps/api/src/modules/learning/analytics.service.ts`  |
 | сертификаты                                                                                       | `apps/api/src/modules/certificates/`                  |
 | экраны: ученики курса, потоки, кабинет ученика                                                    | `apps/web/src/features/learning/`                     |
@@ -27,8 +27,10 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `learn.lesson.complete`), сервис решает статус и эмитит события.
 - `recalcProgress` — единственное место расчёта `progress_pct` и `enrollment.completed`;
   вызывается подписчиками, идемпотентно.
-- Drip: задача раз в 15 минут открывает уроки, у которых наступил срок, по всем школам (`forEachSchool`).
-- Публикация нового урока в курсе с пройденными учениками: `completed` у зачисления **не** снимается (правило MVP).
+- Расписание (drip) считается при чтении (D-057, 4.3): «через N дней» — от старта потока ученика или зачисления, «с даты» — с
+  00:00 по Москве (`dripDateStart`). Задачи «открыть уроки» нет; письмо «открылся урок» — 4.8.
+- Публикация нового урока в курсе с пройденными учениками: `completed` у зачисления **не** снимается (правило MVP); процент
+  пересчитывают подписчики (`subscribers.ts`) — на публикацию урока и курса и `course.progress_rules_changed`.
 - Куратор видит учеников **только своих потоков** — общая политика `learning/policies.ts → groupScope(ctx)`
   (по `enrollments`) и `enrollmentScope(ctx, колонка)` (по `enrollment_id` другой таблицы).
 - Аналитика — SQL-агрегаты по индексам `(school_id, course_id)`; тяжёлые выгрузки — фоновой задачей (`documents`).
@@ -56,7 +58,7 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `lesson.completed`, `enrollment.completed`, экраны `/learn`, `/learn/courses/$courseId`, плеер урока
   (`apps/web/src/features/learning/`). Доступность считается при чтении, `lesson_progress.status` не хранится.
 - Зачислить для разработки и e2e: `pnpm --filter @dinastia/api exec tsx src/enroll.ts <школа> <email> "<курс>" [sequential]`.
-- Нет (фаза 4, дальше): дедлайны, drip-задача, сертификаты, аналитика.
+- Нет (фаза 4, дальше): дедлайны, сертификаты, аналитика, кабинет ученика.
 
 ## Зачисление (4.1)
 

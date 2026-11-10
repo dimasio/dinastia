@@ -36,6 +36,8 @@ description: Тесты и домашние задания в Dinastia — мо�
 - Куратор видит и проверяет **только сдачи и попытки учеников своих потоков** (4.2): `reviewScope(ctx)` — условие на `enrollments`
   (очередь), `reviewScopeOf(ctx, <таблица>.enrollmentId)` — для выборок без соединения (карточка, оценка); `reviewSubmission` тоже
   проверяет область. Преподаватель и админ — все.
+- Пересдача (4.3): решение `allow_resubmit` — только из `rejected` → `needs_revision` (переход проверяющего в `transitions.ts`),
+  комментарий обязателен; `needs_revision` из `rejected` напрямую нельзя.
 - Права: `assessments.bank.manage` (owner, admin, teacher), `assessments.review` (+ curator), ученик — собственные
   попытки и сдачи через процедуры `learn.*`.
 

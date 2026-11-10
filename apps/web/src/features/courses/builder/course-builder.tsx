@@ -53,6 +53,7 @@ import { errorText } from '#/app/errors.ts'
 import { uploadFile } from '#/app/files.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { CourseAccess } from '../access.tsx'
 import { CourseTabs } from '../course-tabs.tsx'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
 
@@ -260,6 +261,8 @@ export function CourseBuilder({ courseId }: { courseId: string }) {
 					)}
 				</div>
 			</div>
+
+			{canManage && <CourseAccess course={course} onSaved={(c) => qc.setQueryData(query.queryKey, c)} />}
 
 			<div className="border-b">
 				<span className="inline-block border-primary border-b-2 pb-2 font-medium text-sm">

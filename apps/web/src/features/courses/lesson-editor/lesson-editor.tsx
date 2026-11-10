@@ -66,6 +66,7 @@ import { client, orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { uploadVideo } from '#/app/video-upload.ts'
 import { QuizBlockEditor, type QuizData } from '#/features/assessments/quiz-block-editor.tsx'
+import { LessonAccess } from '../access.tsx'
 import { errorData, LessonStatusBadge } from '../publish.tsx'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -276,6 +277,14 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 								</option>
 							))}
 						</select>
+					)}
+					{canManage && (
+						<LessonAccess
+							lesson={lesson.data}
+							onSaved={(saved) =>
+								qc.setQueryData(lessonQuery.queryKey, (prev) => (prev ? { ...prev, ...saved } : prev))
+							}
+						/>
 					)}
 					{canManage && (
 						<fieldset

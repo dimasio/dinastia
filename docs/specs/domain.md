@@ -64,8 +64,8 @@ status: draft
 | `groups`                 | поток: `course_id`, `title`, `starts_at?`, `ends_at?` (для информации), `access_days?` (4.2)                                                                                                       |
 | `group_curators`         | `group_id`, `member_id`                                                                                                                                                                           |
 | `enrollments`            | `member_id`, `course_id`, `group_id?`, `status` (`active`, `completed`, `expired`, `revoked`), `source` (`manual`, `invite`, `link`), `enrolled_at`, `expires_at`, `completed_at`, `revoked_at`, `invite_id?`, `progress_pct` |
-| `lesson_progress`        | `enrollment_id`, `lesson_id`, `status` (`locked`, `available`, `in_progress`, `completed`), `available_at`, `opened_at`, `completed_at`                                                           |
-| `block_progress`         | `enrollment_id`, `lesson_id`, `block_key`, `status` (`not_started`, `done`, `graded`, `failed`), `score`, `max_score`, `completed_at`                                                             |
+| `lesson_progress`        | факты: `enrollment_id`, `lesson_id`, `opened_at`, `completed_at` (статус и доступность считаются при чтении, D-057, 4.3)                                                                            |
+| `block_progress`         | `enrollment_id`, `lesson_id`, `block_key`, `status` (`done`, `failed`), `completed_at` (3.6)                                                                                                         |
 | `block_<type>_responses` | ответ ученика интерактивного блока (если тип хранит ответ): `enrollment_id`, `block_key`, колонки ответа                                                                                          |
 | `deadlines`              | `course_id`, `group_id?`, `lesson_id`, `due_at` или `due_days` от начала                                                                                                                          |
 | `enrollment_invites`     | приглашения курса: `course_id`, `group_id?` (с 4.2), `token_hash`, `email?` (адресное), `expires_at`, `max_uses?`, `uses`, `created_by_member_id`, `revoked_at`                                                                                                     |
@@ -147,15 +147,20 @@ status: draft
 
 ### Доступ к урокам (`lessons.access_mode`)
 
-- `open` (всегда) | `sequential` (после завершения предыдущего урока) | `drip` (через `drip_days` после начала
-  потока/зачисления или с `drip_date`) | `inherit` (режим курса `courses.default_access_mode`).
-- Статус `lesson_progress.status` вычисляется сервисом `learning` и пересчитывается по событиям
-  `lesson.completed`, `enrollment.created`, по расписанию (drip).
+- `open` (всегда) | `sequential` (после завершения предыдущего урока) | `drip` (через `drip_days` после старта потока ученика, если
+  он в потоке со стартом, иначе после зачисления; или с `drip_date` — с 00:00 по Москве) | `inherit` (режим курса
+  `courses.default_access_mode`: `open`, `sequential`, `drip`).
+- **Доступность считается при чтении** (`learning/access.ts` `computeAccess`, D-057): статус урока не хранится, задачи «открыть
+  уроки» нет. Завершённый урок открыт всегда. Задача по расписанию понадобится только для письма «открылся урок» (4.8).
+- **Настройка (4.3).** Режим курса — блок «Доступ к урокам» в конструкторе курса (`courses.update`); режим урока — «Когда урок
+  открывается» в конструкторе урока (`courses.lessons.update`: `accessMode`, `dripDays`, `dripDate`; «по расписанию» без дней и
+  даты — `DRIP_REQUIRED`; дата важнее дней; другой режим сбрасывает расписание). Право — `courses.manage`; действует сразу, без
+  публикации, у всех учеников; изменения — в журнале (`courses.lesson.access-changed`, `courses.course.access-changed`).
 
 - **Плеер ученика (2.6, D-057).** Ученик видит курсы, на которые зачислен (`enrollments`: `active`/`completed`/`expired`),
   кроме черновиков; архивный курс у зачисленных открыт. Урок виден только опубликованный (`published_at`); блоки — только
   опубликованные строки через `toPublic`. Доступность считается при чтении: `sequential` — предыдущий опубликованный урок
-  курса (разделы, затем уроки) завершён; `drip` — наступили `drip_date` или `enrolled_at + drip_days`; `inherit` — режим
+  курса (разделы, затем уроки) завершён; `drip` — наступили `drip_date` или старт потока/зачисление + `drip_days`; `inherit` — режим
   курса. Закрытый урок виден в оглавлении с причиной, открыть его нельзя (`LESSON_LOCKED`); чужой, неопубликованный или без
   зачисления — `LESSON_NOT_FOUND`. `expires_at` в прошлом — «доступ закончился» (`ENROLLMENT_EXPIRED`), оглавление не
   отдаётся. Отозванное зачисление (`revoked`, 4.1) — «Доступ отозван» (`ENROLLMENT_REVOKED`), оглавление не отдаётся.
@@ -170,12 +175,15 @@ status: draft
 - **`all_blocks` (3.6):** урок завершён, когда выполнены **все блоки `grade`** опубликованной версии (отдельного признака
   «обязательный блок» нет); остальные блоки (`none`, `view`) считаются выполненными при открытии урока. Тест выполнен при первой
   сдаче с зачётом (`passed`, в том числе после ручной оценки) и остаётся выполненным; задание — при `accepted` (в том числе
-  автопринятие). `needs_revision` и `rejected` блок не выполняют: после **отклонения** урок под `all_blocks` не завершится
-  (сброс — фаза 4). `assessments` вызывает `learning.recordBlockResult` синхронно в той же транзакции.
+  автопринятие). `needs_revision` и `rejected` блок не выполняют: после **отклонения** урок под `all_blocks` не завершится, пока
+  проверяющий не разрешит пересдачу (4.3) и работа не будет принята. `assessments` вызывает `learning.recordBlockResult` синхронно в той же транзакции.
 - Прогресс курса `progress_pct` = завершённые уроки / опубликованные уроки; при `progress_pct ≥ completion_threshold_pct`
   зачисление становится `completed` (`recalcProgress`, событие `enrollment.completed`). `view` завершает урок при открытии
   (`learn.lessons.open`), `manual` — «Завершить урок» (`learn.lessons.complete`), `all_blocks` — по результатам блоков «оценки»;
   событие `lesson.completed` — один раз на урок.
+- **Пересчёт (4.3).** Кроме завершения урока учеником, процент всех учеников курса пересчитывается подписчиками на `lesson.published`,
+  `course.published` и `course.progress_rules_changed` (удалён опубликованный урок или раздел с ними, изменён порог); вручную —
+  задача `learning.recalc-course-progress`. Пройденный курс (`completed`) остаётся пройденным, даже если процент упал.
 
 ### Банк вопросов (модуль `assessments`, 3.1)
 
@@ -249,7 +257,8 @@ status: draft
 - Статусы `submissions.status`: `draft → submitted → (needs_revision → submitted)* → accepted | rejected`. Переходы — только через
   `transition(from, to, actor)` (`modules/assessments/transitions.ts`): ученик отправляет из `draft` и `needs_revision`;
   проверяющий решает по `submitted` (принять, на доработку, отклонить); при `requires_review = false` — «система» принимает
-  сразу при отправке. `accepted` и `rejected` — конечные; недопустимое — `SUBMISSION_STATE`.
+  сразу при отправке. `accepted` — конечный; из `rejected` — только **«Разрешить пересдачу»** (4.3, решение `allow_resubmit`,
+  проверяющий в своей области, комментарий обязателен) → `needs_revision`; недопустимое — `SUBMISSION_STATE`.
 - Настройки блока (по умолчанию): принимаются текст и файлы, до 3 файлов (1–10), проверка обязательна. Ответ — форматированный
   текст (профиль `comment`, до 10 000 знаков) и/или файлы (`assessments.submission-file`: картинки, PDF, Word, Excel,
   PowerPoint, ZIP, TXT, CSV, MP3, MP4 до 100 МБ; привязывается только готовый файл, загруженный этим учеником); хотя бы одно

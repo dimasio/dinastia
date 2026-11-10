@@ -220,7 +220,8 @@ export type AssignmentState = z.infer<typeof AssignmentState>
 const Answer = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(ASSIGNMENT_MAX_FILES) })
 const Reply = z.object({ body: CommentText.nullable(), fileIds: z.array(Id).max(COMMENT_FILES_MAX) })
 
-export const REVIEW_DECISIONS = ['accept', 'needs_revision', 'reject'] as const
+/** `allow_resubmit` — разрешить пересдачу отклонённой работы (4.3): «Отклонена» → «Нужна доработка». */
+export const REVIEW_DECISIONS = ['accept', 'needs_revision', 'reject', 'allow_resubmit'] as const
 
 export const assignmentContract = {
 	get: oc.route({ method: 'GET', path: '/assignment/{lessonId}/{blockKey}' }).input(QuizRef).output(AssignmentState),
@@ -239,7 +240,10 @@ export const assignmentContract = {
 		.route({ method: 'POST', path: '/assignment/{lessonId}/{blockKey}/reply' })
 		.input(QuizRef.extend(Reply.shape))
 		.output(AssignmentState),
-	/** Проверка работы: принять, вернуть на доработку или отклонить; для двух последних комментарий обязателен. */
+	/**
+	 * Проверка работы: принять, вернуть на доработку, отклонить или разрешить пересдачу отклонённой (4.3); кроме «принять» —
+	 * с комментарием.
+	 */
 	review: oc
 		.route({ method: 'POST', path: '/assignment/submissions/{submissionId}/review' })
 		.input(
