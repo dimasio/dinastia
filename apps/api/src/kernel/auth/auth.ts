@@ -5,6 +5,7 @@ import { magicLink, twoFactor } from 'better-auth/plugins'
 import { eq } from 'drizzle-orm'
 import { appOrigin, config } from '../config.ts'
 import { db } from '../db/client.ts'
+import { impersonation } from './impersonation.ts'
 import { sendMagicLinkEmail } from './magic-link-email.tsx'
 import { accounts, rateLimits, sessions, twoFactors, users, verifications } from './schema.ts'
 
@@ -67,6 +68,8 @@ export const auth = betterAuth({
 		}),
 		// второй фактор — обязателен оператору (5.6); остальным не предлагается
 		twoFactor({ issuer: 'Dinastia', skipVerificationOnEnable: false }),
+		// вход оператора от имени участника школы (5.6г)
+		impersonation(),
 	],
 	rateLimit: {
 		enabled: true,

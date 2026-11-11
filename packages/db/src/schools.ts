@@ -18,6 +18,8 @@ export const schools = pgTable('schools', {
 	/** Приостановка оператором (5.6в): причина видна владельцу; пусто — не приостановлена. */
 	suspendedReason: text('suspended_reason'),
 	suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+	/** До какого времени школа разрешила поддержке Dinastia вход от имени участника (5.6г); пусто — закрыто. */
+	supportAccessUntil: timestamp('support_access_until', { withTimezone: true }),
 	/** Кто из операторов создал школу (5.6); у школ до 5.6 — пусто. Без FK: `users` — таблица ядра API. */
 	createdByOperatorId: uuid('created_by_operator_id'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

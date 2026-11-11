@@ -40,6 +40,9 @@ export const sessions = pgTable(
 		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 		ipAddress: pii(text('ip_address')),
 		userAgent: pii(text('user_agent')),
+		/** Сессия «от имени» (5.6г): оператор и школа, которой она ограничена; 1 час. */
+		impersonatedBy: uuid('impersonated_by'),
+		impersonationSchoolId: uuid('impersonation_school_id'),
 		createdAt: createdAt(),
 		updatedAt: updatedAt(),
 	},

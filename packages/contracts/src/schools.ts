@@ -98,6 +98,8 @@ export const Me = z.object({
 	permissions: z.array(z.string()),
 	/** Школа приостановлена оператором (5.6в) — видит только владелец (остальных не пускает): баннер с причиной. */
 	suspension: z.object({ reason: z.string().nullable(), at: DateTime }).nullable(),
+	/** Сессия «от имени» (5.6г): вошёл оператор Dinastia — баннер «поддержка Dinastia» с выходом. */
+	impersonation: z.object({ operatorEmail: z.string() }).nullable(),
 })
 export type Me = z.infer<typeof Me>
 
@@ -133,6 +135,15 @@ export const schoolsContract = {
 		.route({ method: 'POST', path: '/schools/{id}/cancel-deletion' })
 		.input(z.object({ id: Id }))
 		.output(MySchool),
+	/** Доступ поддержки Dinastia (5.6г): до какого времени оператор может войти от имени участника; null — закрыт. */
+	supportAccess: {
+		get: oc.route({ method: 'GET', path: '/school/support-access' }).output(z.object({ until: DateTime.nullable() })),
+		/** Открыть на 7 дней или закрыть (закрытие сразу отзывает сессии «от имени»). */
+		set: oc
+			.route({ method: 'POST', path: '/school/support-access' })
+			.input(z.object({ open: z.boolean() }))
+			.output(z.object({ until: DateTime.nullable() })),
+	},
 	/** Свой аватар в школе: файл назначения schools.avatar (загружен и подтверждён), null — убрать. */
 	updateMyAvatar: oc
 		.route({ method: 'POST', path: '/school/me/avatar' })

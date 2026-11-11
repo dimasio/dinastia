@@ -117,3 +117,57 @@ test('не оператор в /ops — «не найдено»', async ({ page,
 	await page.goto(rootUrl('/ops'))
 	await expect(page.getByText('Страница не найдена')).toBeVisible()
 })
+
+test('вход от имени: школа открывает доступ, оператор входит как преподаватель и возвращается', async ({
+	page,
+	browser,
+	loginAs,
+}) => {
+	test.setTimeout(120_000)
+	// оператор со вторым фактором
+	const email = `ops2-${run}@e2e.local`
+	const out = execFileSync('pnpm', ['--filter', '@dinastia/api', 'exec', 'tsx', 'src/ops-grant.ts', email], {
+		encoding: 'utf8',
+	})
+	const password = out.match(/разовый пароль: ([\w-]+)/)?.[1] as string
+	const ops = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
+	await ops.goto(rootUrl())
+	await ops.getByTestId('auth-signin-email').fill(email)
+	await ops.getByTestId('auth-signin-password').fill(password)
+	await ops.getByTestId('auth-signin-submit').click()
+	await expect(ops.getByTestId('schools-mine')).toBeVisible()
+	await ops.goto(rootUrl('/ops'))
+	await ops.getByTestId('ops-2fa-password').fill(password)
+	await ops.getByTestId('ops-2fa-start').click()
+	const secret = (await ops.getByTestId('ops-2fa-secret').textContent()) as string
+	await ops.getByTestId('ops-2fa-code').fill(totp(secret))
+	await ops.getByTestId('ops-2fa-verify').click()
+	await expect(ops.getByTestId('resource-schools-create')).toBeVisible()
+
+	// владелец демо-школы открывает доступ поддержки
+	await loginAs('owner')
+	await page.goto(schoolUrl('demo', '/admin/settings'))
+	await expect(page.getByTestId('support-access-state')).toBeVisible()
+	if ((await page.getByTestId('support-access-state').textContent())?.includes('закрыт'))
+		await page.getByTestId('support-access-toggle').click()
+	await expect(page.getByTestId('support-access-state')).toContainText('Открыт до')
+
+	try {
+		await ops.goto(rootUrl('/ops?q=demo'))
+		await ops.getByTestId('resource-schools-row').getByRole('link', { name: 'Демо-школа' }).click()
+		await expect(ops.getByTestId('ops-support-access')).toContainText('разрешила')
+		await ops.getByTestId('ops-impersonate-teacher').first().click()
+		await expect(ops).toHaveURL(schoolUrl('demo', '/admin'))
+		await expect(ops.getByTestId('impersonation-banner')).toContainText('поддержка Dinastia')
+		await ops.screenshot(shots('5.6-impersonation'))
+		await ops.getByTestId('impersonation-stop').click()
+		await expect(ops).toHaveURL(/\/ops\/schools\//)
+		await expect(ops.getByTestId('ops-school-card')).toContainText('Вошёл от имени участника')
+	} finally {
+		// демо-школа общая для сценариев — доступ закрываем
+		await page.reload()
+		if ((await page.getByTestId('support-access-state').textContent())?.includes('Открыт'))
+			await page.getByTestId('support-access-toggle').click()
+		await expect(page.getByTestId('support-access-state')).toContainText('закрыт')
+	}
+})

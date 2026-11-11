@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { navItems } from '#/features/index.ts'
 import { visibleNav } from '../nav.ts'
+import { ImpersonationBanner } from './impersonation-banner.tsx'
 import { UserMenu } from './user-menu.tsx'
 
 /** Кабинет ученика: верхняя панель и контент; от 360px. */
@@ -37,6 +38,7 @@ export function LearnShell({ me, children }: { me: Me; children: ReactNode }) {
 					/>
 				</nav>
 			</header>
+			<ImpersonationBanner me={me} />
 			<main className="mx-auto w-full max-w-4xl flex-1 p-4 md:p-8">{children}</main>
 		</div>
 	)

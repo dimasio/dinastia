@@ -1,9 +1,12 @@
 import { schools } from '@dinastia/db'
 import { eq } from 'drizzle-orm'
+import { users } from '#/kernel/auth/schema.ts'
 import { appOrigin } from '#/kernel/config.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
+// biome-ignore lint/style/noRestrictedImports: почта оператора для баннера «поддержка Dinastia» — глобальная таблица users (5.6г)
+import { db } from '#/kernel/db/client.ts'
 import { fail } from '#/kernel/errors.ts'
-import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { type Impersonation, impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { cancelSchoolDeletion, requestSchoolDeletion } from '#/kernel/school-deletion/school-deletion.ts'
 import { can, rolePermissions } from '#/permissions.ts'
@@ -11,6 +14,7 @@ import { acceptInvitation, getInvitation, inviteStaff } from './invitations.serv
 import { recordPdConsent, schoolLegal } from './legal.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
 import { listMySchools, recordOwnerConsents } from './service.ts'
+import { getSupportAccess, setSupportAccess } from './support-access.ts'
 
 export const schoolsRouter = {
 	mine: impl.schools.mine
@@ -61,7 +65,26 @@ export const schoolsRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('schools.access'))
-		.handler(({ context }) => meOf(schoolCtx(context))),
+		.handler(({ context }) => meOf(schoolCtx(context), context.impersonation)),
+
+	supportAccess: {
+		get: impl.schools.supportAccess.get
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('schools.settings.manage'))
+			.handler(({ context }) => getSupportAccess(schoolCtx(context))),
+		set: impl.schools.supportAccess.set
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('schools.settings.manage'))
+			.handler(({ input, context }) => setSupportAccess(schoolCtx(context), input.open)),
+	},
 
 	updateMyAvatar: impl.schools.updateMyAvatar
 		.use(mw.host)
@@ -73,16 +96,20 @@ export const schoolsRouter = {
 		.handler(async ({ input, context }) => {
 			const ctx = schoolCtx(context)
 			await updateMyAvatar(ctx, input.fileId)
-			return meOf(ctx)
+			return meOf(ctx, context.impersonation)
 		}),
 }
 
-async function meOf(ctx: SchoolCtx) {
+async function meOf(ctx: SchoolCtx, impersonation?: Impersonation | null) {
+	const [operator] = impersonation
+		? await db.select({ email: users.email }).from(users).where(eq(users.id, impersonation.operatorId))
+		: []
 	const [school] = await ctx.db
 		.select({ status: schools.status, reason: schools.suspendedReason, at: schools.suspendedAt })
 		.from(schools)
 		.where(eq(schools.id, ctx.school.id))
 	return {
+		impersonation: operator ? { operatorEmail: operator.email } : null,
 		suspension: school?.status === 'suspended' && school.at ? { reason: school.reason, at: school.at } : null,
 		user: ctx.user,
 		member: { ...ctx.member, avatarUrl: await avatarUrlOf(ctx, ctx.member.id) },

@@ -77,7 +77,10 @@
 		"audit": "Действия консоли",
 		"auditEmpty": "Операторы с этой школой ещё ничего не делали.",
 		"deletionRequested": "Владелец запросил удаление {{date}}",
-		"suspendedReason": "Причина: {{reason}}"
+		"suspendedReason": "Причина: {{reason}}",
+		"impersonate": "Войти как",
+		"supportOpen": "Школа разрешила поддержке вход до {{date}}",
+		"supportClosed": "Школа не открыла доступ поддержки — войти от имени нельзя"
 	},
 	"people": {
 		"title": "Люди",
@@ -98,7 +101,9 @@
 		"ops-school-created": "Создал школу",
 		"ops-person-searched": "Искал человека",
 		"ops-school-suspended": "Приостановил школу",
-		"ops-school-resumed": "Возобновил школу"
+		"ops-school-resumed": "Возобновил школу",
+		"ops-impersonation-started": "Вошёл от имени участника",
+		"ops-impersonation-ended": "Вышел из сессии от имени"
 	},
 	"suspend": {
 		"open": "Приостановить",

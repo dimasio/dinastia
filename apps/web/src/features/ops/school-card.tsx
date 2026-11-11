@@ -1,13 +1,25 @@
 // Карточка школы в консоли (5.6б): метрики считаются при открытии, сотрудники, действия консоли по школе.
-import { Badge, Card, CardContent, CardHeader, CardTitle, PageHeader } from '@dinastia/ui'
+import { errorKey } from '@dinastia/i18n'
+import {
+	Badge,
+	Button,
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+	PageHeader,
+	toast,
+} from '@dinastia/ui'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { authClient } from '#/app/auth.ts'
 import { orpc } from '#/app/orpc.ts'
 import { ActionLabel } from './resources.tsx'
 import { SuspensionActions } from './suspension-actions.tsx'
 
 export function SchoolCard({ id }: { id: string }) {
-	const { t, i18n } = useTranslation(['ops', 'common'])
+	const { t, i18n } = useTranslation(['ops', 'common', 'errors'])
 	const { data: s } = useSuspenseQuery(orpc.ops.schools.get.queryOptions({ input: { id } }))
 	const dt = new Intl.DateTimeFormat(i18n.language, {
 		dateStyle: 'medium',
@@ -15,6 +27,16 @@ export function SchoolCard({ id }: { id: string }) {
 		timeZone: 'Europe/Moscow',
 	})
 	const n = new Intl.NumberFormat(i18n.language)
+	const supportOpen = Boolean(s.supportAccessUntil && s.supportAccessUntil > new Date())
+	const impersonate = async (memberId: string) => {
+		const res = await authClient.$fetch<{ url: string }>('/impersonation/start', {
+			method: 'POST',
+			body: { schoolId: s.id, memberId },
+		})
+		if (res.error)
+			return toast.error(t(errorKey(String((res.error as { code?: string }).code ?? 'UNKNOWN')), { ns: 'errors' }))
+		window.location.assign(res.data.url)
+	}
 	const metrics = [
 		['students', n.format(s.students)],
 		['activeStudents30d', n.format(s.activeStudents30d)],
@@ -71,6 +93,11 @@ export function SchoolCard({ id }: { id: string }) {
 			<Card>
 				<CardHeader>
 					<CardTitle>{t('card.staff')}</CardTitle>
+					<CardDescription data-testid="ops-support-access">
+						{supportOpen
+							? t('card.supportOpen', { date: dt.format(s.supportAccessUntil as Date) })
+							: t('card.supportClosed')}
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ul className="grid gap-2 text-sm" data-testid="ops-school-staff">
@@ -80,7 +107,19 @@ export function SchoolCard({ id }: { id: string }) {
 									<span className="font-medium">{m.name}</span>{' '}
 									<span className="break-all text-muted-foreground">{m.email}</span>
 								</span>
-								<Badge variant="outline">{t(`roles.${m.role}`, { ns: 'common' })}</Badge>
+								<span className="flex items-center gap-2">
+									<Badge variant="outline">{t(`roles.${m.role}`, { ns: 'common' })}</Badge>
+									{supportOpen && m.role !== 'owner' && m.status === 'active' ? (
+										<Button
+											size="sm"
+											variant="outline"
+											onClick={() => impersonate(m.id)}
+											data-testid={`ops-impersonate-${m.role}`}
+										>
+											{t('card.impersonate')}
+										</Button>
+									) : null}
+								</span>
 							</li>
 						))}
 					</ul>

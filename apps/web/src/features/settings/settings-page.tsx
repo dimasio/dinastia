@@ -28,6 +28,7 @@ import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { DeleteSchool } from './delete-school.tsx'
+import { SupportAccess } from './support-access.tsx'
 
 type Value = SettingField['value']
 
@@ -45,6 +46,7 @@ export function SettingsPage() {
 				{sections.map((key) => (
 					<Section key={key} fields={fields.filter((f) => `${f.module}:${f.group}` === key)} />
 				))}
+				<SupportAccess />
 				{me?.permissions.includes('schools.delete') ? <DeleteSchool school={me.school} /> : null}
 			</div>
 		</>

@@ -3,6 +3,7 @@ import { Button, Sheet, SheetContent, SheetTitle, SheetTrigger } from '@dinastia
 import { Menu } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ImpersonationBanner } from './impersonation-banner.tsx'
 import { SideNav } from './side-nav.tsx'
 import { UserMenu } from './user-menu.tsx'
 
@@ -42,6 +43,7 @@ export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 						/>
 					</div>
 				</header>
+				<ImpersonationBanner me={me} />
 				{me.suspension ? (
 					<div
 						role="alert"

@@ -54,6 +54,8 @@ export const OpsSchoolCard = OpsSchoolRow.extend({
 	url: z.url(),
 	deletionRequestedAt: DateTime.nullable(),
 	suspendedReason: z.string().nullable(),
+	/** Школа разрешила поддержке вход от имени до этого времени (5.6г). */
+	supportAccessUntil: DateTime.nullable(),
 	suspendedAt: DateTime.nullable(),
 	/** Метрики посчитаны сейчас (не из почасовой задачи). */
 	statsAt: DateTime,

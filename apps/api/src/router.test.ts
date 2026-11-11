@@ -174,6 +174,7 @@ describe('OpenAPI', () => {
 				'/school/deletion',
 				'/school/legal',
 				'/school/settings',
+				'/school/support-access',
 				'/school/settings/{module}',
 				'/school/students',
 				'/school/students/{id}/anonymize',

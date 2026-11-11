@@ -11,6 +11,8 @@ export const auditLog = tenantTable(
 	{
 		/** Участник школы; null — система (фоновая задача, вебхук). */
 		actorMemberId: uuid('actor_member_id'),
+		/** Действовал оператор Dinastia — от имени участника (5.6г) или из консоли. */
+		actorOperatorId: uuid('actor_operator_id'),
 		/** `<модуль>.<сущность>.<действие>`: `schools.member.role-changed`. */
 		action: text('action').notNull(),
 		/** Сущность и её id: `member`, `invitation`. */

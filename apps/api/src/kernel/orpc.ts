@@ -21,6 +21,7 @@ import { type HostTarget, resolveHost } from './host.ts'
 import type { Logger } from './log.ts'
 import { findActiveMember } from './members/members.ts'
 import { rpcDuration, rpcErrors } from './metrics.ts'
+import { IMPERSONATION_FORBIDDEN } from './ops/impersonation.ts'
 import { tenantCtx } from './tenant-ctx.ts'
 
 /** Контекст, который HTTP-слой передаёт в каждую процедуру. */
@@ -68,36 +69,55 @@ const hostMw = os.$context<RequestCtx>().middleware(async ({ context, next }) =>
 	return next({ context: { host } })
 })
 
-const sessionMw = os.$context<RequestCtx>().middleware(async ({ context, next }) => {
+/** Сессия «от имени» (5.6г): оператор и единственная школа, где она действует. */
+export interface Impersonation {
+	operatorId: string
+	schoolId: string
+}
+
+const forbidden = (code: string) => new ORPCError('FORBIDDEN', { message: code, data: { code } })
+
+const sessionMw = os.$context<RequestCtx & { host?: HostTarget }>().middleware(async ({ context, next }) => {
 	const session = await auth.api.getSession({ headers: context.headers })
 	if (!session) throw new ORPCError('UNAUTHORIZED', { message: 'UNAUTHENTICATED', data: { code: 'UNAUTHENTICATED' } })
 	const user: User = { id: session.user.id, email: session.user.email, name: session.user.name }
 	context.tags.userId = user.id
-	return next({ context: { user, log: context.log.child({ userId: user.id }) } })
+	const s = session.session as { impersonatedBy?: string | null; impersonationSchoolId?: string | null }
+	const impersonation: Impersonation | null =
+		s.impersonatedBy && s.impersonationSchoolId
+			? { operatorId: s.impersonatedBy, schoolId: s.impersonationSchoolId }
+			: null
+	// вне школы (корень: «мои школы», консоль) сессия «от имени» не действует; школу сверяет schoolMw
+	if (impersonation && context.host?.kind !== 'school') throw forbidden('IMPERSONATION_SCOPE')
+	if (impersonation) context.tags.operatorId = impersonation.operatorId
+	return next({ context: { user, impersonation, log: context.log.child({ userId: user.id }) } })
 })
 
-const schoolMw = os.$context<RequestCtx & { host: HostTarget; user?: User }>().middleware(async ({ context, next }) => {
-	if (context.host.kind !== 'school') throw notFound('SCHOOL_NOT_FOUND')
-	const [row] = await db.select().from(schools).where(eq(schools.slug, context.host.slug)).limit(1)
-	// удаляемая школа закрыта сразу (5.5): отдельный код — экран «школа удаляется», а не «не найдено»
-	if (row?.status === 'deleted' && row.deletionRequestedAt) throw notFound('SCHOOL_DELETING')
-	// приостановленная оператором (5.6в) — только владельцу (с баннером); остальным и гостю — «приостановлена» с названием для
-	// страницы входа: владелец должен суметь войти
-	if (row?.status === 'suspended') {
-		const member = context.user
-			? await withTenant(row.id, (tx) => findActiveMember(tx, context.user?.id as string))
-			: null
-		if (member?.role !== 'owner')
-			throw new ORPCError('FORBIDDEN', {
-				message: 'SCHOOL_SUSPENDED',
-				data: { code: 'SCHOOL_SUSPENDED', schoolName: row.name },
-			})
-	} else if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
-	if (!row) throw notFound('SCHOOL_NOT_FOUND')
-	const school: School = { id: row.id, slug: row.slug, name: row.name }
-	context.tags.schoolId = school.id
-	return next({ context: { school, log: context.log.child({ schoolId: school.id }) } })
-})
+const schoolMw = os
+	.$context<RequestCtx & { host: HostTarget; user?: User; impersonation?: Impersonation | null }>()
+	.middleware(async ({ context, next }) => {
+		if (context.host.kind !== 'school') throw notFound('SCHOOL_NOT_FOUND')
+		const [row] = await db.select().from(schools).where(eq(schools.slug, context.host.slug)).limit(1)
+		// удаляемая школа закрыта сразу (5.5): отдельный код — экран «школа удаляется», а не «не найдено»
+		if (row?.status === 'deleted' && row.deletionRequestedAt) throw notFound('SCHOOL_DELETING')
+		// приостановленная оператором (5.6в) — только владельцу (с баннером); остальным и гостю — «приостановлена» с названием для
+		// страницы входа: владелец должен суметь войти
+		if (row?.status === 'suspended') {
+			const member = context.user
+				? await withTenant(row.id, (tx) => findActiveMember(tx, context.user?.id as string))
+				: null
+			if (member?.role !== 'owner')
+				throw new ORPCError('FORBIDDEN', {
+					message: 'SCHOOL_SUSPENDED',
+					data: { code: 'SCHOOL_SUSPENDED', schoolName: row.name },
+				})
+		} else if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
+		if (!row) throw notFound('SCHOOL_NOT_FOUND')
+		if (context.impersonation && context.impersonation.schoolId !== row.id) throw forbidden('IMPERSONATION_SCOPE')
+		const school: School = { id: row.id, slug: row.slug, name: row.name }
+		context.tags.schoolId = school.id
+		return next({ context: { school, log: context.log.child({ schoolId: school.id }) } })
+	})
 
 /** Транзакция школы на всё время процедуры: ctx.db видит только её данные (RLS). */
 const tenantTxMw = os.$context<RequestCtx & { school: School; user?: User }>().middleware(async ({ context, next }) =>
@@ -107,11 +127,22 @@ const tenantTxMw = os.$context<RequestCtx & { school: School; user?: User }>().m
 )
 
 const memberMw = os
-	.$context<RequestCtx & { school: School; user: User; db: Tx }>()
-	.middleware(async ({ context, next }) => {
+	.$context<RequestCtx & { school: School; user: User; db: Tx; impersonation?: Impersonation | null }>()
+	.middleware(async ({ context, next, path, procedure }) => {
 		const member = await findActiveMember(context.db, context.user.id)
 		if (!member) throw new ORPCError('FORBIDDEN', { message: 'NOT_A_MEMBER', data: { code: 'NOT_A_MEMBER' } })
 		context.tags.memberId = member.id
+		const imp = context.impersonation
+		if (imp) {
+			const name = path.join('.')
+			if (IMPERSONATION_FORBIDDEN.has(name)) throw forbidden('IMPERSONATION_FORBIDDEN')
+			// каждое изменение под сессией «от имени» — в журнал школы с оператором (чтение — нет: шум)
+			if ((procedure['~orpc'].route.method ?? 'POST') !== 'GET')
+				await auditFor(context.db, { memberId: member.id, operatorId: imp.operatorId, requestId: context.requestId })(
+					'ops.impersonation.action',
+					{ entity: 'procedure', id: member.id, diff: { procedure: name } },
+				)
+		}
 		return next({ context: { member, log: context.log.child({ memberId: member.id, role: member.role }) } })
 	})
 
@@ -155,11 +186,23 @@ export const mw = {
 
 /** SchoolCtx для сервисов из контекста цепочки `school`. */
 export function schoolCtx(
-	c: RequestCtx & { db: Tx; school: School; user: User; member: SchoolCtx['member']; can: SchoolCtx['can'] },
+	c: RequestCtx & {
+		db: Tx
+		school: School
+		user: User
+		member: SchoolCtx['member']
+		can: SchoolCtx['can']
+		impersonation?: Impersonation | null
+	},
 ): SchoolCtx {
 	return {
 		...tenantCtx(c.db, c.school, c),
-		audit: auditFor(c.db, { memberId: c.member.id, requestId: c.requestId, ip: c.ip }),
+		audit: auditFor(c.db, {
+			memberId: c.member.id,
+			operatorId: c.impersonation?.operatorId ?? null,
+			requestId: c.requestId,
+			ip: c.ip,
+		}),
 		user: c.user,
 		member: c.member,
 		can: c.can,
