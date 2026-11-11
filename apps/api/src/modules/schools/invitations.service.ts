@@ -73,15 +73,15 @@ export async function sendInvitation(ctx: BaseCtx, invitationId: string) {
 			inviterName: users.name,
 		})
 		.from(invitations)
-		.innerJoin(members, eq(members.id, invitations.invitedBy))
-		.innerJoin(users, eq(users.id, members.userId))
+		.leftJoin(members, eq(members.id, invitations.invitedBy))
+		.leftJoin(users, eq(users.id, members.userId))
 		.where(eq(invitations.id, invitationId))
 		.limit(1)
 	if (inv?.status !== 'pending' || inv.expiresAt <= ctx.now()) {
 		ctx.log.info({ invitationId }, 'invitation is not pending, email skipped')
 		return
 	}
-	if (inv.role === 'owner' || inv.role === 'student') throw new Error(`приглашение с ролью ${inv.role}`)
+	if (inv.role === 'student') throw new Error('приглашение с ролью student')
 	const token = randomBytes(32).toString('base64url')
 	await ctx.db
 		.update(invitations)
@@ -90,7 +90,8 @@ export async function sendInvitation(ctx: BaseCtx, invitationId: string) {
 	await deliverEmail(ctx.school, invitationEmail, {
 		to: inv.email,
 		data: {
-			inviterName: inv.inviterName,
+			// владельца созданной школы приглашает оператор (5.6)
+			inviterName: inv.inviterName ?? 'Dinastia',
 			role: inv.role,
 			url: `${appOrigin(ctx.school.slug)}/invite/${token}`,
 			expiresAt: inv.expiresAt,

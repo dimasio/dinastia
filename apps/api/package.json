@@ -21,7 +21,8 @@
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "tsx src/seed.ts",
 		"db:seed:trud": "tsx src/seed-trud.ts",
-		"check:registries": "tsx src/check-registries.ts"
+		"check:registries": "tsx src/check-registries.ts",
+		"ops:grant": "tsx src/ops-grant.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "catalog:",

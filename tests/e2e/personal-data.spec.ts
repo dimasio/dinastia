@@ -1,7 +1,7 @@
 // Персональные данные (карточка 5.5): реквизиты оператора ПДн в настройках школы, типовая политика школы, согласие при
 // присоединении (флажок обязателен), документы Dinastia на корневом домене; ученик скачивает свои данные, администратор
 // удаляет их — в списках школы остаётся «Удалённый ученик».
-import { expect, schoolUrl, test } from './fixtures.ts'
+import { createSchool, expect, schoolUrl, test } from './fixtures.ts'
 import { waitForLink } from './mailpit.ts'
 
 const run = Date.now().toString(36)
@@ -111,16 +111,11 @@ test('ученик с согласием присоединяется и ска�
 	await expect(page.getByText(email)).toHaveCount(0)
 })
 
-test('владелец удаляет школу: школа закрыта, в «Моих школах» — дата и отмена', async ({ page }) => {
+test('владелец удаляет школу: школа закрыта, в «Моих школах» — дата и отмена', async ({ page, loginAs }) => {
 	const slug = `del-${run}`
-	await page.goto('http://dinastia.localhost:5173/register')
-	await page.getByLabel('Ваше имя').fill('Владелец Удаляемой')
-	await page.getByLabel('Email').fill(`del-${run}@e2e.local`)
-	await page.getByLabel('Пароль').fill('e2e-password-1')
-	await page.getByLabel('Название школы').fill('Школа на удаление')
-	await page.getByLabel('Адрес школы').fill(slug)
-	await page.getByTestId('schools-register-submit').click()
-	await expect(page).toHaveURL(`http://${slug}.dinastia.localhost:5173/admin`)
+	const owner = { email: `del-${run}@e2e.local`, password: 'e2e-password-1' }
+	createSchool({ slug, name: 'Школа на удаление', ...owner })
+	await loginAs(owner, slug)
 
 	await page.goto(schoolUrl(slug, '/admin/settings'))
 	await page.getByTestId('delete-school-open').click()

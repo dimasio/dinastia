@@ -21,17 +21,15 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
+import { hostUrl } from '#/app/host.ts'
 import { orpc } from '#/app/orpc.ts'
-
-const rootUrl = () =>
-	`${window.location.protocol}//${import.meta.env.VITE_APP_DOMAIN}${window.location.port ? `:${window.location.port}` : ''}/`
 
 export function DeleteSchool({ school }: { school: { slug: string; name: string } }) {
 	const { t } = useTranslation(['settings', 'errors'])
 	const [open, setOpen] = useState(false)
 	const [slug, setSlug] = useState('')
 	const remove = useMutation(
-		orpc.schools.requestDeletion.mutationOptions({ onSuccess: () => window.location.assign(rootUrl()) }),
+		orpc.schools.requestDeletion.mutationOptions({ onSuccess: () => window.location.assign(hostUrl()) }),
 	)
 	return (
 		<Card className="border-destructive/40" data-testid="settings-delete-school">

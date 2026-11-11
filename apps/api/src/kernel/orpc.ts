@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm'
 import { ZodError } from 'zod'
 import { auditFor } from './audit/audit.ts'
 import { auth } from './auth/auth.ts'
+import { users } from './auth/schema.ts'
 import { config } from './config.ts'
 import type { SchoolCtx } from './context.ts'
 import { db, type Tx } from './db/client.ts'
@@ -104,7 +105,41 @@ const memberMw = os
 
 const notFound = (code: string) => new ORPCError('NOT_FOUND', { message: code, data: { code } })
 
-export const mw = { host: hostMw, session: sessionMw, school: schoolMw, tenantTx: tenantTxMw, member: memberMw }
+/**
+ * Оператор SaaS (D-026, 5.6): вошедший с `platform_role = operator` на корневом домене; иначе 404 — не выдаём, что консоль есть.
+ * `twoFactorEnabled` — в контексте: без второго фактора консоль предлагает только его настроить.
+ */
+const operatorMw = os
+	.$context<RequestCtx & { host: HostTarget; user: User }>()
+	.middleware(async ({ context, next }) => {
+		const [row] = await db
+			.select({ role: users.platformRole, twoFactor: users.twoFactorEnabled })
+			.from(users)
+			.where(eq(users.id, context.user.id))
+			.limit(1)
+		if (context.host.kind !== 'root' || row?.role !== 'operator') throw notFound('NOT_FOUND')
+		context.tags.operatorId = context.user.id
+		return next({ context: { operator: { id: context.user.id, twoFactorEnabled: row.twoFactor } } })
+	})
+
+/** Действия консоли — только со вторым фактором (решение владельца 2026-11-11). */
+const operator2faMw = os
+	.$context<RequestCtx & { operator: { id: string; twoFactorEnabled: boolean } }>()
+	.middleware(async ({ context, next }) => {
+		if (!context.operator.twoFactorEnabled)
+			throw new ORPCError('FORBIDDEN', { message: 'OPS_2FA_REQUIRED', data: { code: 'OPS_2FA_REQUIRED' } })
+		return next()
+	})
+
+export const mw = {
+	host: hostMw,
+	session: sessionMw,
+	school: schoolMw,
+	tenantTx: tenantTxMw,
+	member: memberMw,
+	operator: operatorMw,
+	operator2fa: operator2faMw,
+}
 
 /** SchoolCtx для сервисов из контекста цепочки `school`. */
 export function schoolCtx(

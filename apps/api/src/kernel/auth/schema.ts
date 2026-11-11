@@ -21,6 +21,8 @@ export const users = pgTable('users', {
 	emailVerified: boolean('email_verified').notNull().default(false),
 	image: pii(text('image')),
 	platformRole: platformRole('platform_role'),
+	/** Второй фактор (TOTP) включён — обязателен оператору (5.6); плагин better-auth `twoFactor`. */
+	twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
 	/** Заглушка обезличенного участника (5.5): без входа, имя «Удалённый ученик»; не попадает в поиск оператора. */
 	deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	createdAt: createdAt(),
@@ -77,6 +79,23 @@ export const verifications = pgTable(
 		updatedAt: updatedAt(),
 	},
 	(t) => [index().on(t.identifier)],
+)
+
+/** Секрет TOTP и резервные коды (better-auth `twoFactor`, 5.6): секрет и коды хранятся зашифрованными ключом AUTH_SECRET. */
+export const twoFactors = pgTable(
+	'two_factors',
+	{
+		id: id(),
+		secret: text('secret').notNull(),
+		backupCodes: text('backup_codes').notNull(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		verified: boolean('verified').notNull().default(true),
+		failedVerificationCount: integer('failed_verification_count').notNull().default(0),
+		lockedUntil: timestamp('locked_until', { withTimezone: true }),
+	},
+	(t) => [index().on(t.userId), index().on(t.secret)],
 )
 
 export const rateLimits = pgTable('rate_limits', {

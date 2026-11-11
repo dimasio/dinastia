@@ -15,6 +15,8 @@ export const schools = pgTable('schools', {
 	timezone: text('timezone').notNull().default('Europe/Moscow'),
 	locale: text('locale').notNull().default('ru'),
 	deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true }),
+	/** Кто из операторов создал школу (5.6); у школ до 5.6 — пусто. Без FK: `users` — таблица ядра API. */
+	createdByOperatorId: uuid('created_by_operator_id'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.notNull()

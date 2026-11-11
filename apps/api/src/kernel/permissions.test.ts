@@ -86,7 +86,6 @@ describe('публичные процедуры (5.1)', () => {
 	it('список зафиксирован: новая процедура без участия в школе — только после разбора (лимит, что отдаёт, перебор)', () => {
 		// session: true — нужен вход (любой пользователь), false — открыто гостю; у каждой — лимит или нечего перебирать
 		expect(findPublicProcedures(router)).toEqual([
-			{ path: 'schools.create', session: true }, // регистрация школы: лимит 5 в час на пользователя
 			{ path: 'schools.mine', session: true }, // свои школы пользователя
 			{ path: 'schools.current', session: false }, // название школы хоста — публично
 			{ path: 'schools.cancelDeletion', session: true }, // своя школа: только владелец, лимит на пользователя (5.5)

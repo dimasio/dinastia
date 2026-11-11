@@ -1,6 +1,6 @@
 ---
 name: lms-school
-description: Школа как тенант в Dinastia — модуль schools — регистрация школы и slug-поддомен, участники members и роли, приглашения сотрудников (invitations, magic link), смена роли и блокировка участника, владелец и передача владения, брендинг (логотип, цвет, название), настройки школы, жизненный цикл школы active/suspended/deleted, экспорт и удаление данных школы, переключение между школами у одного пользователя. Использовать для задач «пригласить сотрудника», «роли в школе», «поддомен», «брендинг», «заблокировать школу/участника», «удалить школу», «у пользователя несколько школ».
+description: Школа как тенант в Dinastia — модуль schools — создание школы оператором (5.6) и slug-поддомен, участники members и роли, приглашения сотрудников (invitations, magic link), смена роли и блокировка участника, владелец и передача владения, брендинг (логотип, цвет, название), настройки школы, жизненный цикл школы active/suspended/deleted, экспорт и удаление данных школы, переключение между школами у одного пользователя. Использовать для задач «пригласить сотрудника», «роли в школе», «поддомен», «брендинг», «заблокировать школу/участника», «удалить школу», «у пользователя несколько школ».
 ---
 
 # Школа
@@ -14,7 +14,7 @@ description: Школа как тенант в Dinastia — модуль schools
 | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
 | таблица `schools` (корень тенанта) | `packages/db/src/schools.ts` |
 | таблицы `members` (ядро — нужна каждому запросу) и `invitations` | `apps/api/src/kernel/members/schema.ts`, `apps/api/src/modules/schools/schema.ts`; пользователи, сессии, согласия — `apps/api/src/kernel/auth/schema.ts` (better-auth, D-007) |
-| регистрация школы, список своих школ, членство | `apps/api/src/modules/schools/service.ts` (`createSchool`, `listMySchools`, `findActiveMember`) |
+| создание школы оператором (`createSchoolByOperator`: школа + приглашение владельца), школа с владельцем для сида/тестов/CLI (`createSchool`), список своих школ, членство | `apps/api/src/modules/schools/service.ts` (+ `listMySchools`, `findActiveMember`, `recordOwnerConsents`); консоль — `modules/ops` (скилл — спека `ops.md`) |
 | приглашения сотрудников | `apps/api/src/modules/schools/invitations.service.ts` (`inviteStaff`, `getInvitation`, `acceptInvitation`) |
 | сотрудники: список, смена роли, блокировка | `apps/api/src/modules/schools/members.service.ts` (`listStaff`, `changeStaffRole`, `setStaffStatus`) |
 | API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`, `membersContract`), `apps/api/src/modules/schools/router.ts` |
@@ -22,7 +22,7 @@ description: Школа как тенант в Dinastia — модуль schools
 | настройки школы: реквизиты оператора ПДн (5.5); брендинг — 5.9 | `apps/api/src/modules/schools/settings.ts` (`schoolsSettings`, скилл `settings`), согласие — `legal.ts` (`schoolLegal`, `recordPdConsent`) |
 | удаление школы (5.5) | ядро `apps/api/src/kernel/school-deletion/` (`requestSchoolDeletion`, `cancelSchoolDeletion`, `purgeDeletedSchools`, письмо `school-deletion.notice`) |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |
-| экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`, «Мои данные»), выбор школы (с «Отменить удаление»), регистрация; настройки `/admin/settings` (+ «Удаление школы») | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |
+| экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`, «Мои данные»), выбор школы (с «Отменить удаление»); настройки `/admin/settings` (+ «Удаление школы») | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |
 
 ## Правила
 
@@ -31,6 +31,10 @@ description: Школа как тенант в Dinastia — модуль schools
   редиректит 90 дней (`school_domains`).
 - **Владелец** ровно один. Передача владения — владелец выбирает admin, тот подтверждает; прежний становится admin.
   Владельца нельзя заблокировать или удалить.
+- **Создание школы** (5.6) — только оператор в `/ops` (`ops.schools.create`): школа без участников + приглашение с ролью
+  `owner` (`invited_by` пусто — приглашает Dinastia, срок 14 дней, письмо `schools.invitation` от «Dinastia»). Владелец входит
+  по ссылке и принимает оферту и политику Dinastia (`recordOwnerConsents`), а не согласие школы. Публичной регистрации нет;
+  для разработки и e2e — `src/create-school.ts`.
 - **Приглашение** сотрудника: email + роль → задача `schools.send-invitation` выпускает токен (в БД — хэш) и шлёт
   письмо `schools.invitation` со ссылкой `/invite/<токен>` (срок 7 дней) → вход (пароль или magic link) → принять →
   `members.status = active`. Повторное приглашение того же email — обновляет срок и роль, не дублирует; новое письмо

@@ -11,6 +11,7 @@ import errors from '../locales/ru/errors.json' with { type: 'json' }
 import home from '../locales/ru/home.json' with { type: 'json' }
 import learning from '../locales/ru/learning.json' with { type: 'json' }
 import nav from '../locales/ru/nav.json' with { type: 'json' }
+import ops from '../locales/ru/ops.json' with { type: 'json' }
 import questions from '../locales/ru/questions.json' with { type: 'json' }
 import schools from '../locales/ru/schools.json' with { type: 'json' }
 import settings from '../locales/ru/settings.json' with { type: 'json' }
@@ -32,6 +33,7 @@ export const resources = {
 		learning,
 		assessments,
 		certificates,
+		ops,
 		// gen:module:entry
 	},
 } as const

@@ -119,5 +119,11 @@ await withTenant(demo.id, async (tx) => {
 const other = await ensureSchool('other', 'Другая школа', 'owner@other.local', 'Олег Другой')
 await ensureMember(other.id, await ensureUser('teacher@demo.local', 'Татьяна Преподаватель'), 'student')
 
-console.log(`db:seed — ok: школы demo, other; демо-курс «Основы акварели»; пароль у всех — ${PASSWORD}`)
+// оператор консоли /ops (5.6): второй фактор включает сам при первом входе
+const operatorId = await ensureUser('ops@demo.local', 'Оператор Dinastia')
+await db.update(users).set({ platformRole: 'operator' }).where(eq(users.id, operatorId))
+
+console.log(
+	`db:seed — ok: школы demo, other; демо-курс «Основы акварели»; оператор ops@demo.local (/ops); пароль у всех — ${PASSWORD}`,
+)
 await pool.end()

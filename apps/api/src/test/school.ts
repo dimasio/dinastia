@@ -10,7 +10,8 @@ import { expect } from 'vitest'
 import { db } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { members } from '#/kernel/members/schema.ts'
-import { app, call, host, signUp } from './http.ts'
+import { createSchool } from '../modules/schools/service.ts'
+import { app, host, signUp } from './http.ts'
 import { uniqueSlug } from './users.ts'
 
 export type Client = ContractRouterClient<Contract>
@@ -53,9 +54,9 @@ export function clientFor(cookie: string | null, slug?: string): Client {
 /** Новая школа: владелец регистрирует её через API, остальные роли добавляются участниками. */
 export async function withTestSchool(name = 'Тестовая школа'): Promise<TestSchool> {
 	const owner = await signUp('owner', 'Ольга Владелец')
-	const res = await call('POST', '/api/v1/schools', { cookie: owner.cookie, body: { name, slug: uniqueSlug('t') } })
-	if (res.status !== 201) throw new Error(`школа не создана: ${res.status} ${await res.text()}`)
-	const school = (await res.json()) as { id: string; slug: string; name: string }
+	// публичной регистрации нет (5.6) — школа с владельцем сразу, как в сиде
+	const created = await createSchool({ name, slug: uniqueSlug('t') }, { userId: owner.id })
+	const school = { id: created.school.id, slug: created.school.slug, name: created.school.name }
 	createdSchools.push(school.id)
 
 	const people = { owner } as Record<MemberRole, Person>

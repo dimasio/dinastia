@@ -22,7 +22,7 @@ apps/web/src/
   routes/                      файловые маршруты (плагин генерирует routeTree.gen.ts — не править)
     __root.tsx                 notFound и errorComponent (текст ошибки по data.code)
     index.tsx                  корень: вход/«Ваши школы»; школа: редирект по роли (student → /learn, остальные → /admin)
-    register.tsx               регистрация школы (только корень)
+    ops.tsx                    консоль оператора (только корень, 5.6); публичной регистрации школ нет
     login.tsx                  вход в школу (?redirect= — только относительный путь)
     invite.$token.tsx          приглашение сотрудника
     admin/route.tsx            лэйаут кабинета школы: requireMember({ staff: true }) → context.me; ResourceProvider

@@ -7,6 +7,8 @@ import type { Db } from './client.ts'
  */
 export const GLOBAL_TABLES_WITH_SCHOOL_REF: Record<string, string> = {
 	consents: 'согласия принадлежат пользователю (152-ФЗ, D-022); school_id — в какой школе дано согласие',
+	ops_audit:
+		'журнал консоли оператора (5.6): читает только оператор, school_id — о какой школе действие, без FK (школа удаляется)',
 }
 
 /** Таблицы public с колонкой school_id без включённого RLS или без политики (инвариант ядра D-006). */

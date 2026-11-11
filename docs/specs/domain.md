@@ -24,7 +24,7 @@ status: draft
 | `school_branding`                                               | `school_id` PK, `logo_file_id`, `favicon_file_id`, `primary_color`, `support_email`                        |
 | `school_domains`                                                | `school_id`, `host`, `kind` (`old_slug`, `custom`), `redirect_until`                                       |
 | `members`                                                       | `user_id`, `role`, `status` (`active`, `blocked`, `deleted` — данные ученика удалены, 5.5), `invited_by`, `joined_at`, `avatar_file_id` |
-| `users`, `sessions`, `accounts`, `verifications`, `invitations` | better-auth (ядро); `users.platform_role` (`operator` или null); `users.deleted_at` — заглушка «Удалённый ученик» (5.5) |
+| `users`, `sessions`, `accounts`, `verifications`, `two_factors`, `invitations` | better-auth (ядро); `users.platform_role` (`operator` или null), `users.two_factor_enabled`; `invitations.invited_by` пусто — владельца приглашает оператор (5.6); `users.deleted_at` — заглушка «Удалённый ученик» (5.5) |
 | `<module>_settings`                                             | настройки школы модуля, PK `school_id`, типизированные колонки (D-036); `schools_settings` — оператор ПДн, почта для запросов о данных, своя политика (5.5) |
 
 ### Курсы и контент (`courses`)
@@ -106,7 +106,9 @@ owner, admin, teacher (`schools.members.read`); свои данные выгру
 Одна роль на членство. Разрешения по ролям — в `permissions.ts` модулей (скилл `permissions`). Названия ролей и
 термины школа не меняет (D-028).
 
-**Оператор SaaS** — не роль школы, а глобальный признак `users.platform_role = 'operator'` (D-026): доступ к
+**Оператор SaaS** — не роль школы, а глобальный признак `users.platform_role = 'operator'` (D-026, выдаётся
+`pnpm ops:grant`): консоль `/ops` на корневом домене только со вторым фактором (TOTP), входит только паролем + кодом
+(ссылка для входа оператору не отправляется). **Школы создаёт только оператор** (спека `ops.md`); доступ к
 области `/ops` (все школы), приостановка школ, вход от имени участника — только с записью в `audit_log` и баннером
 «Вы вошли как …». Оператор не видит данные школы вне сессии «от имени».
 

@@ -1,5 +1,6 @@
-// Демо фазы 0 (docs/plan/roadmap.md): регистрация школы → приглашение преподавателя → вход по magic link → кабинет.
-import { expect, test } from '@playwright/test'
+// Демо фазы 0 (docs/plan/roadmap.md): школа владельца → приглашение преподавателя → вход по magic link → кабинет. Школу
+// создаёт оператор (5.6) — здесь CLI разработки; создание в консоли — ops.spec.ts.
+import { createSchool, expect, test } from './fixtures.ts'
 import { waitForLink } from './mailpit.ts'
 
 const run = Date.now().toString(36)
@@ -9,17 +10,14 @@ const slug = `e2e-${run}`
 const shots = (name: string) => ({ path: `test-results/screens/${name}.png`, fullPage: true })
 
 test('демо фазы 0', async ({ page, browser }) => {
-	// 1. Владелец регистрирует школу на корневом домене
-	await page.goto('/register')
-	await page.screenshot(shots('01-register'))
-	await page.getByLabel('Ваше имя').fill(owner.name)
-	await page.getByLabel('Email').fill(owner.email)
-	await page.getByLabel('Пароль').fill(owner.password)
-	await page.getByLabel('Название школы').fill('Школа рисования')
-	await page.getByLabel('Адрес школы').fill(slug)
-	await page.getByTestId('schools-register-submit').click()
+	// 1. У владельца есть школа; он входит паролем на её поддомене
+	createSchool({ slug, name: 'Школа рисования', email: owner.email, password: owner.password, ownerName: owner.name })
+	await page.goto(`http://${slug}.dinastia.localhost:5173/login`)
+	await page.getByTestId('auth-signin-email').fill(owner.email)
+	await page.getByTestId('auth-signin-password').fill(owner.password)
+	await page.getByTestId('auth-signin-submit').click()
 
-	// …и попадает в кабинет своей школы на её поддомене
+	// …и попадает в кабинет своей школы
 	await expect(page).toHaveURL(`http://${slug}.dinastia.localhost:5173/admin`)
 	await expect(page.getByTestId('admin-school-name')).toHaveText('Школа рисования')
 	await expect(page.getByRole('heading', { name: 'Добро пожаловать, Ольга' })).toBeVisible()

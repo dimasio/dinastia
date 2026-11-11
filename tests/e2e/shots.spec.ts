@@ -1,16 +1,16 @@
 // Снимки готовых экранов для просмотра глазами (скилл visual-review): `pnpm e2e:shots`, файлы — screens/ (в .gitignore).
 // Каждый снимок заодно проверяет пропущенные строки i18n и горизонтальную прокрутку на 375px (shoot()).
-import { expect, schoolUrl, test } from './fixtures.ts'
+import { expect, rootUrl, schoolUrl, test } from './fixtures.ts'
 import { shoot } from './shots.ts'
 
 test.describe('@shots', () => {
-	test('вход и регистрация школы', async ({ page }) => {
+	test('вход в школу и на корневом домене', async ({ page }) => {
 		await page.goto(schoolUrl('demo', '/login'))
 		await expect(page.getByRole('button', { name: 'Войти' }).first()).toBeVisible()
 		await shoot(page, 'login')
-		await page.goto('/register')
-		await expect(page.getByTestId('schools-register-submit')).toBeVisible()
-		await shoot(page, 'register')
+		await page.goto(rootUrl())
+		await expect(page.getByTestId('auth-signin-submit')).toBeVisible()
+		await shoot(page, 'root-login')
 	})
 
 	test('сотрудники и профиль (владелец)', async ({ page, loginAs }) => {

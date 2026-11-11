@@ -15,7 +15,8 @@ export const invitations = tenantTable(
 		tokenHash: text('token_hash').notNull().unique(),
 		status: invitationStatus('status').notNull().default('pending'),
 		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-		invitedBy: uuid('invited_by').notNull(),
+		/** Кто пригласил; пусто — оператор Dinastia (приглашение владельца созданной школы, 5.6). */
+		invitedBy: uuid('invited_by'),
 		acceptedAt: timestamp('accepted_at', { withTimezone: true }),
 		acceptedByUserId: uuid('accepted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
 	},

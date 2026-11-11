@@ -8,26 +8,9 @@ import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { recordPdConsent, schoolLegal } from './legal.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
-import { createSchool, listMySchools } from './service.ts'
+import { listMySchools, recordOwnerConsents } from './service.ts'
 
 export const schoolsRouter = {
-	create: impl.schools.create
-		.use(mw.host)
-		.use(mw.session)
-		.use(rateLimit({ name: 'schools.create', max: 5, windowSeconds: 3600, by: 'user' }))
-		.handler(async ({ input, context }) => {
-			if (context.host.kind !== 'root') fail.notFound('NOT_ON_ROOT_DOMAIN')
-			const { school } = await createSchool(input, { userId: context.user.id, ip: context.ip })
-			return {
-				id: school.id,
-				slug: school.slug,
-				name: school.name,
-				role: 'owner' as const,
-				url: appOrigin(school.slug),
-				deleteAt: null,
-			}
-		}),
-
 	mine: impl.schools.mine
 		.use(mw.host)
 		.use(mw.session)
@@ -136,7 +119,10 @@ export const invitationsRouter = {
 		.handler(async ({ input, context }) => {
 			const res = await acceptInvitation(context.db, input.token, context.user, context.now())
 			if (!res.role) throw new Error('приглашение принято без роли')
-			await recordPdConsent(context.db, { userId: context.user.id, schoolId: context.school.id, ip: context.ip })
+			const consent = { userId: context.user.id, schoolId: context.school.id, ip: context.ip }
+			// владелец — клиент Dinastia: оферта и политика платформы; сотрудник — согласие на обработку ПДн школой (5.5, 5.6)
+			if (res.role === 'owner') await recordOwnerConsents(context.db, consent)
+			else await recordPdConsent(context.db, consent)
 			return { role: res.role, school: context.school }
 		}),
 }

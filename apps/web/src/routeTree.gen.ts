@@ -13,7 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as LearnRouteRouteImport } from './routes/learn/route'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as RegisterRouteImport } from './routes/register'
+import { Route as OpsRouteImport } from './routes/ops'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminProfileRouteImport } from './routes/admin/profile'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
@@ -64,9 +64,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
+const OpsRoute = OpsRouteImport.update({
+  id: '/ops',
+  path: '/ops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -229,7 +229,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/ops': typeof OpsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -263,7 +263,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/ops': typeof OpsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -300,7 +300,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/ops': typeof OpsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -338,7 +338,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/learn'
     | '/login'
-    | '/register'
+    | '/ops'
     | '/admin/profile'
     | '/admin/settings'
     | '/certificates/verify'
@@ -372,7 +372,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/register'
+    | '/ops'
     | '/admin/profile'
     | '/admin/settings'
     | '/certificates/verify'
@@ -408,7 +408,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/learn'
     | '/login'
-    | '/register'
+    | '/ops'
     | '/admin/profile'
     | '/admin/settings'
     | '/certificates/verify'
@@ -445,7 +445,7 @@ export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LearnRouteRoute: typeof LearnRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
+  OpsRoute: typeof OpsRoute
   CertificatesVerifyRoute: typeof CertificatesVerifyRoute
   DevBlocksRoute: typeof DevBlocksRoute
   DevQuestionsRoute: typeof DevQuestionsRoute
@@ -486,11 +486,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
+    '/ops': {
+      id: '/ops'
+      path: '/ops'
+      fullPath: '/ops'
+      preLoaderRoute: typeof OpsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -770,7 +770,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRouteRoute: AdminRouteRouteWithChildren,
   LearnRouteRoute: LearnRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
+  OpsRoute: OpsRoute,
   CertificatesVerifyRoute: CertificatesVerifyRoute,
   DevBlocksRoute: DevBlocksRoute,
   DevQuestionsRoute: DevQuestionsRoute,

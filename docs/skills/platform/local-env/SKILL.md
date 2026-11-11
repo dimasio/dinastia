@@ -93,9 +93,13 @@ curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' '
 |---|---|
 | `demo` | `owner@demo.local`, `admin@demo.local`, `teacher@demo.local`, `curator@demo.local`, `student1@demo.local` … `student5@demo.local` |
 | `other` (проверка изоляции) | `owner@other.local`; `teacher@demo.local` — здесь ученик (один человек — разные роли) |
+| — (консоль `/ops`, 5.6) | `ops@demo.local` — оператор; второй фактор включает при первом входе в `/ops` (приложение-аутентификатор) |
 
 С фазы 2 — демо-курс с уроками всех блоков, тестом и заданием, потоком и прогрессом. Новая сущность → дополни сид
 в той же задаче. Письма (magic link, приглашения) — в Mailpit.
+
+Новая школа для разработки (публичной регистрации нет, 5.6): `pnpm --filter @dinastia/api exec tsx src/create-school.ts <slug>
+<название> <email владельца> <пароль>`; оператор — `pnpm ops:grant <email>` (печатает разовый пароль, если пользователя не было).
 
 **Школа для показа** — `pnpm db:seed:trud` (`apps/api/src/seed-trud.ts`): «Учебный центр «Безопасный труд»» по охране труда,
 `http://trud.dinastia.localhost:5173`. Сотрудники `owner@`, `admin@`, `teacher@`, `medic@`, `curator@trud.local`, 12 учеников

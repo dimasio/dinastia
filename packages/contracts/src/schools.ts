@@ -108,8 +108,6 @@ export const InvitationPublic = z.object({
 })
 
 export const schoolsContract = {
-	/** Зарегистрировать школу (корневой домен, вошедший пользователь становится владельцем). */
-	create: oc.route({ method: 'POST', path: '/schools', successStatus: 201 }).input(SchoolCreate).output(MySchool),
 	/** Мои школы (корневой домен: выбор школы). */
 	mine: oc.route({ method: 'GET', path: '/me/schools' }).output(z.array(MySchool)),
 	/** Школа текущего хоста — публично (страница входа, брендинг). */

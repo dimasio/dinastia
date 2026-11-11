@@ -10,6 +10,7 @@ import { db, pool } from '#/kernel/db/client.ts'
 import { app, call, host, signUp } from '#/test/http.ts'
 import { inviteToken, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { uniqueSlug } from '#/test/users.ts'
+import { createSchool } from './modules/schools/service.ts'
 
 const created: string[] = []
 beforeAll(startTestWorker)
@@ -22,19 +23,16 @@ afterAll(async () => {
 async function newSchool() {
 	const owner = await signUp('owner', 'Ольга')
 	const slug = uniqueSlug()
-	const res = await call('POST', '/api/v1/schools', { cookie: owner.cookie, body: { name: 'Школа API', slug } })
-	expect(res.status).toBe(201)
-	const school = (await res.json()) as { id: string; slug: string; url: string }
+	const { school } = await createSchool({ name: 'Школа API', slug }, { userId: owner.id })
 	created.push(school.id)
-	return { owner, school }
+	return { owner, school: { ...school, url: `http://${slug}.dinastia.localhost:5173` } }
 }
 
 const json = async (res: Response) => (await res.json()) as Record<string, unknown> & { data?: { code?: string } }
 
-describe('регистрация школы (корневой домен)', () => {
-	it('создаёт школу и возвращает её адрес; владелец видит её в «моих школах»', async () => {
+describe('регистрация школы', () => {
+	it('владелец видит свою школу в «моих школах»', async () => {
 		const { owner, school } = await newSchool()
-		expect(school.url).toBe(`http://${school.slug}.dinastia.localhost:5173`)
 		const mine = (await (await call('GET', '/api/v1/me/schools', { cookie: owner.cookie })).json()) as {
 			slug: string
 			role: string
@@ -42,19 +40,10 @@ describe('регистрация школы (корневой домен)', () =
 		expect(mine).toEqual([expect.objectContaining({ slug: school.slug, role: 'owner' })])
 	})
 
-	it('без входа — 401; не на корневом домене — 404; кривой slug — 400 с причиной', async () => {
+	it('публичной регистрации нет (5.6): школы создаёт оператор', async () => {
 		const u = await signUp()
-		expect((await call('POST', '/api/v1/schools', { body: { name: 'Школа', slug: uniqueSlug() } })).status).toBe(401)
-		const onSchoolHost = await call('POST', '/api/v1/schools', {
-			slug: 'demo',
-			cookie: u.cookie,
-			body: { name: 'Школа', slug: uniqueSlug() },
-		})
-		expect(onSchoolHost.status).toBe(404)
-		expect((await json(onSchoolHost)).data?.code).toBe('NOT_ON_ROOT_DOMAIN')
-		const bad = await call('POST', '/api/v1/schools', { cookie: u.cookie, body: { name: 'Школа', slug: 'admin' } })
-		expect(bad.status).toBe(400)
-		expect(JSON.stringify(await bad.json())).toContain('SLUG_RESERVED')
+		const res = await call('POST', '/api/v1/schools', { cookie: u.cookie, body: { name: 'Школа', slug: uniqueSlug() } })
+		expect(res.status).toBe(404)
 	})
 })
 
@@ -175,6 +164,8 @@ describe('OpenAPI', () => {
 				'/school/files/{id}/complete',
 				'/school/exports',
 				'/school/exports/{id}',
+				'/ops/me',
+				'/ops/schools',
 				'/school/deletion',
 				'/school/legal',
 				'/school/settings',
@@ -186,7 +177,6 @@ describe('OpenAPI', () => {
 				'/school/members',
 				'/school/members/{id}/role',
 				'/school/members/{id}/status',
-				'/schools',
 				'/schools/{id}/cancel-deletion',
 				'/courses',
 				'/courses/{id}',

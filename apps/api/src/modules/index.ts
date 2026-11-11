@@ -23,6 +23,7 @@ import assessments from './assessments/index.ts'
 import certificates from './certificates/index.ts'
 import courses from './courses/index.ts'
 import learning from './learning/index.ts'
+import ops from './ops/index.ts'
 import schools from './schools/index.ts'
 // gen:module:import
 
@@ -35,6 +36,7 @@ export const modules = {
 	learning,
 	assessments,
 	certificates,
+	ops, // консоль оператора SaaS (5.6)
 	// gen:module:entry
 }
 

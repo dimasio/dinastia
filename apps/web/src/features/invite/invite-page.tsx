@@ -2,8 +2,9 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } fro
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
+import { hostUrl } from '#/app/host.ts'
 import { orpc } from '#/app/orpc.ts'
 import { sessionQuery } from '#/app/queries.ts'
 import { SignInForm } from '#/features/auth/sign-in-form.tsx'
@@ -35,7 +36,46 @@ export function InvitePage({ token }: { token: string }) {
 			<CardContent className="grid gap-4">
 				{session ? (
 					<>
-						<PdConsent legal={inv.legal} checked={consent} onChange={setConsent} />
+						{inv.role === 'owner' ? (
+							// владелец — клиент Dinastia: оферта и политика платформы (5.6)
+							<label className="flex items-start gap-3 text-sm" data-testid="pd-consent">
+								<input
+									type="checkbox"
+									className="mt-0.5 size-4 shrink-0 accent-primary"
+									checked={consent}
+									onChange={(e) => setConsent(e.target.checked)}
+									data-testid="pd-consent-checkbox"
+								/>
+								<span className="text-muted-foreground">
+									<Trans
+										t={t}
+										i18nKey="invite.ownerConsent"
+										components={{
+											offer: (
+												// biome-ignore lint/a11y/useAnchorContent: текст ссылки подставляет Trans
+												<a
+													href={hostUrl(undefined, '/legal/offer')}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-foreground underline"
+												/>
+											),
+											privacy: (
+												// biome-ignore lint/a11y/useAnchorContent: текст ссылки подставляет Trans
+												<a
+													href={hostUrl(undefined, '/legal/privacy')}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-foreground underline"
+												/>
+											),
+										}}
+									/>
+								</span>
+							</label>
+						) : (
+							<PdConsent legal={inv.legal} checked={consent} onChange={setConsent} />
+						)}
 						<Button
 							onClick={() => accept.mutate({ token, consent: true })}
 							disabled={!consent || accept.isPending}

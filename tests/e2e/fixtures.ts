@@ -1,4 +1,5 @@
 // e2e-фикстуры (скилл testing): вход по роли без UI-формы, адреса школ.
+import { execFileSync } from 'node:child_process'
 import { test as base, expect, type Page } from '@playwright/test'
 
 /** Демо-пользователи из pnpm db:seed (скилл local-env); пароль у всех — demo12345. */
@@ -11,6 +12,30 @@ export const DEMO = {
 } as const
 
 export const schoolUrl = (slug: string, path = '/') => `http://${slug}.dinastia.localhost:5173${path}`
+export const rootUrl = (path = '/') => `http://dinastia.localhost:5173${path}`
+
+/**
+ * Школа сразу с владельцем (CLI `src/create-school.ts`): публичной регистрации нет, школы создаёт оператор в /ops (5.6) —
+ * сценарии, которым нужна своя школа, создают её так и входят паролем (`loginAs({ email, password }, slug)`).
+ */
+export function createSchool(o: { slug: string; name: string; email: string; password: string; ownerName?: string }) {
+	execFileSync(
+		'pnpm',
+		[
+			'--filter',
+			'@dinastia/api',
+			'exec',
+			'tsx',
+			'src/create-school.ts',
+			o.slug,
+			o.name,
+			o.email,
+			o.password,
+			...(o.ownerName ? [o.ownerName] : []),
+		],
+		{ stdio: 'pipe' },
+	)
+}
 
 /**
  * Войти через API из браузера (не через форму): Node на macOS не резолвит *.localhost, поэтому запрос идёт из

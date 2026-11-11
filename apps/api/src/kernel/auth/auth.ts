@@ -1,11 +1,12 @@
 // better-auth (D-007): пользователи, сессии, email+пароль, magic link. Школы, участники, приглашения — наши (modules/schools).
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { magicLink } from 'better-auth/plugins'
+import { magicLink, twoFactor } from 'better-auth/plugins'
+import { eq } from 'drizzle-orm'
 import { appOrigin, config } from '../config.ts'
 import { db } from '../db/client.ts'
 import { sendMagicLinkEmail } from './magic-link-email.tsx'
-import { accounts, rateLimits, sessions, users, verifications } from './schema.ts'
+import { accounts, rateLimits, sessions, twoFactors, users, verifications } from './schema.ts'
 
 const port = config.APP_PUBLIC_PORT ? `:${config.APP_PUBLIC_PORT}` : ''
 
@@ -21,7 +22,14 @@ export const auth = betterAuth({
 	trustedOrigins: [appOrigin(), `${config.APP_PROTOCOL}://*.${config.APP_DOMAIN}${port}`],
 	database: drizzleAdapter(db, {
 		provider: 'pg',
-		schema: { user: users, session: sessions, account: accounts, verification: verifications, rateLimit: rateLimits },
+		schema: {
+			user: users,
+			session: sessions,
+			account: accounts,
+			verification: verifications,
+			rateLimit: rateLimits,
+			twoFactor: twoFactors,
+		},
 	}),
 	advanced: {
 		database: { generateId: false }, // id генерирует БД: uuidv7()
@@ -51,8 +59,14 @@ export const auth = betterAuth({
 		magicLink({
 			expiresIn: 15 * 60,
 			storeToken: 'hashed',
-			sendMagicLink: ({ email, url }) => sendMagicLinkEmail(email, url),
+			sendMagicLink: async ({ email, url }) => {
+				// оператор входит только паролем и кодом из приложения (5.6): ссылка обошла бы второй фактор
+				if (await isOperator(email)) return
+				await sendMagicLinkEmail(email, url)
+			},
 		}),
+		// второй фактор — обязателен оператору (5.6); остальным не предлагается
+		twoFactor({ issuer: 'Dinastia', skipVerificationOnEnable: false }),
 	],
 	rateLimit: {
 		enabled: true,
@@ -73,3 +87,12 @@ export const auth = betterAuth({
 })
 
 export type Session = typeof auth.$Infer.Session
+
+async function isOperator(email: string) {
+	const [row] = await db
+		.select({ role: users.platformRole })
+		.from(users)
+		.where(eq(users.email, email.toLowerCase()))
+		.limit(1)
+	return row?.role === 'operator'
+}

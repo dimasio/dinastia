@@ -43,7 +43,7 @@ description: Базовые правила безопасности Dinastia д�
    ```
    Фиксированное окно (≤ суток) в таблице `request_limits`, ключ — имя лимита + sha256 субъекта (IP открытым
    текстом не хранится); попытка считается и при ошибке процедуры; превышение — 429 `RATE_LIMITED` с `retryAfter`
-   (секунды). Сейчас (5.1): `schools.create` 5/ч и `invitations.accept`, `join.accept` 20/ч на пользователя;
+   (секунды). Сейчас (5.1): `ops.schools.create` 30/ч на оператора (5.6) и `invitations.accept`, `join.accept` 20/ч на пользователя;
    `schools.invite` 30/ч, `files.upload` 60/10 мин, `exports.start` 20/10 мин, `quiz.start` и `assignment.submit` 30/10 мин,
    `assignment.reply` 60/10 мин, `review.comment` 120/10 мин на участника; `invitations.get`, `join.get` 60/10 мин и
    `certificates.verify` 30/10 мин с IP. **Новая процедура** старта попытки теста, экспорта, отправки сообщения, публичной формы — с лимитом

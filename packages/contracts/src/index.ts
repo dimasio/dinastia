@@ -6,6 +6,7 @@ import { coursesContract } from './courses.ts'
 import { exportsContract } from './exports.ts'
 import { filesContract } from './files.ts'
 import { joinContract, learnContract, learningContract, studentsContract } from './learning.ts'
+import { opsContract } from './ops.ts'
 import { invitationsContract, membersContract, schoolsContract } from './schools.ts'
 import { settingsContract } from './settings.ts'
 // gen:module:import
@@ -27,6 +28,7 @@ export const contract = {
 	assignment: assignmentContract,
 	review: reviewContract,
 	certificates: certificatesContract,
+	ops: opsContract,
 	// gen:module:entry
 }
 

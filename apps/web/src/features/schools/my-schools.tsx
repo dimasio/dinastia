@@ -1,6 +1,5 @@
 import { Badge, Button, Card, CardContent, EmptyState, toast } from '@dinastia/ui'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { School } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
@@ -57,9 +56,6 @@ export function MySchools() {
 					</CardContent>
 				</Card>
 			))}
-			<Button asChild variant="link" className="justify-self-start px-0">
-				<Link to="/register">{t('schools.create')}</Link>
-			</Button>
 		</div>
 	)
 }

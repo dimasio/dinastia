@@ -1,5 +1,5 @@
 ---
-status: draft
+status: current
 ---
 
 # Консоль оператора SaaS (`/ops`, пункт 5.6)

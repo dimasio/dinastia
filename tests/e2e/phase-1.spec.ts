@@ -2,7 +2,7 @@
 // ресурс из схемы контракта (1.2), письмо из очереди задач (1.6, 1.8), файл в S3 (1.7), форматированный текст (1.12),
 // блок урока (1.3), тип вопроса (1.4). Вторая половина критерия — агент по скиллу делает новый ресурс и блок без правок
 // ядра — проверяется независимым агентом (plan.md, «План 1.13», шаг 13.4) и пробой генераторов `pnpm gen:probe`.
-import { expect, test } from '@playwright/test'
+import { createSchool, expect, test } from './fixtures.ts'
 import { waitForLink } from './mailpit.ts'
 import { shoot } from './shots.ts'
 
@@ -18,14 +18,14 @@ const png = Buffer.from(
 test('демо фазы 1', async ({ page }) => {
 	// шесть шагов по всем механизмам фазы: под нагрузкой полного e2e дольше стандартных 30 с
 	test.setTimeout(90_000)
-	await test.step('владелец регистрирует школу', async () => {
-		await page.goto('/register')
-		await page.getByLabel('Ваше имя').fill('Вера Владелец')
-		await page.getByLabel('Email').fill(`owner1-${run}@e2e.local`)
-		await page.getByLabel('Пароль').fill('e2e-password-1')
-		await page.getByLabel('Название школы').fill('Школа фазы 1')
-		await page.getByLabel('Адрес школы').fill(slug)
-		await page.getByTestId('schools-register-submit').click()
+	await test.step('владелец входит в свою школу', async () => {
+		// публичной регистрации нет (5.6): школа с владельцем — CLI разработки, владелец входит паролем
+		const email = `owner1-${run}@e2e.local`
+		createSchool({ slug, name: 'Школа фазы 1', email, password: 'e2e-password-1', ownerName: 'Вера Владелец' })
+		await page.goto(`${school}/login`)
+		await page.getByTestId('auth-signin-email').fill(email)
+		await page.getByTestId('auth-signin-password').fill('e2e-password-1')
+		await page.getByTestId('auth-signin-submit').click()
 		await expect(page).toHaveURL(`${school}/admin`)
 	})
 

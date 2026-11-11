@@ -24,11 +24,23 @@ export function findProceduresWithoutPermission(router: unknown, path: string[] 
 export function findPublicProcedures(router: unknown, path: string[] = []): { path: string; session: boolean }[] {
 	if (isProcedure(router)) {
 		const mws = router['~orpc'].middlewares as readonly object[]
-		if (mws.includes(mw.member)) return []
+		if (mws.includes(mw.member) || mws.includes(mw.operator)) return []
 		return [{ path: path.join('.'), session: mws.includes(mw.session) }]
 	}
 	if (router && typeof router === 'object') {
 		return Object.entries(router).flatMap(([k, v]) => findPublicProcedures(v, [...path, k]))
+	}
+	return []
+}
+
+/** Процедуры консоли оператора (`mw.operator`) без второго фактора (`mw.operator2fa`) — только `ops.me` (5.6). */
+export function findOperatorProceduresWithout2fa(router: unknown, path: string[] = []): string[] {
+	if (isProcedure(router)) {
+		const mws = router['~orpc'].middlewares as readonly object[]
+		return mws.includes(mw.operator) && !mws.includes(mw.operator2fa) ? [path.join('.')] : []
+	}
+	if (router && typeof router === 'object') {
+		return Object.entries(router).flatMap(([k, v]) => findOperatorProceduresWithout2fa(v, [...path, k]))
 	}
 	return []
 }

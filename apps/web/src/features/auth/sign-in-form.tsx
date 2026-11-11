@@ -26,15 +26,24 @@ export function SignInForm({
 	const [error, setError] = useState<string>()
 	const [sentTo, setSentTo] = useState<string>()
 	const [pending, setPending] = useState(false)
+	// пароль верен, нужен код из приложения (второй фактор оператора, 5.6)
+	const [needCode, setNeedCode] = useState(false)
+	const [code, setCode] = useState('')
 
 	async function submit(e: React.FormEvent) {
 		e.preventDefault()
 		setError(undefined)
 		setPending(true)
 		try {
-			if (mode === 'password') {
+			if (needCode) {
+				const res = await authClient.twoFactor.verifyTotp({ code: code.trim() })
+				if (res.error) return setError(t('signIn.codeInvalid'))
+				await qc.invalidateQueries()
+				onSignedIn()
+			} else if (mode === 'password') {
 				const res = await authClient.signIn.email({ email, password })
 				if (res.error) return setError(t(errorText(res.error), { ns: 'errors' }))
+				if (res.data && 'twoFactorRedirect' in res.data && res.data.twoFactorRedirect) return setNeedCode(true)
 				await qc.invalidateQueries()
 				onSignedIn()
 			} else {
@@ -50,6 +59,32 @@ export function SignInForm({
 	}
 
 	if (sentTo) return <p data-testid="auth-link-sent">{t('signIn.linkSent', { email: sentTo })}</p>
+
+	if (needCode)
+		return (
+			<form onSubmit={submit} className="grid gap-4" noValidate>
+				<Field id="signin-code" label={t('signIn.code')} hint={t('signIn.codeHint')}>
+					<Input
+						id="signin-code"
+						inputMode="numeric"
+						autoComplete="one-time-code"
+						maxLength={6}
+						required
+						value={code}
+						onChange={(e) => setCode(e.target.value)}
+						data-testid="auth-signin-code"
+					/>
+				</Field>
+				{error ? (
+					<p role="alert" className="text-sm text-destructive" data-testid="auth-signin-error">
+						{error}
+					</p>
+				) : null}
+				<Button type="submit" disabled={pending || code.trim().length !== 6} data-testid="auth-signin-code-submit">
+					{t('signIn.submit')}
+				</Button>
+			</form>
+		)
 
 	return (
 		<form onSubmit={submit} className="grid gap-4" noValidate>

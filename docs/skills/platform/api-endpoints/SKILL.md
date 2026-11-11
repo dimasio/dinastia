@@ -69,7 +69,8 @@ export const invitationsRouter = {
 | Нужно процедуре | Цепочка | В `context` |
 |---|---|---|
 | ничего (публично, любой хост) | `.use(mw.host)` | `headers`, `ip`, `now`, `host` |
-| вход, без школы (корень: мои школы, регистрация школы) | `+ .use(mw.session)` | `user` |
+| вход, без школы (корень: мои школы, отмена удаления школы) | `+ .use(mw.session)` | `user` |
+| консоль оператора `/ops` (5.6) | `+ .use(mw.session).use(mw.operator)`, действия — `+ .use(mw.operator2fa)` | `user`, `operator` |
 | школа хоста, без входа (страница приглашения, вход в школу) | `.use(mw.host).use(mw.school).use(mw.tenantTx)` | `school`, `db` |
 | вход + школа, без членства (принять приглашение) | `.use(mw.host).use(mw.session).use(mw.school).use(mw.tenantTx)` | `user`, `school`, `db` |
 | **участник школы — по умолчанию** | `… .use(mw.tenantTx).use(mw.member).use(can('…'))` | + `member`, `can` → `schoolCtx(context)` |

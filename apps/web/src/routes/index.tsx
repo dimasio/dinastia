@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@dinastia/ui'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { httpStatus } from '#/app/errors.ts'
@@ -44,12 +44,7 @@ function RootHome() {
 					) : (
 						<div className="grid gap-4">
 							<SignInForm onSignedIn={() => qc.invalidateQueries()} />
-							<p className="text-sm text-muted-foreground">
-								{t('signIn.noAccount')}{' '}
-								<Link to="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
-									{t('signIn.createSchool')}
-								</Link>
-							</p>
+							<p className="text-sm text-muted-foreground">{t('signIn.noSchool')}</p>
 						</div>
 					)}
 				</CardContent>

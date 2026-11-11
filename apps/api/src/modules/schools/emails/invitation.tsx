@@ -9,7 +9,7 @@ export const invitationEmail = defineEmail({
 	key: 'schools.invitation',
 	schema: z.object({
 		inviterName: z.string(),
-		role: z.enum(['admin', 'teacher', 'curator']),
+		role: z.enum(['owner', 'admin', 'teacher', 'curator']),
 		url: z.url(),
 		expiresAt: z.coerce.date(),
 	}),
