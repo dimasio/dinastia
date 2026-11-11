@@ -1,6 +1,7 @@
 // Сводный реестр разрешений (скилл permissions). Тип Permission — объединение ключей всех модулей.
 // Список ведётся здесь, а не через modules/index.ts: роутеры модулей импортируют `can` отсюда — обратный импорт дал бы цикл.
 import type { MemberRole } from '@dinastia/contracts/schools'
+import { permissions as exportsPerms } from './kernel/exports/permissions.ts'
 import { createCan, mergePermissions, permissionsOf } from './kernel/permissions.ts'
 import { permissions as files } from './kernel/storage/permissions.ts'
 import { permissions as assessments } from './modules/assessments/permissions.ts'
@@ -11,6 +12,7 @@ import { permissions as schools } from './modules/schools/permissions.ts'
 
 export const permissionMap = mergePermissions(
 	files,
+	exportsPerms,
 	schools,
 	courses,
 	learning,

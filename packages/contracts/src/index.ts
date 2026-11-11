@@ -2,6 +2,7 @@
 
 import { assessmentsContract, assignmentContract, quizContract, reviewContract } from './assessments.ts'
 import { coursesContract } from './courses.ts'
+import { exportsContract } from './exports.ts'
 import { filesContract } from './files.ts'
 import { joinContract, learnContract, learningContract } from './learning.ts'
 import { invitationsContract, membersContract, schoolsContract } from './schools.ts'
@@ -12,6 +13,7 @@ export const contract = {
 	invitations: invitationsContract,
 	members: membersContract,
 	files: filesContract,
+	exports: exportsContract,
 	courses: coursesContract,
 	learn: learnContract,
 	learning: learningContract,

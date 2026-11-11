@@ -29,6 +29,7 @@ import { Route as AdminReviewIndexRouteImport } from './routes/admin/review/inde
 import { Route as AdminReviewSubmissionIdRouteImport } from './routes/admin/review/$submissionId'
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
 import { Route as LearnCoursesCourseIdRouteImport } from './routes/learn/courses/$courseId'
+import { Route as AdminCoursesCourseIdAnalyticsRouteImport } from './routes/admin/courses/$courseId_.analytics'
 import { Route as AdminCoursesCourseIdGroupsRouteImport } from './routes/admin/courses/$courseId_.groups'
 import { Route as AdminCoursesCourseIdLearnersRouteImport } from './routes/admin/courses/$courseId_.learners'
 import { Route as AdminReviewAttemptsAttemptIdRouteImport } from './routes/admin/review/attempts.$attemptId'
@@ -137,6 +138,12 @@ const LearnCoursesCourseIdRoute = LearnCoursesCourseIdRouteImport.update({
   path: '/courses/$courseId',
   getParentRoute: () => LearnRouteRoute,
 } as any)
+const AdminCoursesCourseIdAnalyticsRoute =
+  AdminCoursesCourseIdAnalyticsRouteImport.update({
+    id: '/courses/$courseId_/analytics',
+    path: '/courses/$courseId/analytics',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AdminCoursesCourseIdGroupsRoute =
   AdminCoursesCourseIdGroupsRouteImport.update({
     id: '/courses/$courseId_/groups',
@@ -201,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
+  '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -228,6 +236,7 @@ export interface FileRoutesByTo {
   '/admin/courses': typeof AdminCoursesIndexRoute
   '/admin/review': typeof AdminReviewIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
+  '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -258,6 +267,7 @@ export interface FileRoutesById {
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
+  '/admin/courses/$courseId_/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId_/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId_/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
+    | '/admin/courses/$courseId/analytics'
     | '/admin/courses/$courseId/groups'
     | '/admin/courses/$courseId/learners'
     | '/admin/review/attempts/$attemptId'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/admin/courses'
     | '/admin/review'
     | '/admin/staff'
+    | '/admin/courses/$courseId/analytics'
     | '/admin/courses/$courseId/groups'
     | '/admin/courses/$courseId/learners'
     | '/admin/review/attempts/$attemptId'
@@ -345,6 +357,7 @@ export interface FileRouteTypes {
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
+    | '/admin/courses/$courseId_/analytics'
     | '/admin/courses/$courseId_/groups'
     | '/admin/courses/$courseId_/learners'
     | '/admin/review/attempts/$attemptId'
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnCoursesCourseIdRouteImport
       parentRoute: typeof LearnRouteRoute
     }
+    '/admin/courses/$courseId_/analytics': {
+      id: '/admin/courses/$courseId_/analytics'
+      path: '/courses/$courseId/analytics'
+      fullPath: '/admin/courses/$courseId/analytics'
+      preLoaderRoute: typeof AdminCoursesCourseIdAnalyticsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/courses/$courseId_/groups': {
       id: '/admin/courses/$courseId_/groups'
       path: '/courses/$courseId/groups'
@@ -569,6 +589,7 @@ interface AdminRouteRouteChildren {
   AdminCoursesIndexRoute: typeof AdminCoursesIndexRoute
   AdminReviewIndexRoute: typeof AdminReviewIndexRoute
   AdminStaffIndexRoute: typeof AdminStaffIndexRoute
+  AdminCoursesCourseIdAnalyticsRoute: typeof AdminCoursesCourseIdAnalyticsRoute
   AdminCoursesCourseIdGroupsRoute: typeof AdminCoursesCourseIdGroupsRoute
   AdminCoursesCourseIdLearnersRoute: typeof AdminCoursesCourseIdLearnersRoute
   AdminReviewAttemptsAttemptIdRoute: typeof AdminReviewAttemptsAttemptIdRoute
@@ -585,6 +606,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCoursesIndexRoute: AdminCoursesIndexRoute,
   AdminReviewIndexRoute: AdminReviewIndexRoute,
   AdminStaffIndexRoute: AdminStaffIndexRoute,
+  AdminCoursesCourseIdAnalyticsRoute: AdminCoursesCourseIdAnalyticsRoute,
   AdminCoursesCourseIdGroupsRoute: AdminCoursesCourseIdGroupsRoute,
   AdminCoursesCourseIdLearnersRoute: AdminCoursesCourseIdLearnersRoute,
   AdminReviewAttemptsAttemptIdRoute: AdminReviewAttemptsAttemptIdRoute,

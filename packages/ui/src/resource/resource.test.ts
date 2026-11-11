@@ -122,6 +122,7 @@ describe('строки ресурса', () => {
 				}),
 				{ key: 'archive', run: async () => {} },
 			],
+			pageActions: [{ key: 'export', run: async () => {} }],
 		})
 		expect(resourceKeys(def)).toEqual([
 			'actions.archive.label',
@@ -139,6 +140,8 @@ describe('строки ресурса', () => {
 			'empty.title',
 			'fields.name',
 			'fields.role',
+			'pageActions.export.busy',
+			'pageActions.export.label',
 			'title',
 			'values.role.admin',
 			'values.role.teacher',

@@ -52,6 +52,13 @@ export async function headObject(key: string): Promise<{ size: number; mime: str
 	}
 }
 
+/** Записать объект с сервера (файлы, которые делает API: выгрузки). */
+export async function putObject(key: string, body: Uint8Array, mime: string) {
+	await client.send(
+		new PutObjectCommand({ Bucket, Key: key, Body: body, ContentType: mime, ContentLength: body.length }),
+	)
+}
+
 /** Удалить объект (нет объекта — не ошибка). */
 export async function deleteObject(key: string) {
 	await client.send(new DeleteObjectCommand({ Bucket, Key: key }))

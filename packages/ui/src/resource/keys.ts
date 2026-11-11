@@ -25,6 +25,7 @@ export function resourceKeys<Row extends { id: string }>(def: ResourceDef<Row, a
 			keys.add(`actions.${a.key}.${k}`)
 		if (a.form) forms.push(a.form)
 	}
+	for (const a of def.pageActions ?? []) for (const k of ['label', 'busy']) keys.add(`pageActions.${a.key}.${k}`)
 	for (const form of forms)
 		for (const f of fieldsFromSchema(form).flat()) {
 			field(f.name)

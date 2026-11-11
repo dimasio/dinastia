@@ -75,7 +75,10 @@
 			"name": "Имя",
 			"accessDays": "Срок доступа, дней",
 			"groupTitle": "Поток",
-			"groupId": "Поток"
+			"groupId": "Поток",
+			"lessonsCompleted": "Пройдено уроков",
+			"overdueCount": "Просрочено",
+			"lastActivityAt": "Последняя активность"
 		},
 		"hints": {
 			"name": "Нужно, только если у такого email ещё нет аккаунта: его создают владелец и администраторы.",
@@ -152,6 +155,12 @@
 			"hint": "Для новых зачислений. Пусто — без срока.",
 			"save": "Сохранить",
 			"saved": "Срок по умолчанию сохранён"
+		},
+		"pageActions": {
+			"export": {
+				"label": "Выгрузить в Excel",
+				"busy": "Готовим файл…"
+			}
 		}
 	},
 	"join": {
@@ -255,5 +264,67 @@
 		"deadlinesTitle": "Ближайшие сроки",
 		"revisionsTitle": "На доработке",
 		"revisionsHint": "Работу вернули с комментарием — исправьте её и отправьте снова."
+	},
+	"export": {
+		"columns": {
+			"name": "Ученик",
+			"email": "Email",
+			"group": "Поток",
+			"status": "Статус",
+			"enrolledAt": "Зачислен",
+			"expiresAt": "Доступ до",
+			"progress": "Прогресс",
+			"lessonsCompleted": "Пройдено уроков",
+			"lessonsTotal": "Всего уроков",
+			"overdue": "Просрочено",
+			"lastActivityAt": "Последняя активность"
+		}
+	},
+	"analytics": {
+		"title": "Аналитика",
+		"description": "Как ученики проходят курс: прогресс, где останавливаются, результаты тестов и заданий.",
+		"group": "Поток",
+		"allGroups": "Все потоки",
+		"noGroup": "Без потока",
+		"emptyTitle": "Пока нечего показать",
+		"emptyDescription": "Аналитика появится, когда на курс зачислят учеников.",
+		"summary": {
+			"learners": "Учеников",
+			"learning": "Учатся",
+			"completed": "Прошли курс",
+			"expired": "Доступ закончился",
+			"avgProgress": "Средний прогресс",
+			"withOverdue": "С просрочкой"
+		},
+		"funnel": {
+			"title": "Прохождение уроков",
+			"hint": "Сколько учеников открыли и прошли каждый урок — видно, где останавливаются.",
+			"opened": "Открыли",
+			"completed": "Прошли",
+			"counts": "Открыли {{opened}} · прошли {{completed}} ({{pct}}%)",
+			"overdue_one": "{{count}} с просрочкой",
+			"overdue_few": "{{count}} с просрочкой",
+			"overdue_many": "{{count}} с просрочкой",
+			"overdue_other": "{{count}} с просрочкой",
+			"bar": "Открыли {{opened}}%, прошли {{completed}}%"
+		},
+		"quizzes": {
+			"title": "Тесты",
+			"lesson": "Урок",
+			"students": "Сдавали",
+			"passed": "Сдали",
+			"avgBest": "Средний результат",
+			"avgAttempts": "Попыток в среднем",
+			"pending": "Ждут проверки"
+		},
+		"assignments": {
+			"title": "Задания",
+			"lesson": "Урок",
+			"submitted": "Сдано",
+			"accepted": "Принято",
+			"needsRevision": "На доработке",
+			"rejected": "Отклонено",
+			"pending": "Ждут проверки"
+		}
 	}
 }

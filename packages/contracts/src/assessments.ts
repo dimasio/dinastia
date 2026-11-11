@@ -4,6 +4,7 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { CommentText, DateTime, Id, page, pageInput, RichText } from './common/index.ts'
+import { GroupFilter } from './learning.ts'
 
 /** Лимиты блока «Тест» (3.3): общие для блока, редактора и сервера. */
 export const QUIZ_QUESTIONS_MAX = 50
@@ -290,7 +291,49 @@ export const quizContract = {
 	result: oc.route({ method: 'GET', path: '/quiz/attempts/{attemptId}/result' }).input(ByAttempt).output(AttemptResult),
 }
 
+/** Результаты тестов и заданий курса (аналитика, 4.6): по потоку или по всем видимым сотруднику ученикам. */
+export const CourseResults = z.object({
+	quizzes: z.array(
+		z.object({
+			lessonId: Id,
+			lessonTitle: z.string(),
+			blockKey: Id,
+			/** Учеников с завершённой попыткой. */
+			students: z.number().int(),
+			/** Сдали по лучшей попытке. */
+			passed: z.number().int(),
+			/** Средний лучший результат, % (по оценённым); null — оценённых нет. */
+			avgBestPct: z.number().int().min(0).max(100).nullable(),
+			/** Попыток на ученика в среднем (одна цифра после запятой). */
+			avgAttempts: z.number(),
+			/** Учеников с попыткой, ждущей ручной проверки. */
+			pendingReview: z.number().int(),
+		}),
+	),
+	assignments: z.array(
+		z.object({
+			lessonId: Id,
+			lessonTitle: z.string(),
+			blockKey: Id,
+			submitted: z.number().int(),
+			accepted: z.number().int(),
+			needsRevision: z.number().int(),
+			rejected: z.number().int(),
+			/** Ждут проверки. */
+			pending: z.number().int(),
+		}),
+	),
+})
+export type CourseResults = z.infer<typeof CourseResults>
+
 export const assessmentsContract = {
+	results: {
+		/** Результаты тестов и заданий по урокам курса; куратор — только свои потоки. */
+		course: oc
+			.route({ method: 'GET', path: '/courses/{courseId}/results' })
+			.input(z.object({ courseId: Id, groupId: GroupFilter.optional() }))
+			.output(CourseResults),
+	},
 	questions: {
 		list: oc
 			.route({ method: 'GET', path: '/courses/{courseId}/questions' })

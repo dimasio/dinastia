@@ -1,5 +1,5 @@
-// Ученики курса (скилл admin-resource, карточки 4.1, 4.2): список с поиском, фильтрами статуса и потока, «Зачислить» (в поток),
-// продление срока, отзыв и возврат доступа, перевод в другой поток. Варианты потока — из данных курса (подписи — названия). Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
+// Ученики курса (скилл admin-resource, карточки 4.1, 4.2, 4.6): список с поиском, фильтрами статуса и потока, «Зачислить» (в поток),
+// продление срока, отзыв и возврат доступа, перевод в другой поток; пройдено уроков, просрочки, последняя активность, «Выгрузить в Excel». Варианты потока — из данных курса (подписи — названия). Ресурс строится на курс (список ограничен курсом) — поэтому фабрика; в реестре — образец.
 
 import { Email } from '@dinastia/contracts/common'
 import {
@@ -10,7 +10,9 @@ import {
 	GROUP_NONE,
 } from '@dinastia/contracts/learning'
 import { action, defineResource } from '@dinastia/ui/resource'
+import { FileDown } from 'lucide-react'
 import { z } from 'zod'
+import { runExport } from '#/app/exports.ts'
 import { client } from '#/app/orpc.ts'
 
 /** Вход списка без курса (курс подставляет ресурс). */
@@ -35,6 +37,7 @@ export function enrollmentsResource(opts: { courseId: string; groups?: readonly 
 	return defineResource({
 		key: 'enrollments',
 		ns: 'learning',
+		scope: opts.courseId,
 		row: EnrollmentRow,
 		list: (input: ListInput) => client.learning.enrollments.list({ ...input, courseId: opts.courseId }),
 		perms: { read: 'learning.read', write: 'learning.enroll' },
@@ -47,6 +50,13 @@ export function enrollmentsResource(opts: { courseId: string; groups?: readonly 
 			{ field: 'enrolledAt', sort: 'enrolledAt', render: 'date' },
 			{ field: 'expiresAt', render: 'date' },
 			{ field: 'progressPct', sort: 'progressPct', render: (row) => `${row.progressPct}%` },
+			{ field: 'lessonsCompleted', render: (row) => `${row.lessonsCompleted} / ${row.lessonsTotal}` },
+			{
+				field: 'overdueCount',
+				render: (row) =>
+					row.overdueCount ? <span className="font-medium text-destructive">{row.overdueCount}</span> : '—',
+			},
+			{ field: 'lastActivityAt', sort: 'lastActivityAt', render: 'datetime' },
 		],
 		search: true,
 		filters: [
@@ -70,6 +80,20 @@ export function enrollmentsResource(opts: { courseId: string; groups?: readonly 
 					...(values.groupId ? { groupId: values.groupId } : {}),
 				}),
 		},
+		pageActions: [
+			{
+				key: 'export',
+				perm: 'learning.analytics',
+				icon: <FileDown />,
+				run: (input) =>
+					runExport('learning.course-students', {
+						courseId: opts.courseId,
+						...(input.q ? { q: input.q } : {}),
+						...(input.filters?.status ? { status: input.filters.status } : {}),
+						...(input.filters?.groupId ? { groupId: input.filters.groupId } : {}),
+					}),
+			},
+		],
 		actions: [
 			action({
 				key: 'extend',

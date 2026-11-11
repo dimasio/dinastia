@@ -1,5 +1,6 @@
 // Реестр приложения: задачи (модулей, подписчиков, ядра), письма, назначения файлов и обработчики вебхуков. Заполняет modules/index.ts при импорте; читают
 // воркер (очереди, расписания), ctx.emit (кому доставить событие), ctx.mail и задача mail.send (шаблон по ключу).
+import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { AnySettingsDef } from './settings/settings.ts'
@@ -47,6 +48,17 @@ export function registerFilePurposes(list: FilePurpose[]) {
 }
 
 export const filePurpose = (key: string): FilePurpose | undefined => purposes.get(key)
+
+const exportDefs = new Map<string, AnyExport>()
+
+export function registerExports(list: AnyExport[]) {
+	for (const e of list) {
+		if (exportDefs.has(e.key) && exportDefs.get(e.key) !== e) throw new Error(`выгрузка «${e.key}» объявлена дважды`)
+		exportDefs.set(e.key, e)
+	}
+}
+
+export const exportByKey = (key: string): AnyExport | undefined => exportDefs.get(key)
 
 const webhookHandlers = new Map<string, AnyWebhookHandler>()
 

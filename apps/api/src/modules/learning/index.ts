@@ -2,6 +2,7 @@ import { defineModule } from '#/kernel/module.ts'
 import { courseInvitationEmail } from './emails/course-invitation.tsx'
 import { deadlineReminderEmail } from './emails/deadline-reminder.tsx'
 import { enrolledEmail } from './emails/enrolled.tsx'
+import { courseStudentsExport } from './exports.ts'
 import { deadlineRemindersJob, expireEnrollmentsJob, recalcCourseProgressJob, sendCourseInvitationJob } from './jobs.ts'
 import { permissions } from './permissions.ts'
 import { joinRouter, learningRouter, learnRouter } from './router.ts'
@@ -14,4 +15,5 @@ export default defineModule({
 	jobs: [expireEnrollmentsJob, sendCourseInvitationJob, recalcCourseProgressJob, deadlineRemindersJob],
 	subscribers: [lessonPublishedSubscriber, coursePublishedSubscriber, progressRulesSubscriber],
 	emails: [enrolledEmail, courseInvitationEmail, deadlineReminderEmail],
+	exports: [courseStudentsExport],
 })

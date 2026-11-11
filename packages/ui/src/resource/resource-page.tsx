@@ -48,7 +48,7 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 	const queryClient = useQueryClient()
 	const input = toListInput(resource, search)
 	const list = useQuery({
-		queryKey: [...resourceKey(resource.key), input],
+		queryKey: [...resourceKey(resource.key), resource.scope ?? null, input],
 		queryFn: () => resource.list(input),
 		placeholderData: keepPreviousData,
 	})
@@ -88,6 +88,25 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 	const from = page?.total ? (page.page - 1) * page.pageSize + 1 : 0
 	const to = page ? Math.min(page.page * page.pageSize, page.total) : 0
 	// в шапке и в пустом состоянии — разные testid: в пустом списке видны обе кнопки
+	const [busy, setBusy] = useState<string>()
+	const pageActions = (resource.pageActions ?? []).filter((a) => can(viewer, a.perm ?? resource.perms.read))
+	const pageButtons = pageActions.map((a) => (
+		<Button
+			key={a.key}
+			variant="outline"
+			disabled={busy !== undefined}
+			onClick={() => {
+				setBusy(a.key)
+				a.run(input)
+					.catch((err) => toast.error(errorText(err)))
+					.finally(() => setBusy(undefined))
+			}}
+			data-testid={`resource-${resource.key}-page-${a.key}`}
+		>
+			{a.icon}
+			{busy === a.key ? r(`pageActions.${a.key}.busy`) : r(`pageActions.${a.key}.label`)}
+		</Button>
+	))
 	const createButton = (place: 'header' | 'empty') =>
 		canCreate ? (
 			<Button
@@ -119,7 +138,20 @@ export function ResourcePage<Row extends { id: string }>({ resource, search, onS
 
 	return (
 		<div data-testid={`resource-${resource.key}`}>
-			<PageHeader title={r('title')} description={r('description')} actions={createButton('header')} />
+			<PageHeader
+				title={r('title')}
+				description={r('description')}
+				actions={
+					pageButtons.length ? (
+						<div className="flex flex-wrap gap-2">
+							{pageButtons}
+							{createButton('header')}
+						</div>
+					) : (
+						createButton('header')
+					)
+				}
+			/>
 
 			{resource.search || resource.filters?.length ? (
 				<div className="mb-4 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@
 // и возврат, перевод между потоками, список учеников курса. Курс — публичный API модуля courses; аккаунты ученикам создают
 // владелец и администраторы.
 import { randomBytes } from 'node:crypto'
-import type { EnrollmentListQuery, EnrollmentRow } from '@dinastia/contracts/learning'
+import { type EnrollmentListQuery, type EnrollmentRow, GROUP_NONE } from '@dinastia/contracts/learning'
 import { and, asc, count, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 import { auth } from '#/kernel/auth/auth.ts'
 import { users } from '#/kernel/auth/schema.ts'
@@ -12,11 +12,13 @@ import { toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
+import { flatLessons } from './access.ts'
 import { enrolledEmail } from './emails/enrolled.tsx'
 import { groupExpiry, groupOfCourse } from './groups.service.ts'
 import { inviteByEmail } from './invites.service.ts'
 import { groupScope } from './policies.ts'
-import { enrollments, groups } from './schema.ts'
+import { enrollments, groups, lessonProgress } from './schema.ts'
+import { courseStates } from './state.ts'
 
 type Enrollment = typeof enrollments.$inferSelect
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -121,6 +123,44 @@ const columns = (now: Date) => ({
 	groupId: enrollments.groupId,
 	groupTitle: groups.title,
 })
+type BaseRow = Omit<EnrollmentRow, 'lessonsCompleted' | 'lessonsTotal' | 'overdueCount' | 'lastActivityAt'>
+
+/** Последнее открытие или завершение урока (подзапрос для сортировки; RLS — как у запроса). */
+const lastActivity = sql`(select max(greatest(${lessonProgress.openedAt}, coalesce(${lessonProgress.completedAt}, ${lessonProgress.openedAt}))) from ${lessonProgress} where ${lessonProgress.enrollmentId} = ${enrollments.id})`
+
+/**
+ * Пройдено уроков, просрочки и последняя активность (4.6) — из `courseStates` по строкам страницы: доступ и сроки считаются
+ * при чтении, как у ученика.
+ */
+export async function withProgress<T extends BaseRow>(ctx: BaseCtx, rows: T[]): Promise<(T & EnrollmentRow)[]> {
+	if (!rows.length) return []
+	const full = await ctx.db
+		.select()
+		.from(enrollments)
+		.where(
+			inArray(
+				enrollments.id,
+				rows.map((r) => r.id),
+			),
+		)
+	const states = new Map((await courseStates(ctx, full)).map((s) => [s.enrollment.id, s]))
+	return rows.map((r) => {
+		const s = states.get(r.id)
+		const ids = s?.outline ? flatLessons(s.outline).map((l) => l.id) : []
+		let last: Date | null = null
+		for (const f of s?.facts.values() ?? []) {
+			const at = f.completedAt && f.completedAt > f.openedAt ? f.completedAt : f.openedAt
+			if (!last || at > last) last = at
+		}
+		return {
+			...r,
+			lessonsCompleted: ids.filter((id) => s?.facts.get(id)?.completedAt).length,
+			lessonsTotal: ids.length,
+			overdueCount: s?.access.filter((a) => a.overdue).length ?? 0,
+			lastActivityAt: last,
+		}
+	})
+}
 
 async function rowOf(ctx: SchoolCtx, id: string): Promise<EnrollmentRow> {
 	const [row] = await ctx.db
@@ -130,48 +170,62 @@ async function rowOf(ctx: SchoolCtx, id: string): Promise<EnrollmentRow> {
 		.innerJoin(users, eq(users.id, members.userId))
 		.leftJoin(groups, eq(groups.id, enrollments.groupId))
 		.where(and(eq(enrollments.id, id), learningScope(ctx)))
-	return row ?? fail.notFound('ENROLLMENT_NOT_FOUND')
+	if (!row) return fail.notFound('ENROLLMENT_NOT_FOUND')
+	return (await withProgress(ctx, [row]))[0] as EnrollmentRow
 }
+
+/** Фильтры списка учеников курса — общие для экрана и выгрузки (4.6). */
+export interface EnrollmentFilters {
+	courseId: string
+	q?: string | undefined
+	status?: EnrollmentRow['status'] | undefined
+	groupId?: string | undefined
+}
+
+export function enrollmentsWhere(scope: SQL | undefined, f: EnrollmentFilters, now: Date) {
+	const like = f.q ? `%${likeEscape(f.q)}%` : null
+	return and(
+		eq(enrollments.courseId, f.courseId),
+		scope,
+		f.status ? sql`${shownStatus(now)} = ${f.status}` : undefined,
+		f.groupId === GROUP_NONE ? isNull(enrollments.groupId) : f.groupId ? eq(enrollments.groupId, f.groupId) : undefined,
+		like ? or(ilike(users.name, like), ilike(users.email, like)) : undefined,
+	)
+}
+
+/** Строки учеников с соединениями (имя, почта, поток) — для экрана и выгрузки. */
+export const enrollmentRowsQuery = (ctx: BaseCtx, where: SQL | undefined) =>
+	ctx.db
+		.select(columns(ctx.now()))
+		.from(enrollments)
+		.innerJoin(members, eq(members.id, enrollments.memberId))
+		.innerJoin(users, eq(users.id, members.userId))
+		.leftJoin(groups, eq(groups.id, enrollments.groupId))
+		.where(where)
 
 export async function listEnrollments(ctx: SchoolCtx, input: EnrollmentListQuery) {
 	const now = ctx.now()
-	const scope = learningScope(ctx)
-	const status = shownStatus(now)
-	const like = input.q ? `%${likeEscape(input.q)}%` : null
-	const where = and(
-		eq(enrollments.courseId, input.courseId),
-		scope,
-		input.filters.status ? sql`${status} = ${input.filters.status}` : undefined,
-		input.filters.groupId === 'none'
-			? isNull(enrollments.groupId)
-			: input.filters.groupId
-				? eq(enrollments.groupId, input.filters.groupId)
-				: undefined,
-		like ? or(ilike(users.name, like), ilike(users.email, like)) : undefined,
-	)
-	const sort = { enrolledAt: enrollments.enrolledAt, studentName: users.name, progressPct: enrollments.progressPct }[
-		input.sort
-	]
+	const where = enrollmentsWhere(learningScope(ctx), { courseId: input.courseId, q: input.q, ...input.filters }, now)
 	const by = input.dir === 'desc' ? desc : asc
-	const [items, [total]] = await Promise.all([
-		ctx.db
-			.select(columns(now))
-			.from(enrollments)
-			.innerJoin(members, eq(members.id, enrollments.memberId))
-			.innerJoin(users, eq(users.id, members.userId))
-			.leftJoin(groups, eq(groups.id, enrollments.groupId))
-			.where(where)
-			.orderBy(by(sort), asc(enrollments.id))
-			.limit(input.pageSize)
-			.offset((input.page - 1) * input.pageSize),
-		ctx.db
-			.select({ n: count() })
-			.from(enrollments)
-			.innerJoin(members, eq(members.id, enrollments.memberId))
-			.innerJoin(users, eq(users.id, members.userId))
-			.where(where),
-	])
-	return toPage(items, total?.n ?? 0, input)
+	const order =
+		input.sort === 'lastActivityAt'
+			? sql`${lastActivity} ${input.dir === 'desc' ? sql`desc nulls last` : sql`asc nulls first`}`
+			: by(
+					{ enrolledAt: enrollments.enrolledAt, studentName: users.name, progressPct: enrollments.progressPct }[
+						input.sort
+					],
+				)
+	const items = await enrollmentRowsQuery(ctx, where)
+		.orderBy(order, asc(enrollments.id))
+		.limit(input.pageSize)
+		.offset((input.page - 1) * input.pageSize)
+	const [total] = await ctx.db
+		.select({ n: count() })
+		.from(enrollments)
+		.innerJoin(members, eq(members.id, enrollments.memberId))
+		.innerJoin(users, eq(users.id, members.userId))
+		.where(where)
+	return toPage(await withProgress(ctx, items), total?.n ?? 0, input)
 }
 
 /**

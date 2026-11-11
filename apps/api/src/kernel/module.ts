@@ -2,6 +2,7 @@
 // подписчики событий; далее настройки. Реестр модулей — src/modules/index.ts; роутер, права и задачи приложения
 // собираются из него.
 import { type Subscriber, subscriberJob } from './events.ts'
+import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
@@ -28,6 +29,8 @@ export interface ModuleDef<
 	emails?: AnyEmail[]
 	/** Назначения файлов модуля (`defineFilePurpose`); ключ — `<модуль>.<назначение>`. */
 	files?: FilePurpose[]
+	/** Выгрузки таблиц в xlsx (`defineExport`, `modules/<m>/exports.ts`); ключ — `<модуль>.<выгрузка>`. */
+	exports?: AnyExport[]
 	/** Обработчики входящих вебхуков (`defineWebhookHandler`): провайдер + тип события. */
 	webhooks?: AnyWebhookHandler[]
 	/** Настройки школы модуля (`defineSettings`, таблица `<модуль>_settings`); экран /admin/settings строится из них. */
@@ -45,6 +48,8 @@ export function defineModule<const N extends string, R extends object, P extends
 	for (const f of def.files ?? [])
 		if (!f.key.startsWith(`${def.name}.`))
 			throw new Error(`модуль ${def.name}: назначение файла «${f.key}» чужого модуля`)
+	for (const x of def.exports ?? [])
+		if (!x.key.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: выгрузка «${x.key}» чужого модуля`)
 	for (const e of def.emails ?? [])
 		if (!e.key.startsWith(`${def.name}.`)) throw new Error(`модуль ${def.name}: письмо «${e.key}» чужого модуля`)
 	for (const job of def.jobs ?? []) {

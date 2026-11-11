@@ -32,7 +32,8 @@ export function defineFilePurpose(def: FilePurpose): FilePurpose {
 	return def
 }
 
-const objectKey = (schoolId: string, purpose: string, fileId: string) => `schools/${schoolId}/${purpose}/${fileId}`
+export const objectKey = (schoolId: string, purpose: string, fileId: string) =>
+	`schools/${schoolId}/${purpose}/${fileId}`
 
 /** Начать загрузку: строка pending + ссылка на PUT (15 минут). Лимиты назначения проверяются до выдачи ссылки. */
 export async function createUpload(

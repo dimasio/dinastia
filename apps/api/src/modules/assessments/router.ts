@@ -15,6 +15,7 @@ import {
 	updateBankQuestion,
 } from './question.service.ts'
 import { getAttempt, getQuizState, resultOf, saveAnswer, startAttempt, submitAttempt } from './quiz.service.ts'
+import { courseResults } from './results.service.ts'
 import { commentAsReviewer, getForReview, listQueue } from './review.service.ts'
 import { listMyRevisions } from './revisions.service.ts'
 import { getAssignment, replyAsStudent, reviewSubmission, saveDraft, submitAssignment } from './submission.service.ts'
@@ -22,6 +23,16 @@ import { getAssignment, replyAsStudent, reviewSubmission, saveDraft, submitAssig
 const chain = () => impl.assessments
 
 export const assessmentsRouter = {
+	results: {
+		course: chain()
+			.results.course.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.analytics'))
+			.handler(({ input, context }) => courseResults(schoolCtx(context), input)),
+	},
 	questions: {
 		list: chain()
 			.questions.list.use(mw.host)

@@ -5,7 +5,7 @@ description: Генерация документов в Dinastia — PDF из Re
 
 # Документы и экспорт
 
-> Статус: целевой — сверить с кодом в фазе 4 (пункты 4.6, 4.7).
+> Статус: целевой — PDF сверить с кодом в 4.7; экспорт таблиц уже по коду (4.6, `kernel/exports`).
 
 Документы делаются **только в фоновой задаче** (D-013): запрос ставит задачу и возвращает её id, клиент ждёт
 статус и получает файл.
@@ -42,25 +42,37 @@ const fileId = await ctx.documents.render(certificatePdf, data) // ставит 
 
 ## Экспорт таблиц
 
+Ядро — `apps/api/src/kernel/exports/` (D-058, карточка 4.6). Образец — `modules/learning/exports.ts`:
+
 ```ts
-// apps/api/src/modules/learning/exports.ts
 export const courseStudentsExport = defineExport({
 	key: 'learning.course-students',
 	perm: 'learning.analytics',
-	input: z.object({ courseId: Id, filters: StudentFilters.optional() }),
-	formats: ['xlsx', 'csv'],
+	input: z.object({ courseId: Id, status: EnrollmentStatus.optional(), groupId: GroupFilter.optional() }),
+	// в запросе: доступ к записи и область сотрудника → параметры задачи (JSON); задача выполняется без пользователя
+	prepare: async (ctx, input) => ({ ...input, groups: await scopeGroupList(ctx) }),
+	fileName: async (ctx, p) => `${(await courseCards(ctx, [p.courseId]))[0]?.title} — ученики`,
 	columns: [
-		{ key: 'name', title: 'learning:export.name' },
-		{ key: 'email', title: 'learning:export.email' },
-		{ key: 'progressPct', title: 'learning:export.progress', type: 'percent' },
-		{ key: 'enrolledAt', title: 'learning:export.enrolledAt', type: 'date' },
+		{ key: 'name', title: 'learning:export.columns.name', width: 30 },
+		{ key: 'status', title: 'learning:export.columns.status', labels: 'learning:enrollments.values.status' },
+		{ key: 'progressPct', title: 'learning:export.columns.progress', type: 'percent' }, // 0–100 → 0%
+		{ key: 'enrolledAt', title: 'learning:export.columns.enrolledAt', type: 'date' }, // по Москве
 	],
-	rows: (ctx, input) => studentsCursor(ctx, input), // async-итератор батчами — не грузить всё в память
+	rows: async function* (ctx, p) { /* пачками по 500, курсор по id */ },
 })
 ```
 
-UI: действие ресурса `action('export', { scope: 'page', export: 'learning.course-students' })` — хост ставит задачу,
-показывает прогресс, по готовности — ссылка (и письмо, если дольше 30 с).
+- Регистрация — `exports: [courseStudentsExport]` в `defineModule`; ключ — `<модуль>.<выгрузка>`.
+- Процедуры ядра: `exports.start({ key, input })` (право `exports.use` — сотрудники, затем `perm` определения; 20 запусков за 10 минут),
+  `exports.get({ id })` — состояние и ссылка (10 минут) только запросившему; через сутки `exports.cleanup` удаляет строку и файл.
+- Задача `exports.run` без повторов: сбой → `failed` (пользователь запускает снова). Не больше `EXPORT_MAX_ROWS` (100 тыс.).
+- Файл xlsx — `write-excel-file` (в памяти); заголовки — i18n, даты — по Москве, `labels` — значения словами.
+- ПДн в файле: только по праву, private-файл, журнал `exports.export.created`.
+
+UI: действие страницы ресурса `pageActions: [{ key: 'export', perm, icon, run: (input) => runExport('<ключ>', {…фильтры}) }]`
+(`apps/web/src/app/exports.ts`: запуск, опрос раз в секунду до 3 минут, скачивание; ошибки `EXPORT_FAILED`/`EXPORT_TIMEOUT`).
+
+PDF (выше) — целевой, сверить в 4.7.
 
 ## Готово, когда
 

@@ -1,4 +1,5 @@
-// Вкладки курса: «Содержание» (конструктор), «Вопросы» (банк, 3.1), «Ученики» (4.1), «Потоки» (4.2) — ссылки между экранами курса.
+// Вкладки курса: «Содержание» (конструктор), «Вопросы» (банк, 3.1), «Ученики» (4.1), «Потоки» (4.2), «Аналитика» (4.6) — ссылки
+// между экранами курса.
 import { cn } from '@dinastia/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -15,7 +16,7 @@ export function CourseTabs({
 	actions,
 }: {
 	courseId: string
-	active: 'content' | 'questions' | 'learners' | 'groups'
+	active: 'content' | 'questions' | 'learners' | 'groups' | 'analytics'
 	/** Справа от вкладок — действия экрана. */
 	actions?: ReactNode
 }) {
@@ -23,7 +24,8 @@ export function CourseTabs({
 	const { data: me } = useQuery(meQuery())
 	const canBank = me?.permissions.includes('assessments.bank.read') ?? false
 	const canLearners = me?.permissions.includes('learning.read') ?? false
-	if (!canBank && !canLearners && !actions) return null
+	const canAnalytics = me?.permissions.includes('learning.analytics') ?? false
+	if (!canBank && !canLearners && !canAnalytics && !actions) return null
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b pb-2" data-testid="course-tabs">
 			<nav className="flex flex-wrap gap-1" aria-label={t('tabs.label')}>
@@ -67,6 +69,17 @@ export function CourseTabs({
 						data-testid="course-tab-groups"
 					>
 						{t('tabs.groups')}
+					</Link>
+				)}
+				{canAnalytics && (
+					<Link
+						to="/admin/courses/$courseId/analytics"
+						params={{ courseId }}
+						aria-current={active === 'analytics' ? 'page' : undefined}
+						className={cn(LINK, active === 'analytics' && 'bg-accent font-medium')}
+						data-testid="course-tab-analytics"
+					>
+						{t('tabs.analytics')}
 					</Link>
 				)}
 			</nav>

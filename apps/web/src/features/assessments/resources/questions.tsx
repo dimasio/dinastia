@@ -23,6 +23,7 @@ export function questionsResource(opts: {
 	return defineResource({
 		key: 'questions',
 		ns: 'assessments',
+		scope: opts.courseId,
 		row: QuestionRow,
 		list: (input: ListInput) => client.assessments.questions.list({ ...input, courseId: opts.courseId }),
 		perms: { read: 'assessments.bank.read', write: 'assessments.bank.manage' },

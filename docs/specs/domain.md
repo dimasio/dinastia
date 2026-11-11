@@ -86,6 +86,7 @@ status: draft
 | `audit_log`      | `actor_member_id`, `actor_operator_id?`, `action`, `entity`, `entity_id`, `diff jsonb` (непрозрачный), `ip`, `created_at` — только добавление |
 | `consents`       | `user_id`, `school_id?`, `kind` (`offer`, `privacy`, `pd_processing`, `marketing`), `version`, `ip`, `created_at`                             |
 | `webhook_events` | `provider`, `external_id` (уникален), `payload jsonb` (непрозрачный), `status`, `processed_at`                                                |
+| `exports`        | выгрузки xlsx (4.6): `key`, `params jsonb` (проверены в запросе), `status` (`pending`, `ready`, `failed`), `requested_by_member_id`, `file_id`, `rows`, `expires_at` (сутки) |
 
 ## 2. Роли
 
@@ -350,6 +351,23 @@ status: draft
   X из Y уроков», «Доступ до …» (если срок есть), кнопка «Начать» / «Продолжить» (на следующий урок) / «Повторить» (в оглавление).
   `MyCourse`: `nextLessonId`, `expiresAt`, `completedAt`, `lessonsTotal`, `lessonsCompleted`.
 - Закрытый курс не раскрывает названия уроков, сроки и доработки.
+
+### Аналитика курса (4.6)
+
+- Право `learning.analytics` — owner, admin, teacher, curator (только свои потоки, `groupScope`). Вкладка курса «Аналитика»
+  (`/admin/courses/$courseId/analytics`), фильтр по потоку (`groupId`, `none` — без потока).
+- **Сводка** (`learning.analytics.course`): ученики курса без отозванных — учатся / прошли курс / доступ закончился; средний
+  прогресс; учеников хотя бы с одной просрочкой (просрочка — `computeAccess`, как у ученика).
+- **Воронка**: по каждому опубликованному уроку в порядке курса — открыли и прошли (число и % от учеников), с просрочкой.
+- **Тесты и задания** (`assessments.results.course`, модуль `assessments`): по тесту — учеников с завершённой попыткой, сдали и
+  средний результат — **по лучшей попытке**, попыток в среднем, ждут ручной проверки; по заданию — сдано / принято / на доработке /
+  отклонено / ждут проверки.
+- **Ученики** (`learning.enrollments.list`): + пройдено уроков из всех, просрочено, последняя активность (сортировка, не начинавшие — в
+  конце).
+- **Выгрузка в Excel** (`exports.start` → задача `exports.run` → `exports.get`): «Выгрузить в Excel» на «Учениках» с текущими поиском и
+  фильтрами; один лист с колонками «Учеников» и прогрессом. Область куратора фиксируется в запросе. Файл — private (назначение
+  `exports.file`, пользователю не загрузить), ссылка — только запросившему, 10 минут; выгрузка и файл удаляются через сутки
+  (`exports.cleanup`); журнал `exports.export.created`. Не больше 100 тыс. строк (`EXPORT_TOO_LARGE`).
 
 ### Сертификат
 

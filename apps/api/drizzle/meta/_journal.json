@@ -169,6 +169,13 @@
       "when": 1794335396076,
       "tag": "0023_lesson_deadlines",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794355403271,
+      "tag": "0024_exports",
+      "breakpoints": true
     }
   ]
 }

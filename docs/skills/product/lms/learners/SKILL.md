@@ -64,7 +64,11 @@ description: Ученики и прогресс в Dinastia — модуль lea
 - Кабинет ученика (4.5): `home.service.ts` `getMyHome` (`learn.home.get`) поверх `courseStates` (`service.ts`: потоки и факты
   одной выборкой на все зачисления, запросы последовательно — одна транзакция); доработки — `assessments/revisions.service.ts`
   (`assignment.revisions`); экран — `features/learning/my-courses.tsx`.
-- Нет (фаза 4, дальше): сертификаты, аналитика.
+- Аналитика (4.6): право `learning.analytics` (admin, teacher, curator — свои потоки); `analytics.service.ts` (сводка и воронка через
+  `courseStates`), колонки «Учеников» — `withProgress` в `enrollment.service.ts` (общие фильтры `enrollmentsWhere` с выгрузкой),
+  выгрузка `learning.course-students` — `exports.ts` (область куратора — `scopeGroupList`/`groupScopeOf` в `policies.ts`); результаты
+  тестов и заданий — модуль `assessments` (`results.service.ts`); экран — `features/learning/analytics.tsx`.
+- Нет (фаза 4, дальше): сертификаты.
 
 ## Зачисление (4.1)
 
@@ -72,7 +76,7 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `auth.api.signUpEmail` со случайным паролем), `extend`/`unlimit`/`revoke`/`restore`, `listEnrollments`, `expireDueEnrollments` (задача
   `learning.expire-enrollments`, 03:10 по Москве). `learningScope(ctx)` = `groupScope` — куратор видит только свои потоки (4.2).
 - API `learning.enrollments.*`; права `learning.read` (admin, teacher, curator), `learning.enroll` (admin, teacher).
-- Экран — вкладка «Ученики» курса: `features/learning/learners.tsx`, ресурс `resources/enrollments.ts` (фабрика на курс), срок по умолчанию — `courses.update`.
+- Экран — вкладка «Ученики» курса: `features/learning/learners.tsx`, ресурс `resources/enrollments.tsx` (фабрика на курс), срок по умолчанию — `courses.update`.
 - Приглашения (4.1(б)): `invites.service.ts` — `createLinkInvite`, `inviteByEmail` (задача `learning.send-course-invitation` выпускает токен), `getJoin`/`acceptJoin`;
   API `learning.invites.*` и публичные `join.*`; экран — панель «Ссылки-приглашения» (`invites-sheet.tsx`) и страница `/join/<токен>` (`join-page.tsx`).
   Токены — только хэш в БД; письма с токеном шлёт задача (`deliverEmail`), а не `ctx.mail.send`.

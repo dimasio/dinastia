@@ -165,6 +165,13 @@ export const EnrollmentRow = z.object({
 	/** Поток (4.2); пусто — без потока. */
 	groupId: Id.nullable(),
 	groupTitle: z.string().nullable(),
+	/** Пройдено опубликованных уроков из всех (4.6). */
+	lessonsCompleted: z.number().int().min(0),
+	lessonsTotal: z.number().int().min(0),
+	/** Незавершённых уроков с прошедшим сроком (4.6); у закрытого доступа — 0. */
+	overdueCount: z.number().int().min(0),
+	/** Последнее открытие или завершение урока (4.6); пусто — ещё не начинал. */
+	lastActivityAt: DateTime.nullable(),
 })
 export type EnrollmentRow = z.infer<typeof EnrollmentRow>
 
@@ -173,7 +180,7 @@ export const GROUP_NONE = 'none'
 export const GroupFilter = z.union([Id, z.literal(GROUP_NONE)])
 
 export const EnrollmentListInput = pageInput({
-	sorts: ['enrolledAt', 'studentName', 'progressPct'] as const,
+	sorts: ['enrolledAt', 'studentName', 'progressPct', 'lastActivityAt'] as const,
 	defaultSort: 'enrolledAt',
 	defaultDir: 'desc',
 	filters: { status: EnrollmentStatus, groupId: GroupFilter },
@@ -254,7 +261,44 @@ export type GroupCreateInput = z.output<typeof GroupCreateInput>
 export const GroupUpdateInput = GroupFields.extend({ id: Id })
 export type GroupUpdateInput = z.output<typeof GroupUpdateInput>
 
+/** Аналитика курса (4.6): по потоку или по всем видимым сотруднику ученикам. */
+export const CourseAnalyticsInput = z.object({ courseId: Id, groupId: GroupFilter.optional() })
+export type CourseAnalyticsInput = z.infer<typeof CourseAnalyticsInput>
+
+export const CourseAnalytics = z.object({
+	summary: z.object({
+		/** Ученики курса без отозванных — база процентов. */
+		learners: z.number().int(),
+		/** Учатся (доступ открыт, курс не пройден), прошли, доступ закончился. */
+		learning: z.number().int(),
+		completed: z.number().int(),
+		expired: z.number().int(),
+		avgProgressPct: z.number().int().min(0).max(100),
+		/** Учеников хотя бы с одной просрочкой. */
+		withOverdue: z.number().int(),
+	}),
+	/** Воронка: опубликованные уроки по порядку курса. */
+	lessons: z.array(
+		z.object({
+			lessonId: Id,
+			title: z.string(),
+			sectionTitle: z.string(),
+			opened: z.number().int(),
+			completed: z.number().int(),
+			overdue: z.number().int(),
+		}),
+	),
+})
+export type CourseAnalytics = z.infer<typeof CourseAnalytics>
+
 export const learningContract = {
+	analytics: {
+		/** Сводка и воронка по урокам; куратор — только свои потоки. Курс без публикации — `COURSE_NOT_FOUND`. */
+		course: oc
+			.route({ method: 'GET', path: '/courses/{courseId}/analytics' })
+			.input(CourseAnalyticsInput)
+			.output(CourseAnalytics),
+	},
 	enrollments: {
 		list: oc
 			.route({ method: 'GET', path: '/courses/{courseId}/enrollments' })

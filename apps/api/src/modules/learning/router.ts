@@ -4,6 +4,7 @@ import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { can } from '#/permissions.ts'
+import { courseAnalytics } from './analytics.service.ts'
 import {
 	enrollByEmail,
 	extendEnrollment,
@@ -136,6 +137,16 @@ export const learningRouter = {
 			.use(mw.member)
 			.use(can('learning.groups.manage'))
 			.handler(({ input, context }) => moveEnrollment(schoolCtx(context), input)),
+	},
+	analytics: {
+		course: impl.learning.analytics.course
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('learning.analytics'))
+			.handler(({ input, context }) => courseAnalytics(schoolCtx(context), input)),
 	},
 	groups: {
 		list: impl.learning.groups.list

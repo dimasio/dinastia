@@ -13,6 +13,7 @@ export {
 } from '@dinastia/db'
 export * from './kernel/audit/schema.ts'
 export * from './kernel/auth/schema.ts'
+export * from './kernel/exports/schema.ts'
 export * from './kernel/members/schema.ts'
 export * from './kernel/rate-limit/schema.ts'
 export * from './kernel/storage/schema.ts'

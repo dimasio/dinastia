@@ -1,4 +1,4 @@
-import { resourceKey, resourceSearch } from '@dinastia/ui/resource'
+import { resourceSearch } from '@dinastia/ui/resource'
 import { createFileRoute } from '@tanstack/react-router'
 import { requirePerm } from '#/app/guards.ts'
 import { Learners } from '#/features/learning/learners.tsx'
@@ -6,11 +6,8 @@ import { Learners } from '#/features/learning/learners.tsx'
 // Ученики курса (карточка 4.1): читают сотрудники с learning.read, зачисляют — с learning.enroll.
 export const Route = createFileRoute('/admin/courses/$courseId_/learners')({
 	validateSearch: resourceSearch,
-	beforeLoad: (args) => {
-		requirePerm('learning.read')(args)
-		// кэш списка общий у ресурса всех курсов — не показываем учеников прежнего курса
-		args.context.queryClient.removeQueries({ queryKey: resourceKey('enrollments') })
-	},
+	// списки разных курсов в кэше не смешиваются — область ресурса (`scope`) = курс
+	beforeLoad: requirePerm('learning.read'),
 	component: () => {
 		const { courseId } = Route.useParams()
 		const search = Route.useSearch()

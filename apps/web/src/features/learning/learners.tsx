@@ -10,7 +10,7 @@ import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { CourseTabs } from '../courses/course-tabs.tsx'
 import { InvitesSheet } from './invites-sheet.tsx'
-import { enrollmentsResource } from './resources/enrollments.ts'
+import { enrollmentsResource } from './resources/enrollments.tsx'
 
 export function Learners(props: { courseId: string; search: ResourceSearch; onSearch: (s: ResourceSearch) => void }) {
 	const { courseId } = props

@@ -3,7 +3,7 @@ import type { ResourceDef } from '@dinastia/ui/resource'
 import { questionsResource } from './assessments/resources/questions.tsx'
 import { reviewResource } from './assessments/resources/review.tsx'
 import { coursesResource } from './courses/resources/courses.tsx'
-import { enrollmentsResource } from './learning/resources/enrollments.ts'
+import { enrollmentsResource } from './learning/resources/enrollments.tsx'
 import { staffResource } from './schools/resources/staff.ts'
 // gen:resource:import
 

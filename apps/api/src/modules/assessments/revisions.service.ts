@@ -4,7 +4,8 @@ import type { MyRevision } from '@dinastia/contracts/assessments'
 import { and, desc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { courses, lessons } from '../courses/schema.ts'
-import { isExpired, myEnrollments } from '../learning/service.ts'
+import { myEnrollments } from '../learning/service.ts'
+import { isExpired } from '../learning/state.ts'
 import { submissions } from './schema.ts'
 
 export async function listMyRevisions(ctx: SchoolCtx): Promise<MyRevision[]> {

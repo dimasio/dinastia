@@ -4,7 +4,8 @@ import type { HomeDeadline, LearnHome } from '@dinastia/contracts/learning'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { courseCards } from '../courses/service.ts'
 import { flatLessons } from './access.ts'
-import { type CourseState, courseStates, myEnrollments, nextOf } from './service.ts'
+import { myEnrollments } from './service.ts'
+import { type CourseState, courseStates, nextOf } from './state.ts'
 
 /** Горизонт «Ближайших сроков» и их число (утверждено в 4.5). */
 export const HOME_DEADLINE_DAYS = 14

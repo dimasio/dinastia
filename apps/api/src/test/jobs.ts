@@ -9,8 +9,8 @@ import { startWorkers } from '#/kernel/worker-runtime.ts'
 
 let running: { boss: PgBoss; stop: () => Promise<void> } | null = null
 /**
- * С какого момента ждать задачи (время БД при запуске воркера файла). Очередь общая у файлов одного процесса vitest: задачи,
- * оставшиеся от прежних файлов (подписчики публикаций уроков и т. п.), при запуске удаляются, а `drainJobs` ждёт только свои (4.3).
+ * С какого момента ждать задачи (время БД при запуске воркера файла). Очередь общая у всех файлов vitest: задачи удалённых
+ * школ прежних файлов (подписчики публикаций уроков и т. п.) при запуске удаляются, а `drainJobs` ждёт только свои (4.3, 4.6).
  */
 let since: Date | null = null
 
@@ -18,9 +18,12 @@ let since: Date | null = null
 export async function startTestWorker() {
 	if (running) return
 	since = (await db.execute<{ now: Date }>(sql`select now() as now`)).rows[0]?.now ?? null
-	// хвост прежних файлов этого процесса (их школы уже удалены) — иначе воркер разбирает его раньше задач файла
+	// хвост прежних файлов (их школы уже удалены) — иначе воркер разбирает его раньше задач файла. Только задачи удалённых
+	// школ: файлы идут параллельно в разных процессах, живые задачи соседнего файла трогать нельзя (4.6)
 	await db.execute(
-		sql`delete from ${sql.raw(BOSS_SCHEMA)}.job where state in ('created', 'retry') and created_on < ${since}`,
+		sql`delete from ${sql.raw(BOSS_SCHEMA)}.job j where j.state in ('created', 'retry') and j.created_on < ${since}
+			and j.data->>'schoolId' is not null
+			and not exists (select 1 from schools s where s.id::text = j.data->>'schoolId')`,
 	)
 	const boss = workerBoss()
 	await boss.start()

@@ -1,5 +1,6 @@
 // Кабинет ученика (карточка 4.5): «Продолжить обучение» ведёт на следующий урок, «Ближайшие сроки» и «На доработке» ведут в
-// урок, карточка курса — «Пройдено X из Y уроков» и кнопка действия.
+// урок, карточка курса — «Пройдено X из Y уроков» и кнопка действия. Ученик — student4: «Продолжить» зависит от последнего
+// открытого урока, а student1 параллельно открывает уроки в других сценариях.
 import type { Page } from '@playwright/test'
 import { expect, schoolUrl, test } from './fixtures.ts'
 import { shoot } from './shots.ts'
@@ -40,7 +41,7 @@ test('кабинет: продолжить, ближайший срок, раб�
 	await api(page, 'POST', `/lessons/${work.id}/publish`, {})
 	await api(page, 'PATCH', `/lessons/${work.id}/settings`, { deadlineDays: 3 })
 	await api(page, 'POST', `/courses/${course.id}/publish`, {})
-	await api(page, 'POST', `/courses/${course.id}/enrollments`, { email: 'student1@demo.local' })
+	await api(page, 'POST', `/courses/${course.id}/enrollments`, { email: 'student4@demo.local' })
 
 	// ученик проходит введение и сдаёт практику; преподаватель возвращает на доработку
 	const student = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
@@ -49,7 +50,7 @@ test('кабинет: продолжить, ближайший срок, раб�
 		const r = await fetch('/api/auth/sign-in/email', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ email: 'student1@demo.local', password: 'demo12345' }),
+			body: JSON.stringify({ email: 'student4@demo.local', password: 'demo12345' }),
 		})
 		if (!r.ok) throw new Error(`вход: ${r.status}`)
 	})

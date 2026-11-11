@@ -105,11 +105,27 @@ export interface ActionDef<Row, S extends z.ZodObject = z.ZodObject> {
 	run: (row: Row, values: z.output<S>) => Promise<unknown>
 }
 
+/**
+ * Действие страницы — кнопка в шапке над списком с текущими поиском и фильтрами (выгрузка в Excel). Подпись —
+ * `<ns>:<key>.pageActions.<key>`; пока действие выполняется, кнопка недоступна; ошибка — сообщением.
+ */
+export interface PageActionDef<I> {
+	key: string
+	perm?: string
+	icon?: ReactNode
+	run: (input: I) => Promise<unknown>
+}
+
 export interface ResourceDef<Row extends { id: string }, I extends ListParams = ListParams> {
 	/** Имя ресурса: ключ кэша списка, `data-testid`, раздел строк `<ns>:<key>.*`. */
 	key: string
 	/** Namespace строк (модуль). */
 	ns: string
+	/**
+	 * Область кэша списка, если ресурс строится на запись (курс): списки разных курсов не смешиваются. Не удаляй кэш в
+	 * `beforeLoad` маршрута — предзагрузка по наведению удалит запрос, который экран уже ждёт.
+	 */
+	scope?: string
 	row: z.ZodType<Row>
 	list: (input: I) => Promise<ListPage<Row>>
 	perms: { read: string; write?: string }
@@ -122,6 +138,8 @@ export interface ResourceDef<Row extends { id: string }, I extends ListParams = 
 	create?: CreateDef<any>
 	// biome-ignore lint/suspicious/noExplicitAny: у каждого действия своя схема формы (типизирует action())
 	actions?: ActionDef<Row, any>[]
+	/** Действия над списком целиком (право — `perm`, иначе `perms.read`). */
+	pageActions?: PageActionDef<I>[]
 }
 
 /** Состояние списка в адресе страницы (`validateSearch: resourceSearch`). */
