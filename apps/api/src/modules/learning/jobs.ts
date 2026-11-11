@@ -5,6 +5,7 @@ import { defineJob } from '#/kernel/jobs.ts'
 import { sendDeadlineReminders } from './deadlines.service.ts'
 import { expireDueEnrollments } from './enrollment.service.ts'
 import { sendCourseInvitation } from './invites.service.ts'
+import { sendLessonOpenedNotices } from './lesson-notices.service.ts'
 import { recalcCourseProgress } from './service.ts'
 
 /** Раз в сутки по всем школам: зачисления с вышедшим сроком — в `expired` (доступ по дате ограничен и без задачи). */
@@ -48,4 +49,16 @@ export const sendCourseInvitationJob = defineJob({
 	schema: z.object({ inviteId: Id }),
 	retry: { limit: 5, backoff: true },
 	handler: (ctx, d) => sendCourseInvitation(ctx, d.inviteId),
+})
+
+/** Раз в день в 09:00 по Москве по всем школам: письма «открылись новые уроки» по расписанию (4.8). */
+export const lessonOpenedNoticesJob = defineJob({
+	name: 'learning.lesson-opened-notices',
+	schema: z.object({}),
+	scope: 'all-schools',
+	schedule: '0 9 * * *',
+	handler: async (ctx) => {
+		const n = await sendLessonOpenedNotices(ctx)
+		if (n) ctx.log.info({ count: n }, 'lesson opened notices sent')
+	},
 })

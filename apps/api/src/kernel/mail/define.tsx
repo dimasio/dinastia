@@ -3,7 +3,7 @@
 import { createI18n } from '@dinastia/i18n'
 import { render, toPlainText } from '@react-email/render'
 import type { ComponentType, ReactNode } from 'react'
-import { Body, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email'
+import { Body, Button, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email'
 import type { z } from 'zod'
 
 export type T = (key: string, options?: Record<string, unknown>) => string
@@ -56,11 +56,38 @@ export function EmailLayout({
 					<Section>{children}</Section>
 					<Hr style={{ borderColor: '#e5e5e5', margin: '32px 0 16px' }} />
 					<Text style={{ color: '#737373', fontSize: 12, margin: 0 }}>
-						{t('emails:layout.footer', { school: school.name })}
+						{/* письмо платформы (вход с корневого домена) — без школы */}
+						{school.slug ? t('emails:layout.footer', { school: school.name }) : t('emails:layout.footerPlatform')}
 					</Text>
 				</Container>
 			</Body>
 		</Html>
+	)
+}
+
+/** Главное действие письма — одна кнопка во всех письмах (4.8). */
+export function EmailButton({ href, children }: { href: string; children: ReactNode }) {
+	return (
+		<Button
+			href={href}
+			style={{ backgroundColor: '#171717', borderRadius: 6, color: '#ffffff', margin: '8px 0', padding: '12px 20px' }}
+		>
+			{children}
+		</Button>
+	)
+}
+
+/** Мелкий текст под кнопкой: срок ссылки, «если вы не ждали письма». */
+export function EmailNote({ children }: { children: ReactNode }) {
+	return <Text style={{ color: '#737373', fontSize: 13 }}>{children}</Text>
+}
+
+/** Цитата: комментарий проверяющего. */
+export function EmailQuote({ children }: { children: ReactNode }) {
+	return (
+		<Text style={{ borderLeft: '3px solid #d4d4d4', color: '#404040', margin: '12px 0', padding: '4px 12px' }}>
+			{children}
+		</Text>
 	)
 }
 

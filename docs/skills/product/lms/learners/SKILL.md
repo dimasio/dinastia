@@ -29,7 +29,8 @@ description: Ученики и прогресс в Dinastia — модуль lea
 - `recalcProgress` — единственное место расчёта `progress_pct` и `enrollment.completed`;
   вызывается подписчиками, идемпотентно.
 - Расписание (drip) считается при чтении (D-057, 4.3): «через N дней» — от старта потока ученика или зачисления, «с даты» — с
-  00:00 по Москве (`dripDateStart`). Задачи «открыть уроки» нет; письмо «открылся урок» — 4.8.
+  00:00 по Москве (`dripDateStart`). Задачи «открыть уроки» нет; письмо «открылись новые уроки» — задача
+  `learning.lesson-opened-notices` (09:00 МСК, `lesson-notices.service.ts`, по `computeAccess → opensAt`, отметки `lesson_open_notices`).
 - Публикация нового урока в курсе с пройденными учениками: `completed` у зачисления **не** снимается (правило MVP); процент
   пересчитывают подписчики (`subscribers.ts`) — на публикацию урока и курса и `course.progress_rules_changed`.
 - Куратор видит учеников **только своих потоков** — общая политика `learning/policies.ts → groupScope(ctx)`

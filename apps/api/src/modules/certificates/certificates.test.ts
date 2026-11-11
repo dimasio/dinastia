@@ -11,7 +11,7 @@ import { withTenant } from '#/kernel/db/tenant.ts'
 import { closeBrowser } from '#/kernel/documents/pdf.ts'
 import { log } from '#/kernel/log.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
-import { drainJobs, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
+import { drainJobs, lastMailTo, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { cleanupTestSchools, expectPermissionMatrix, type TestSchool, withTestSchool } from '#/test/school.ts'
 import { uniqueEmail } from '#/test/users.ts'
 import { enrollments } from '../learning/schema.ts'
@@ -20,12 +20,13 @@ import { certificates } from './schema.ts'
 import { certificateNumber, issueForEnrollment, maskName } from './service.ts'
 
 beforeAll(startTestWorker)
+// закрытие браузера и воркера под нагрузкой дольше 10 с по умолчанию
 afterAll(async () => {
 	await stopTestWorker()
 	await closeBrowser()
 	await cleanupTestSchools()
 	await pool.end()
-})
+}, 30_000)
 
 const failure = (e: unknown) => (e instanceof ORPCError ? (e.data as { code?: string }).code : e)
 const fails = (p: Promise<unknown>) => p.then(() => 'ok', failure)
@@ -98,6 +99,11 @@ describe('сертификаты', () => {
 		expect(text).toContain('«Пожарная безопасность»')
 		expect(text).toContain('Анна Смирнова')
 		expect(text).toContain(certificateNumber(s.t.school.slug, year, 1))
+		// письмо «сертификат готов» (4.8): номер и ссылка на страницу курса
+		const mail = await lastMailTo(s.t.people.student.email)
+		expect(mail.subject).toContain('сертификат по курсу «Пожарная безопасность» готов')
+		expect(mail.text).toContain(certificateNumber(s.t.school.slug, year, 1))
+		expect(mail.text).toContain(`/learn/courses/${s.course.id}`)
 
 		// подписчик повторно (повтор задачи) — второго нет
 		const enrollmentId = (await s.c.certificates.list({ courseId: s.course.id })).items[0]?.enrollmentId as string

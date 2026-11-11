@@ -1,9 +1,9 @@
 // Письмо-приглашение на курс (скилл notifications). Ссылка с токеном — секрет: письмо рендерит и отправляет задача
 // learning.send-course-invitation (deliverEmail), а не ctx.mail.send — иначе токен лёг бы в очередь.
 import { formatDate } from '@dinastia/i18n'
-import { Button, Text } from 'react-email'
+import { Text } from 'react-email'
 import { z } from 'zod'
-import { defineEmail, EmailLayout } from '#/kernel/mail/define.tsx'
+import { defineEmail, EmailButton, EmailLayout, EmailNote } from '#/kernel/mail/define.tsx'
 
 export const courseInvitationEmail = defineEmail({
 	key: 'learning.course-invitation',
@@ -19,14 +19,9 @@ export const courseInvitationEmail = defineEmail({
 		return (
 			<EmailLayout school={school} preview={t('emails:courseInvitation.preview', vars)}>
 				<Text>{t('emails:courseInvitation.body', vars)}</Text>
-				<Button
-					href={data.url}
-					style={{ backgroundColor: '#171717', borderRadius: 6, color: '#ffffff', padding: '12px 20px' }}
-				>
-					{t('emails:courseInvitation.cta')}
-				</Button>
-				<Text style={{ color: '#737373', fontSize: 13 }}>{t('emails:courseInvitation.expires', vars)}</Text>
-				<Text style={{ color: '#737373', fontSize: 13 }}>{t('emails:courseInvitation.ignore')}</Text>
+				<EmailButton href={data.url}>{t('emails:courseInvitation.cta')}</EmailButton>
+				<EmailNote>{t('emails:courseInvitation.expires', vars)}</EmailNote>
+				<EmailNote>{t('emails:courseInvitation.ignore')}</EmailNote>
 			</EmailLayout>
 		)
 	},

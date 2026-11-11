@@ -4,8 +4,10 @@ import { TEST_PASSWORD, uniqueEmail } from './users.ts'
 
 export const app = createApp()
 export const host = (slug?: string) => (slug ? `${slug}.dinastia.localhost:5173` : 'dinastia.localhost:5173')
-let ip = 0
-// Свой /16 на тестовый процесс: лимиты better-auth общие в БД, и процессы с одинаковыми адресами мешали бы друг другу.
+// Свой /16 на тестовый процесс: лимиты better-auth общие в БД, и процессы с одинаковыми адресами мешали бы друг другу. Счётчик
+// начинается со случайного места: файлы одного воркера идут подряд, и с нуля каждый повторял адреса предыдущего — регистрации
+// упирались в лимит 5 в минуту на адрес (4.8)
+let ip = Math.floor(Math.random() * 60_000)
 const subnet = `10.${100 + Number(process.env.VITEST_POOL_ID ?? 0)}`
 
 export function call(method: string, path: string, opts: { slug?: string; cookie?: string; body?: unknown } = {}) {

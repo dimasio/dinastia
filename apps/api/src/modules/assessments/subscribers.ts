@@ -1,6 +1,6 @@
-// Подписчики модуля assessments (скилл events-automations, карточка 3.5).
+// Подписчики модуля assessments (скилл events-automations, карточки 3.5, 4.8): письма ученику о проверке работы и теста.
 import { toPlainText } from '@dinastia/contracts/common'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, isNotNull } from 'drizzle-orm'
 import { users } from '#/kernel/auth/schema.ts'
 import { appOrigin } from '#/kernel/config.ts'
 import type { BaseCtx } from '#/kernel/context.ts'
@@ -8,9 +8,10 @@ import { on } from '#/kernel/events.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { lessons } from '../courses/schema.ts'
 import { enrollments } from '../learning/schema.ts'
+import { quizGradedEmail } from './emails/quiz-graded.tsx'
 import { submissionReviewedEmail } from './emails/submission-reviewed.tsx'
-import { submissionReviewed } from './events.ts'
-import { submissionComments, submissions } from './schema.ts'
+import { quizGraded, submissionReviewed } from './events.ts'
+import { attemptQuestions, quizAnswers, quizAttempts, submissionComments, submissions } from './schema.ts'
 
 /** Письмо ученику о результате проверки; автопринятие без проверки (нет проверяющего) письма не шлёт. */
 export async function sendReviewedEmail(
@@ -49,3 +50,42 @@ export async function sendReviewedEmail(
 }
 
 export const reviewedEmailSubscriber = on(submissionReviewed, sendReviewedEmail, { key: 'email' })
+
+/** Письмо о результате теста — только если оценку поставил проверяющий (ручная проверка); автопроверка — без письма. */
+export async function sendQuizGradedEmail(ctx: BaseCtx, d: { attemptId: string; passed: boolean }) {
+	const [manual] = await ctx.db
+		.select({ id: quizAnswers.id })
+		.from(quizAnswers)
+		.innerJoin(attemptQuestions, eq(attemptQuestions.id, quizAnswers.attemptQuestionId))
+		.where(and(eq(attemptQuestions.attemptId, d.attemptId), isNotNull(quizAnswers.gradedByMemberId)))
+		.limit(1)
+	if (!manual) return
+	const [row] = await ctx.db
+		.select({
+			score: quizAttempts.score,
+			maxScore: quizAttempts.maxScore,
+			lessonId: quizAttempts.lessonId,
+			email: users.email,
+			lessonTitle: lessons.title,
+			courseId: lessons.courseId,
+		})
+		.from(quizAttempts)
+		.innerJoin(enrollments, eq(enrollments.id, quizAttempts.enrollmentId))
+		.innerJoin(members, eq(members.id, enrollments.memberId))
+		.innerJoin(users, eq(users.id, members.userId))
+		.innerJoin(lessons, eq(lessons.id, quizAttempts.lessonId))
+		.where(eq(quizAttempts.id, d.attemptId))
+	if (!row) return
+	await ctx.mail.send(quizGradedEmail, {
+		to: row.email,
+		data: {
+			lessonTitle: row.lessonTitle,
+			passed: d.passed,
+			score: Math.round(row.score * 100) / 100,
+			maxScore: row.maxScore,
+			url: `${appOrigin(ctx.school.slug)}/learn/courses/${row.courseId}/lessons/${row.lessonId}`,
+		},
+	})
+}
+
+export const quizGradedEmailSubscriber = on(quizGraded, sendQuizGradedEmail, { key: 'email' })

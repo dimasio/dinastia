@@ -1,19 +1,23 @@
 // Ручная проверка `open_text` (карточка 3.6): тесты в очереди, попытка для проверяющего, оценки (границы, частями), итог и
-// «сдал / не сдал», завершение урока, что видит ученик, права и область.
+// «сдал / не сдал», завершение урока, что видит ученик, права и область; письмо «тест проверен» (4.8).
 import { questionTypes } from '@dinastia/questions'
 import { ORPCError } from '@orpc/client'
 import { eq } from 'drizzle-orm'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { log } from '#/kernel/log.ts'
+import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
+import { drainJobs, lastMailTo, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { cleanupTestSchools, withTestSchool } from '#/test/school.ts'
 import { enrollMember } from '../learning/service.ts'
 import { intoCuratorGroup } from '../learning/testing.ts'
 
+beforeAll(startTestWorker)
 afterAll(async () => {
+	await stopTestWorker()
 	await cleanupTestSchools()
 	await pool.end()
 })
@@ -171,6 +175,20 @@ describe('оценка попытки', () => {
 		expect(mine).toMatchObject({ revealed: false, questions: [], pct: 86, attempt: { passed: true } })
 		expect(mine.manual).toMatchObject([{ score: 4 }])
 		expect(JSON.stringify(mine.manual[0]?.feedback)).toContain('не хватает деталей')
+
+		// письмо ученику после ручной проверки (4.8)
+		const mail = await lastMailTo(s.t.people.student.email)
+		expect(mail.subject).toContain('тест «Урок» проверен')
+		expect(mail.text).toContain('Тест сдан: 6 из 7 баллов')
+	})
+
+	it('автопроверка без ручных вопросов — письма «тест проверен» нет', async () => {
+		const s = await setup({ open: 0 })
+		await s.student.learn.lessons.open({ lessonId: s.lesson.id })
+		const { result } = await s.take()
+		expect(result.attempt).toMatchObject({ status: 'graded' })
+		await drainJobs()
+		expect(memoryOutbox.filter((m) => m.to === s.t.people.student.email && m.subject.includes('проверен'))).toEqual([])
 	})
 
 	it('низкая оценка — не сдал, урок не завершён; повторная оценка запрещена; граница порога', async () => {

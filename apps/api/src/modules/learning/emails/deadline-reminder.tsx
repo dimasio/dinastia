@@ -1,8 +1,8 @@
 // Письмо ученику о сроке сдачи урока (карточка 4.4, скилл notifications): «завтра срок» или «срок прошёл», ссылка на урок.
 import { formatDate } from '@dinastia/i18n'
-import { Button, Text } from 'react-email'
+import { Text } from 'react-email'
 import { z } from 'zod'
-import { defineEmail, EmailLayout } from '#/kernel/mail/define.tsx'
+import { defineEmail, EmailButton, EmailLayout } from '#/kernel/mail/define.tsx'
 
 export const deadlineReminderEmail = defineEmail({
 	key: 'learning.deadline-reminder',
@@ -25,12 +25,7 @@ export const deadlineReminderEmail = defineEmail({
 		return (
 			<EmailLayout school={school} preview={t(`emails:deadlineReminder.${data.kind}.preview`, vars)}>
 				<Text>{t(`emails:deadlineReminder.${data.kind}.body`, vars)}</Text>
-				<Button
-					href={data.url}
-					style={{ backgroundColor: '#171717', borderRadius: 6, color: '#ffffff', padding: '12px 20px' }}
-				>
-					{t('emails:deadlineReminder.cta')}
-				</Button>
+				<EmailButton href={data.url}>{t('emails:deadlineReminder.cta')}</EmailButton>
 			</EmailLayout>
 		)
 	},

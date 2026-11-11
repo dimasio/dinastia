@@ -15,6 +15,8 @@ export interface LessonAccess {
 	dueAt: Date | null
 	/** Срок прошёл, урок не завершён (мягкий дедлайн — урок не закрывается). */
 	overdue: boolean
+	/** Когда урок открывается по расписанию (`drip`); иначе null — письмо «открылся урок» (4.8). */
+	opensAt: Date | null
 }
 
 export interface ProgressFact {
@@ -60,12 +62,13 @@ export function computeAccess(
 		const fact = progress.get(lesson.id)
 		const mode = lesson.accessMode === 'inherit' ? outline.course.defaultAccessMode : lesson.accessMode
 		let lockedBy: LockedBy | null = null
+		let opensAt: Date | null = null
 		const prev = lessons[i - 1]
 		if (mode === 'sequential' && prev && !progress.get(prev.id)?.completedAt)
 			lockedBy = { kind: 'lesson', lessonId: prev.id, title: prev.title }
 		if (mode === 'drip') {
 			const from = enrollment.groupStartsAt ?? enrollment.enrolledAt
-			const opensAt = lesson.dripDate
+			opensAt = lesson.dripDate
 				? dripDateStart(lesson.dripDate)
 				: lesson.dripDays !== null
 					? new Date(from.getTime() + lesson.dripDays * DAY_MS)
@@ -86,6 +89,7 @@ export function computeAccess(
 			lockedBy,
 			dueAt,
 			overdue: Boolean(dueAt && now > dueAt && status !== 'completed'),
+			opensAt,
 		}
 	})
 }

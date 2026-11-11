@@ -183,6 +183,13 @@
       "when": 1794381352384,
       "tag": "0025_certificates",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794385006786,
+      "tag": "0026_lesson_open_notices",
+      "breakpoints": true
     }
   ]
 }

@@ -5,8 +5,8 @@ description: Уведомления в Dinastia — письма через defi
 
 # Уведомления
 
-> Статус: сверено с кодом в фазе 1 (пункт 1.8); предпочтения и отписка — с первыми не транзакционными письмами;
-> каналы кроме email — R3. Образец — письмо-приглашение `apps/api/src/modules/schools/emails/invitation.tsx`.
+> Статус: сверено с кодом в 4.8 (общий вид, письмо входа, все транзакционные письма — `domain.md` §3 «Письма»); предпочтения и
+> отписка — с первыми не транзакционными письмами; каналы кроме email — R3. Образец — `apps/api/src/modules/schools/emails/invitation.tsx`.
 
 ## Письмо
 
@@ -47,7 +47,13 @@ await ctx.mail.send(submissionReviewedEmail, { to: student.email, data: { lesson
   и отправляет задача модуля сама: `deliverEmail(ctx.school, email, { to, data })` (образец — `sendInvitation` в
   `schools/invitations.service.ts`: задача выпускает токен, в БД — хэш).
 - Отправитель — «<Название школы> <адрес из `SMTP_FROM`>».
-- Тексты — namespace `emails` (`packages/i18n/locales/ru/emails.json`); подвал и шапка — `EmailLayout`.
+- Тексты — namespace `emails` (`packages/i18n/locales/ru/emails.json`); подвал и шапка — `EmailLayout`; кнопка — **только**
+  `EmailButton`, мелкий текст (срок ссылки, «если не ждали») — `EmailNote`, цитата (комментарий проверяющего) — `EmailQuote`
+  (`kernel/mail/define.tsx`) — свои инлайн-стили в письмах модулей не пишутся.
+- Письмо платформы (не школы) — `school: PLATFORM` (`kernel/auth/magic-link-email.tsx`, пустой `slug`): подвал без школы. Пример —
+  вход по ссылке: школа берётся из хоста ссылки better-auth.
+- Ежедневное письмо по расписанию — задача `all-schools` + таблица отметок «отправлено» (уникально по получателю и предмету),
+  отметка и `ctx.mail.send` в одной транзакции (образцы — `learning/deadlines.service.ts`, `learning/lesson-notices.service.ts`).
 - Даты — `formatDate(d, 'Europe/Moscow')` из `@dinastia/i18n` (часовой пояс школы — с её настройками).
 - Ссылки — абсолютные на домен школы: `` `${appOrigin(ctx.school.slug)}/learn/…` `` (`#/kernel/config.ts`).
 - Массовое — не в цикле из запроса, а задачей батчами (скилл `background-jobs`).

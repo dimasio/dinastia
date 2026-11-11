@@ -1,8 +1,8 @@
 // Письмо ученику о результате проверки работы (карточка 3.5, скилл notifications): принято / нужна доработка / отклонено,
 // комментарий проверяющего и ссылка на урок. Шлёт подписчик события `submission.reviewed`.
-import { Button, Text } from 'react-email'
+import { Text } from 'react-email'
 import { z } from 'zod'
-import { defineEmail, EmailLayout } from '#/kernel/mail/define.tsx'
+import { defineEmail, EmailButton, EmailLayout, EmailQuote } from '#/kernel/mail/define.tsx'
 
 export const submissionReviewedEmail = defineEmail({
 	key: 'assessments.submission-reviewed',
@@ -20,17 +20,8 @@ export const submissionReviewedEmail = defineEmail({
 		return (
 			<EmailLayout school={school} preview={t(`emails:submissionReviewed.preview.${data.status}`, vars)}>
 				<Text>{t(`emails:submissionReviewed.body.${data.status}`, vars)}</Text>
-				{data.comment && (
-					<Text style={{ borderLeft: '3px solid #d4d4d4', color: '#404040', margin: '12px 0', padding: '4px 12px' }}>
-						{data.comment}
-					</Text>
-				)}
-				<Button
-					href={data.url}
-					style={{ backgroundColor: '#171717', borderRadius: 6, color: '#ffffff', padding: '12px 20px' }}
-				>
-					{t('emails:submissionReviewed.cta')}
-				</Button>
+				{data.comment && <EmailQuote>{data.comment}</EmailQuote>}
+				<EmailButton href={data.url}>{t('emails:submissionReviewed.cta')}</EmailButton>
 			</EmailLayout>
 		)
 	},

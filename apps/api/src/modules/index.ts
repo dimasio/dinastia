@@ -1,5 +1,6 @@
 // Реестр модулей (скилл module). Новый модуль — `pnpm gen:module <имя>` добавит строки у маркеров gen:module.
 
+import { magicLinkEmail } from '#/kernel/auth/magic-link-email.tsx'
 import exportsModule from '#/kernel/exports/module.ts'
 import { mailSendJob } from '#/kernel/mail/send.ts'
 import { collectJobs } from '#/kernel/module.ts'
@@ -36,7 +37,7 @@ export const modules = {
 // ctx.mail, ctx.files, webhooks.process).
 const { jobs, subscribers } = collectJobs(modules)
 registerJobs([mailSendJob, processWebhookJob, requestLimitsCleanupJob, ...jobs], subscribers)
-registerEmails(Object.values(modules).flatMap((m) => m.emails ?? []))
+registerEmails([magicLinkEmail, ...Object.values(modules).flatMap((m) => m.emails ?? [])])
 registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
 registerExports(Object.values(modules).flatMap((m) => m.exports ?? []))
 registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))

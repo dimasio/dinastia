@@ -122,6 +122,24 @@ export const deadlineReminders = tenantTable(
 	],
 )
 
+/**
+ * Отправленные письма «открылся урок» (4.8): по уроку по расписанию — один раз на ученика; строка пишется в той же транзакции, что
+ * и постановка письма.
+ */
+export const lessonOpenNotices = tenantTable(
+	'lesson_open_notices',
+	{
+		enrollmentId: uuid('enrollment_id').notNull(),
+		lessonId: uuid('lesson_id').notNull(),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
+		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId),
+	],
+)
+
 /** Факты по уроку: когда открыт и когда завершён (доступ и статусы — из них и порядка уроков). */
 export const lessonProgress = tenantTable(
 	'lesson_progress',

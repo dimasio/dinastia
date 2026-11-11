@@ -30,6 +30,7 @@ import { courseCards, courseOrFail } from '../courses/service.ts'
 import { groupScope } from '../learning/policies.ts'
 import { enrollments } from '../learning/schema.ts'
 import { type CertificateData, certificateDocument } from './document.tsx'
+import { certificateIssuedEmail } from './emails/issued.tsx'
 import { certificateIssued } from './events.ts'
 import { backgroundPurpose, CERTIFICATE_PDF_PURPOSE, signaturePurpose } from './files.ts'
 import { certificateCounters, certificates, certificateTemplates } from './schema.ts'
@@ -356,6 +357,25 @@ export const renderCertificateJob = defineJob({
 	timeoutSeconds: 120,
 	handler: (ctx: BaseCtx, d) => renderCertificate(ctx, d.certificateId),
 })
+
+/** Письмо «сертификат готов» (4.8); аннулированный к этому моменту — без письма. */
+export async function sendIssuedEmail(ctx: BaseCtx, certificateId: string) {
+	const [row] = await ctx.db
+		.select({ c: certificates, email: users.email })
+		.from(certificates)
+		.innerJoin(members, eq(members.id, certificates.memberId))
+		.innerJoin(users, eq(users.id, members.userId))
+		.where(eq(certificates.id, certificateId))
+	if (!row || row.c.revokedAt || row.c.status !== 'ready') return
+	await ctx.mail.send(certificateIssuedEmail, {
+		to: row.email,
+		data: {
+			courseTitle: row.c.courseTitle,
+			number: row.c.number,
+			url: `${appOrigin(ctx.school.slug)}/learn/courses/${row.c.courseId}`,
+		},
+	})
+}
 
 /** «Выдать прошедшим»: прошедшим курс без сертификата — выдать; несформированные (`failed`) — сформировать заново. */
 export async function issueCompleted(ctx: SchoolCtx, courseId: string) {

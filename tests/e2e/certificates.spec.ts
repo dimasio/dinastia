@@ -1,7 +1,9 @@
 // Сертификаты (карточка 4.7): преподаватель включает сертификат курса и смотрит предпросмотр; ученик проходит курс и скачивает
-// PDF; номер проверяется на публичной странице школы без входа (имя — сокращённо). Ученик — student5: свой курс, без гонок.
+// PDF и письмо «сертификат готов» (4.8); номер проверяется на публичной странице школы без входа (имя — сокращённо). Ученик —
+// student5: свой курс, без гонок.
 import type { Page } from '@playwright/test'
 import { expect, schoolUrl, test } from './fixtures.ts'
+import { waitForLink } from './mailpit.ts'
 import { shoot } from './shots.ts'
 
 const run = Date.now().toString(36)
@@ -81,6 +83,12 @@ test('сертификат: шаблон и предпросмотр, PDF уче
 	await expect(row).toContainText('Готов')
 	const number = (await row.locator('td').first().innerText()).trim()
 	expect(number).toMatch(/^DEMO-\d{4}-\d{6}$/)
+	// письмо ученику: номер и ссылка на страницу курса
+	const link = await waitForLink(
+		'student5@demo.local',
+		new RegExp(`${number}[\\s\\S]*?(http://\\S+/learn/courses/${course.id})`),
+	)
+	expect(link).toContain(`/learn/courses/${course.id}`)
 
 	// проверка без входа: имя сокращено
 	const guest = await (await browser.newContext({ locale: 'ru-RU' })).newPage()

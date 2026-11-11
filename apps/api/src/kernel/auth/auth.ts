@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { magicLink } from 'better-auth/plugins'
 import { appOrigin, config } from '../config.ts'
 import { db } from '../db/client.ts'
-import { sendMail } from '../mail/transport.ts'
+import { sendMagicLinkEmail } from './magic-link-email.tsx'
 import { accounts, rateLimits, sessions, users, verifications } from './schema.ts'
 
 const port = config.APP_PUBLIC_PORT ? `:${config.APP_PUBLIC_PORT}` : ''
@@ -35,18 +35,23 @@ export const auth = betterAuth({
 	user: {
 		additionalFields: { platformRole: { type: 'string', required: false, input: false } },
 	},
+	databaseHooks: {
+		user: {
+			create: {
+				// вход по ссылке создаёт пользователя без имени — в списках, очереди проверки и сертификате оно пустое (4.8); как при
+				// создании аккаунта администратором — часть почты до «@», ученик меняет его в профиле
+				before: async (user) => ({
+					data: { ...user, name: user.name?.trim() || user.email.split('@')[0] || user.email },
+				}),
+			},
+		},
+	},
 	emailAndPassword: { enabled: true, minPasswordLength: 8, autoSignIn: true },
 	plugins: [
 		magicLink({
 			expiresIn: 15 * 60,
 			storeToken: 'hashed',
-			sendMagicLink: async ({ email, url }) => {
-				await sendMail({
-					to: email,
-					subject: 'Вход в Dinastia',
-					text: `Чтобы войти, перейдите по ссылке (действует 15 минут):\n\n${url}\n\nЕсли вы не запрашивали вход, просто проигнорируйте это письмо.`,
-				})
-			},
+			sendMagicLink: ({ email, url }) => sendMagicLinkEmail(email, url),
 		}),
 	],
 	rateLimit: {
@@ -57,7 +62,11 @@ export const auth = betterAuth({
 		customRules: {
 			'/sign-in/email': { window: 60, max: config.NODE_ENV === 'production' ? 5 : config.AUTH_SIGN_IN_LIMIT },
 			'/sign-up/email': { window: 60, max: 5 },
-			'/sign-in/magic-link': { window: 60, max: 3 },
+			// e2e: приглашения и демо входят по ссылке с одного 127.0.0.1 (D-044, 4.8)
+			'/sign-in/magic-link': {
+				window: 60,
+				max: config.NODE_ENV === 'production' ? 3 : Math.max(3, config.AUTH_SIGN_IN_LIMIT),
+			},
 		},
 	},
 	telemetry: { enabled: false }, // 152-ФЗ, скилл dependencies: без телеметрии

@@ -4,22 +4,30 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '#/app.ts'
 import { db, pool } from '#/kernel/db/client.ts'
 import { memoryOutbox } from '#/kernel/mail/transport.ts'
+import { cleanupTestSchools, withTestSchool } from '#/test/school.ts'
 import { TEST_PASSWORD, uniqueEmail } from '#/test/users.ts'
 import { users } from './schema.ts'
 
-afterAll(() => pool.end())
+afterAll(async () => {
+	await cleanupTestSchools()
+	await pool.end()
+})
 
 const app = createApp()
 const SCHOOL_ORIGIN = 'http://demo.dinastia.localhost:5173'
 let ipSeq = 0
 const freshIp = () => `10.${process.pid % 250}.${Math.floor(++ipSeq / 250)}.${ipSeq % 250}`
 
-function post(path: string, body: unknown, opts: { origin?: string; ip?: string; cookie?: string } = {}) {
+function post(
+	path: string,
+	body: unknown,
+	opts: { origin?: string; ip?: string; cookie?: string; host?: string } = {},
+) {
 	return app.request(`/api/auth${path}`, {
 		method: 'POST',
 		headers: {
-			host: 'demo.dinastia.localhost:5173',
-			origin: opts.origin ?? SCHOOL_ORIGIN,
+			host: opts.host ?? 'demo.dinastia.localhost:5173',
+			origin: opts.origin ?? (opts.host ? `http://${opts.host}` : SCHOOL_ORIGIN),
 			'content-type': 'application/json',
 			'x-forwarded-for': opts.ip ?? freshIp(),
 			...(opts.cookie ? { cookie: opts.cookie } : {}),
@@ -105,8 +113,30 @@ describe('magic link', () => {
 		expect(verify.headers.get('set-cookie') ?? '').toMatch(/session_token=/)
 		const [u] = await db.select().from(users).where(eq(users.email, email))
 		expect(u?.emailVerified).toBe(true)
+		// новый пользователь по ссылке получает имя из почты, а не пустое (4.8)
+		expect(u?.name).toBe(email.split('@')[0])
 
 		const reuse = await app.request(url.pathname + url.search, { headers: { host: url.host } })
 		expect(reuse.headers.get('set-cookie') ?? '').not.toMatch(/session_token=[^;]+;/)
+	})
+
+	it('письмо в общем виде (4.8): на сайте школы — «Вход в «Школа»», на корне — Dinastia; срок ссылки в тексте', async () => {
+		const t = await withTestSchool('Школа входа')
+		const email = uniqueEmail('magic')
+		const host = `${t.school.slug}.dinastia.localhost:5173`
+		expect((await post('/sign-in/magic-link', { email, callbackURL: '/learn' }, { host })).status).toBe(200)
+		const mail = memoryOutbox.findLast((m) => m.to === email)
+		expect(mail?.subject).toBe('Вход в «Школа входа»')
+		expect(mail?.text).toContain('Ссылка действует 15 минут')
+		expect(mail?.html).toContain(`href="http://${host}/api/auth/magic-link/verify`)
+
+		const rootEmail = uniqueEmail('magic')
+		const root = await post(
+			'/sign-in/magic-link',
+			{ email: rootEmail, callbackURL: '/' },
+			{ host: 'dinastia.localhost:5173' },
+		)
+		expect(root.status).toBe(200)
+		expect(memoryOutbox.findLast((m) => m.to === rootEmail)?.subject).toBe('Вход в «Dinastia»')
 	})
 })
