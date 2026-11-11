@@ -4,6 +4,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 import { MemberRole, SchoolName, SchoolSlug } from './schools.ts'
+import { SettingField } from './settings.ts'
 
 export const OpsMe = z.object({ id: Id, email: z.string(), name: z.string(), twoFactorEnabled: z.boolean() })
 
@@ -107,6 +108,21 @@ export const opsContract = {
 			.route({ method: 'POST', path: '/ops/schools/{id}/resume' })
 			.input(z.object({ id: Id }))
 			.output(OpsSchoolCard),
+		/** Фича-флаги школы (5.6д): поля настроек с `edit: []` — школа их не видит, меняет только оператор. */
+		flags: oc
+			.route({ method: 'GET', path: '/ops/schools/{id}/flags' })
+			.input(z.object({ id: Id }))
+			.output(z.array(SettingField)),
+		setFlags: oc
+			.route({ method: 'POST', path: '/ops/schools/{id}/flags' })
+			.input(
+				z.object({
+					id: Id,
+					module: z.string().max(40),
+					patch: z.record(z.string(), z.union([z.string().max(2000), z.number(), z.boolean()])),
+				}),
+			)
+			.output(z.array(SettingField)),
 		/** Создать школу и пригласить владельца письмом (регистрация — только здесь, 5.6). */
 		create: oc
 			.route({ method: 'POST', path: '/ops/schools', successStatus: 201 })

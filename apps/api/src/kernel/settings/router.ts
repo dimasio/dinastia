@@ -10,7 +10,9 @@ import { settingsView } from './view.ts'
 
 async function list(ctx: SchoolCtx) {
 	const out = []
-	for (const def of allSettings()) out.push(...settingsView(def, await ctx.settings.all(def), ctx.member.role))
+	// флаги (`edit: []`) школа не видит — ими управляет оператор (5.6д)
+	for (const def of allSettings())
+		out.push(...settingsView(def, await ctx.settings.all(def), ctx.member.role, { flags: false }))
 	return out
 }
 

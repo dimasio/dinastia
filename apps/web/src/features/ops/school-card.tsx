@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { authClient } from '#/app/auth.ts'
 import { orpc } from '#/app/orpc.ts'
 import { ActionLabel } from './resources.tsx'
+import { SchoolFlags } from './school-flags.tsx'
 import { SuspensionActions } from './suspension-actions.tsx'
 
 export function SchoolCard({ id }: { id: string }) {
@@ -125,6 +126,7 @@ export function SchoolCard({ id }: { id: string }) {
 					</ul>
 				</CardContent>
 			</Card>
+			<SchoolFlags schoolId={s.id} />
 			<Card>
 				<CardHeader>
 					<CardTitle>{t('card.audit')}</CardTitle>

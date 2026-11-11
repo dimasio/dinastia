@@ -9,7 +9,7 @@ import { opsAuditWrite } from '#/kernel/ops/audit.ts'
 import { impl, mw } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { createSchoolByOperator } from '../schools/service.ts'
-import { findPerson, getSchool, listAudit, listSchools } from './service.ts'
+import { findPerson, getSchool, listAudit, listSchools, schoolFlags, setSchoolFlags } from './service.ts'
 import { resumeSchool, suspendSchool } from './suspension.ts'
 
 export const opsRouter = {
@@ -58,6 +58,18 @@ export const opsRouter = {
 				await resumeSchool({ id: context.operator.id, ip: context.ip }, input.id, context.now())
 				return getSchool(input.id, context.now())
 			}),
+		flags: impl.ops.schools.flags
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(({ input }) => schoolFlags(input.id)),
+		setFlags: impl.ops.schools.setFlags
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(({ input, context }) => setSchoolFlags(input.id, input, { id: context.operator.id, ip: context.ip })),
 		create: impl.ops.schools.create
 			.use(mw.host)
 			.use(mw.session)

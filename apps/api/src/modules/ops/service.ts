@@ -14,7 +14,11 @@ import { withTenant, withUser } from '#/kernel/db/tenant.ts'
 import { fail } from '#/kernel/errors.ts'
 import { log } from '#/kernel/log.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { opsAuditWrite } from '#/kernel/ops/audit.ts'
 import { opsAudit } from '#/kernel/ops/schema.ts'
+import { allSettings } from '#/kernel/registry.ts'
+import { settingsFor, updateFlags } from '#/kernel/settings/settings.ts'
+import { settingsView } from '#/kernel/settings/view.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { schoolStats } from './schema.ts'
 import { refreshSchoolStats } from './stats.ts'
@@ -176,4 +180,36 @@ export async function listAudit(input: z.output<typeof OpsAuditListInput>) {
 		db.select({ n: count() }).from(opsAudit),
 	])
 	return toPage(items, total?.n ?? 0, input)
+}
+
+/** Фича-флаги школы (5.6д): поля всех модулей с `edit: []`, значения — в транзакции школы. */
+export async function schoolFlags(schoolId: string) {
+	await schoolOrFail(schoolId)
+	return withTenant(schoolId, async (tx) => {
+		const out = []
+		for (const def of allSettings())
+			out.push(...settingsView(def, await settingsFor(tx).all(def), 'operator', { flags: true }))
+		return out
+	})
+}
+
+export async function setSchoolFlags(
+	schoolId: string,
+	input: { module: string; patch: Record<string, unknown> },
+	operator: { id: string; ip: string | null },
+) {
+	await schoolOrFail(schoolId)
+	const def = allSettings().find((d) => d.module === input.module)
+	if (!def) return fail.notFound('SETTING_UNKNOWN', { module: input.module })
+	await withTenant(schoolId, async (tx) => {
+		await updateFlags(tx, def, input.patch, operator)
+		await opsAuditWrite(tx, { operatorId: operator.id, action: 'ops.school.flags-changed', schoolId, ip: operator.ip })
+	})
+	return schoolFlags(schoolId)
+}
+
+async function schoolOrFail(id: string) {
+	const [school] = await db.select({ id: schools.id }).from(schools).where(eq(schools.id, id))
+	if (!school) return fail.notFound('SCHOOL_NOT_FOUND')
+	return school
 }

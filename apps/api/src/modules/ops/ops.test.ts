@@ -3,6 +3,7 @@
 import { ORPCError } from '@orpc/client'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import { auditLog } from '#/kernel/audit/schema.ts'
 import { consents, users } from '#/kernel/auth/schema.ts'
 import { db, pool } from '#/kernel/db/client.ts'
@@ -11,16 +12,27 @@ import { log } from '#/kernel/log.ts'
 import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { opsAudit } from '#/kernel/ops/schema.ts'
+import { registerSettings } from '#/kernel/registry.ts'
 import { findOperatorProceduresWithout2fa } from '#/kernel/router-guard.ts'
+import { defineSettings } from '#/kernel/settings/settings.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { router } from '#/router.ts'
 import { call, signUp } from '#/test/http.ts'
 import { drainJobs, inviteToken, lastMailTo, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
+import { probeSettings } from '#/test/probes.ts'
 import { cleanupTestSchools, clientFor, expectPermissionMatrix, withTestSchool } from '#/test/school.ts'
 import { totp } from '#/test/totp.ts'
 import { TEST_PASSWORD, uniqueSlug } from '#/test/users.ts'
 import { findSchoolBySlug } from '../schools/service.ts'
 import { refreshSchoolStats } from './stats.ts'
+
+// пробные настройки модуля с флагом (`edit: []`) и обычным полем — реестр этого файла тестов
+registerSettings([
+	defineSettings('kernel-probe', probeSettings, {
+		selfEnroll: { schema: z.boolean(), group: 'flags', edit: [] },
+		reminderHours: { schema: z.number().int().min(1).max(168), group: 'notifications', edit: ['admin'] },
+	}),
+])
 
 beforeAll(startTestWorker)
 afterAll(async () => {
@@ -317,5 +329,41 @@ describe('вход от имени (5.6г)', () => {
 		expect(await clientFor(imp, t.school.slug).schools.me()).toMatchObject({ member: { role: 'teacher' } })
 		expect(await t.as('admin').schools.supportAccess.set({ open: false })).toEqual({ until: null })
 		expect(await fails(clientFor(imp, t.school.slug).schools.me())).toMatchObject({ status: 401 })
+	})
+})
+
+describe('фича-флаги школ (5.6д)', () => {
+	it('флаг (`edit: []`) виден и меняется только в консоли; школа его не видит и не меняет, даже владелец; журнал', async () => {
+		const ops = await operator()
+		const { cookie } = await enable2fa(ops.cookie)
+		const root = clientFor(cookie)
+		const t = await withTestSchool()
+		expect(await root.ops.schools.flags({ id: t.school.id })).toEqual([
+			expect.objectContaining({
+				module: 'kernel-probe',
+				name: 'selfEnroll',
+				kind: 'boolean',
+				value: true,
+				editable: true,
+			}),
+		])
+		const fields = await t.as('owner').settings.list()
+		expect(fields.map((f) => `${f.module}.${f.name}`)).toContain('kernel-probe.reminderHours')
+		expect(fields.map((f) => `${f.module}.${f.name}`)).not.toContain('kernel-probe.selfEnroll')
+		expect(
+			await fails(t.as('owner').settings.update({ module: 'kernel-probe', patch: { selfEnroll: false } })),
+		).toMatchObject({ code: 'SETTING_FORBIDDEN' })
+		// не флаг через консоль — нельзя
+		expect(
+			await fails(root.ops.schools.setFlags({ id: t.school.id, module: 'kernel-probe', patch: { reminderHours: 5 } })),
+		).toMatchObject({ code: 'SETTING_UNKNOWN' })
+
+		expect(
+			await root.ops.schools.setFlags({ id: t.school.id, module: 'kernel-probe', patch: { selfEnroll: false } }),
+		).toEqual([expect.objectContaining({ name: 'selfEnroll', value: false })])
+		const [entry] = await withTenant(t.school.id, (tx) =>
+			tx.select().from(auditLog).where(eq(auditLog.action, 'settings.kernel-probe.flag-changed')),
+		)
+		expect(entry).toMatchObject({ actorOperatorId: ops.id, diff: { selfEnroll: { from: true, to: false } } })
 	})
 })

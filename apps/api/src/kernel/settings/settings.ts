@@ -5,7 +5,7 @@ import type { MemberRole } from '@dinastia/contracts/schools'
 import { eq, getTableColumns, getTableName } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 import type { z } from 'zod'
-import type { Audit } from '../audit/audit.ts'
+import { type Audit, auditFor } from '../audit/audit.ts'
 import type { Tx } from '../db/client.ts'
 import { fail } from '../errors.ts'
 
@@ -108,7 +108,8 @@ export async function updateSettings<T extends SettingsTable>(
 	for (const [name, value] of Object.entries(patch)) {
 		const field = fields[name]
 		if (!field) return fail.invalid('SETTING_UNKNOWN', { name })
-		if (ctx.member.role !== 'owner' && !field.edit.includes(ctx.member.role))
+		// флаг (`edit: []`) — только оператор в консоли (5.6д), даже владельцу нельзя
+		if (isFlag(field) || (ctx.member.role !== 'owner' && !field.edit.includes(ctx.member.role)))
 			return fail.forbidden('SETTING_FORBIDDEN', { name })
 		set[name] = field.schema.parse(value)
 		if (current[name] !== set[name]) diff[name] = { from: current[name], to: set[name] }
@@ -125,4 +126,40 @@ export async function updateSettings<T extends SettingsTable>(
 		})
 	}
 	return values(def as AnySettingsDef, { ...current, ...set }) as Values<T>
+}
+
+/** Фича-флаг школы — поле с `edit: []`: школа его не видит, меняет только оператор в консоли (5.6д). */
+export const isFlag = (field: SettingField<unknown>) => field.edit.length === 0
+
+/**
+ * Изменить фича-флаги школы оператором (5.6д): только поля-флаги, по их схеме; в журнал школы — с оператором. `tx` —
+ * транзакция этой школы (`withTenant`).
+ */
+export async function updateFlags(
+	tx: Tx,
+	def: AnySettingsDef,
+	patch: Record<string, unknown>,
+	operator: { id: string; ip: string | null },
+) {
+	const fields = def.fields as Record<string, SettingField<unknown>>
+	const current = await row(tx, def)
+	const set: Record<string, unknown> = {}
+	const diff: Record<string, { from: unknown; to: unknown }> = {}
+	for (const [name, value] of Object.entries(patch)) {
+		const field = fields[name]
+		if (!field || !isFlag(field)) return fail.invalid('SETTING_UNKNOWN', { name })
+		set[name] = field.schema.parse(value)
+		if (current[name] !== set[name]) diff[name] = { from: current[name], to: set[name] }
+	}
+	if (Object.keys(diff).length) {
+		await tx
+			.update(def.table)
+			.set(set as never)
+			.where(eq(def.table.schoolId, current.schoolId))
+		await auditFor(tx, { memberId: null, operatorId: operator.id, ip: operator.ip })(
+			`settings.${def.module.replaceAll('_', '-')}.flag-changed`,
+			{ entity: 'school-settings', id: current.schoolId as string, diff },
+		)
+	}
+	return values(def, { ...current, ...set })
 }

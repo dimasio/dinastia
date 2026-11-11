@@ -80,7 +80,9 @@
 		"suspendedReason": "Причина: {{reason}}",
 		"impersonate": "Войти как",
 		"supportOpen": "Школа разрешила поддержке вход до {{date}}",
-		"supportClosed": "Школа не открыла доступ поддержки — войти от имени нельзя"
+		"supportClosed": "Школа не открыла доступ поддержки — войти от имени нельзя",
+		"flags": "Возможности школы",
+		"flagsEmpty": "Включаемых возможностей пока нет — они появятся вместе с новыми функциями."
 	},
 	"people": {
 		"title": "Люди",
@@ -103,7 +105,8 @@
 		"ops-school-suspended": "Приостановил школу",
 		"ops-school-resumed": "Возобновил школу",
 		"ops-impersonation-started": "Вошёл от имени участника",
-		"ops-impersonation-ended": "Вышел из сессии от имени"
+		"ops-impersonation-ended": "Вышел из сессии от имени",
+		"ops-school-flags-changed": "Изменил возможности школы"
 	},
 	"suspend": {
 		"open": "Приостановить",

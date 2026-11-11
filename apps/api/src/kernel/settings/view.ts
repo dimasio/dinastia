@@ -2,7 +2,7 @@
 import type { MemberRole } from '@dinastia/contracts/schools'
 import type { SettingField as SettingFieldView } from '@dinastia/contracts/settings'
 import { z } from 'zod'
-import type { AnySettingsDef, SettingField } from './settings.ts'
+import { type AnySettingsDef, isFlag, type SettingField } from './settings.ts'
 
 type Json = { type?: string; const?: unknown; format?: string; enum?: unknown[]; maxLength?: number; anyOf?: Json[] }
 
@@ -24,14 +24,17 @@ function kindOf(field: SettingField<unknown>) {
 export function settingsView(
 	def: AnySettingsDef,
 	values: Record<string, unknown>,
-	role: MemberRole,
+	role: MemberRole | 'operator',
+	opts: { flags: boolean },
 ): SettingFieldView[] {
-	return Object.entries(def.fields as Record<string, SettingField<unknown>>).map(([name, field]) => ({
-		module: def.module,
-		name,
-		group: field.group,
-		...kindOf(field),
-		value: (values[name] ?? null) as SettingFieldView['value'],
-		editable: role === 'owner' || field.edit.includes(role),
-	}))
+	return Object.entries(def.fields as Record<string, SettingField<unknown>>)
+		.filter(([, field]) => isFlag(field) === opts.flags)
+		.map(([name, field]) => ({
+			module: def.module,
+			name,
+			group: field.group,
+			...kindOf(field),
+			value: (values[name] ?? null) as SettingFieldView['value'],
+			editable: role === 'operator' ? isFlag(field) : role === 'owner' || field.edit.includes(role),
+		}))
 }
