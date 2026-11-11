@@ -18,6 +18,7 @@ import { createGroup, curatorOptions, listGroups, removeGroup, updateGroup } fro
 import { getMyHome } from './home.service.ts'
 import { acceptJoin, createLinkInvite, getJoin, listInvites, revokeInvite } from './invites.service.ts'
 import { completeLesson, getMyCourse, getMyLesson, listMyCourses, openLesson } from './service.ts'
+import { anonymizeStudent, listStudents } from './students.service.ts'
 
 const chain = () => impl.learn
 
@@ -236,4 +237,25 @@ export const joinRouter = {
 		.handler(({ input, context }) =>
 			acceptJoin(tenantCtx(context.db, context.school, context), input.token, context.user, context.ip),
 		),
+}
+
+/** Ученики школы (5.5): список — сотрудникам с доступом к участникам, удаление данных — `schools.pd.manage`. */
+export const studentsRouter = {
+	list: impl.students.list
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.members.read'))
+		.handler(({ input, context }) => listStudents(schoolCtx(context), input)),
+	anonymize: impl.students.anonymize
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.pd.manage'))
+		.use(rateLimit({ name: 'learning.anonymize', max: 30, windowSeconds: 3600, by: 'member' }))
+		.handler(({ input, context }) => anonymizeStudent(schoolCtx(context), input.id)),
 }

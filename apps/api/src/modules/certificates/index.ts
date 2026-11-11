@@ -2,6 +2,7 @@ import { defineModule } from '#/kernel/module.ts'
 import { certificateIssuedEmail } from './emails/issued.tsx'
 import { backgroundPurpose, signaturePurpose } from './files.ts'
 import { permissions } from './permissions.ts'
+import { certificatesPersonalData } from './personal-data.ts'
 import { certificatesRouter } from './router.ts'
 import { renderCertificateJob } from './service.ts'
 import { certificateIssuedSubscriber, enrollmentCompletedSubscriber } from './subscribers.ts'
@@ -14,4 +15,5 @@ export default defineModule({
 	subscribers: [enrollmentCompletedSubscriber, certificateIssuedSubscriber],
 	emails: [certificateIssuedEmail],
 	files: [signaturePurpose, backgroundPurpose],
+	personalData: certificatesPersonalData,
 })

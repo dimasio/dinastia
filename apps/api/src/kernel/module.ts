@@ -6,6 +6,7 @@ import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
+import type { PersonalDataPart } from './personal-data/define.ts'
 import type { AnySettingsDef } from './settings/settings.ts'
 import type { FilePurpose } from './storage/files.ts'
 import type { AnyWebhookHandler } from './webhooks/define.ts'
@@ -35,6 +36,8 @@ export interface ModuleDef<
 	webhooks?: AnyWebhookHandler[]
 	/** Настройки школы модуля (`defineSettings`, таблица `<модуль>_settings`); экран /admin/settings строится из них. */
 	settings?: AnySettingsDef
+	/** Данные человека в модуле (`definePersonalData`): выгрузка по запросу и обезличивание участника (5.5). */
+	personalData?: PersonalDataPart
 }
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(

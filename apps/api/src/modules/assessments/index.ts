@@ -4,6 +4,7 @@ import { submissionReviewedEmail } from './emails/submission-reviewed.tsx'
 import { commentFilePurpose, submissionFilePurpose } from './files.ts'
 import { expireAttemptsJob } from './jobs.ts'
 import { permissions } from './permissions.ts'
+import { assessmentsPersonalData } from './personal-data.ts'
 import { assessmentsRouter, assignmentRouter, quizRouter, reviewRouter } from './router.ts'
 import { quizGradedEmailSubscriber, reviewedEmailSubscriber } from './subscribers.ts'
 
@@ -15,4 +16,5 @@ export default defineModule({
 	subscribers: [reviewedEmailSubscriber, quizGradedEmailSubscriber],
 	jobs: [expireAttemptsJob],
 	permissions,
+	personalData: assessmentsPersonalData,
 })

@@ -5,7 +5,7 @@ import { certificatesContract } from './certificates.ts'
 import { coursesContract } from './courses.ts'
 import { exportsContract } from './exports.ts'
 import { filesContract } from './files.ts'
-import { joinContract, learnContract, learningContract } from './learning.ts'
+import { joinContract, learnContract, learningContract, studentsContract } from './learning.ts'
 import { invitationsContract, membersContract, schoolsContract } from './schools.ts'
 import { settingsContract } from './settings.ts'
 // gen:module:import
@@ -14,6 +14,7 @@ export const contract = {
 	schools: schoolsContract,
 	invitations: invitationsContract,
 	members: membersContract,
+	students: studentsContract,
 	files: filesContract,
 	exports: exportsContract,
 	settings: settingsContract,

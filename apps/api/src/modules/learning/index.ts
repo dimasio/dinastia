@@ -11,13 +11,15 @@ import {
 	recalcCourseProgressJob,
 	sendCourseInvitationJob,
 } from './jobs.ts'
+import { memberDataExport } from './member-data.ts'
 import { permissions } from './permissions.ts'
-import { joinRouter, learningRouter, learnRouter } from './router.ts'
+import { learningPersonalData } from './personal-data.ts'
+import { joinRouter, learningRouter, learnRouter, studentsRouter } from './router.ts'
 import { coursePublishedSubscriber, lessonPublishedSubscriber, progressRulesSubscriber } from './subscribers.ts'
 
 export default defineModule({
 	name: 'learning',
-	router: { learn: learnRouter, learning: learningRouter, join: joinRouter },
+	router: { learn: learnRouter, learning: learningRouter, join: joinRouter, students: studentsRouter },
 	permissions,
 	jobs: [
 		expireEnrollmentsJob,
@@ -28,5 +30,6 @@ export default defineModule({
 	],
 	subscribers: [lessonPublishedSubscriber, coursePublishedSubscriber, progressRulesSubscriber],
 	emails: [enrolledEmail, courseInvitationEmail, deadlineReminderEmail, lessonsOpenedEmail],
-	exports: [courseStudentsExport],
+	exports: [courseStudentsExport, memberDataExport],
+	personalData: learningPersonalData,
 })

@@ -3,6 +3,7 @@
 import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
+import type { PersonalDataPart } from './personal-data/define.ts'
 import type { AnySettingsDef } from './settings/settings.ts'
 import type { FilePurpose } from './storage/files.ts'
 import type { AnyWebhookHandler } from './webhooks/define.ts'
@@ -86,3 +87,17 @@ export function registerSettings(list: AnySettingsDef[]) {
 
 /** Настройки всех модулей — экран /admin/settings и check:registries. */
 export const allSettings = (): AnySettingsDef[] => [...settings.values()]
+
+const personalData = new Map<string, PersonalDataPart>()
+
+/** Части «данных человека» модулей (5.5): порядок — как в реестре модулей. */
+export function registerPersonalData(list: { module: string; part: PersonalDataPart }[]) {
+	for (const { module, part } of list) {
+		if (personalData.has(module) && personalData.get(module) !== part)
+			throw new Error(`данные человека модуля «${module}» объявлены дважды`)
+		personalData.set(module, part)
+	}
+}
+
+export const allPersonalData = (): { module: string; part: PersonalDataPart }[] =>
+	[...personalData.entries()].map(([module, part]) => ({ module, part }))

@@ -32,6 +32,7 @@ import { Route as AdminCoursesCourseIdRouteImport } from './routes/admin/courses
 import { Route as AdminReviewIndexRouteImport } from './routes/admin/review/index'
 import { Route as AdminReviewSubmissionIdRouteImport } from './routes/admin/review/$submissionId'
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
+import { Route as AdminStudentsIndexRouteImport } from './routes/admin/students/index'
 import { Route as LearnCoursesCourseIdRouteImport } from './routes/learn/courses/$courseId'
 import { Route as AdminCoursesCourseIdAnalyticsRouteImport } from './routes/admin/courses/$courseId_.analytics'
 import { Route as AdminCoursesCourseIdCertificateRouteImport } from './routes/admin/courses/$courseId_.certificate'
@@ -158,6 +159,11 @@ const AdminStaffIndexRoute = AdminStaffIndexRouteImport.update({
   path: '/staff/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminStudentsIndexRoute = AdminStudentsIndexRouteImport.update({
+  id: '/students/',
+  path: '/students/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const LearnCoursesCourseIdRoute = LearnCoursesCourseIdRouteImport.update({
   id: '/courses/$courseId',
   path: '/courses/$courseId',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
+  '/admin/students/': typeof AdminStudentsIndexRoute
   '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/admin/courses': typeof AdminCoursesIndexRoute
   '/admin/review': typeof AdminReviewIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
+  '/admin/students': typeof AdminStudentsIndexRoute
   '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
+  '/admin/students/': typeof AdminStudentsIndexRoute
   '/admin/courses/$courseId_/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
   '/admin/courses/$courseId_/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId_/groups': typeof AdminCoursesCourseIdGroupsRoute
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
+    | '/admin/students/'
     | '/admin/courses/$courseId/analytics'
     | '/admin/courses/$courseId/certificate'
     | '/admin/courses/$courseId/groups'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/courses'
     | '/admin/review'
     | '/admin/staff'
+    | '/admin/students'
     | '/admin/courses/$courseId/analytics'
     | '/admin/courses/$courseId/certificate'
     | '/admin/courses/$courseId/groups'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
+    | '/admin/students/'
     | '/admin/courses/$courseId_/analytics'
     | '/admin/courses/$courseId_/certificate'
     | '/admin/courses/$courseId_/groups'
@@ -607,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStaffIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/students/': {
+      id: '/admin/students/'
+      path: '/students'
+      fullPath: '/admin/students/'
+      preLoaderRoute: typeof AdminStudentsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/learn/courses/$courseId': {
       id: '/learn/courses/$courseId'
       path: '/courses/$courseId'
@@ -689,6 +708,7 @@ interface AdminRouteRouteChildren {
   AdminCoursesIndexRoute: typeof AdminCoursesIndexRoute
   AdminReviewIndexRoute: typeof AdminReviewIndexRoute
   AdminStaffIndexRoute: typeof AdminStaffIndexRoute
+  AdminStudentsIndexRoute: typeof AdminStudentsIndexRoute
   AdminCoursesCourseIdAnalyticsRoute: typeof AdminCoursesCourseIdAnalyticsRoute
   AdminCoursesCourseIdCertificateRoute: typeof AdminCoursesCourseIdCertificateRoute
   AdminCoursesCourseIdGroupsRoute: typeof AdminCoursesCourseIdGroupsRoute
@@ -708,6 +728,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCoursesIndexRoute: AdminCoursesIndexRoute,
   AdminReviewIndexRoute: AdminReviewIndexRoute,
   AdminStaffIndexRoute: AdminStaffIndexRoute,
+  AdminStudentsIndexRoute: AdminStudentsIndexRoute,
   AdminCoursesCourseIdAnalyticsRoute: AdminCoursesCourseIdAnalyticsRoute,
   AdminCoursesCourseIdCertificateRoute: AdminCoursesCourseIdCertificateRoute,
   AdminCoursesCourseIdGroupsRoute: AdminCoursesCourseIdGroupsRoute,

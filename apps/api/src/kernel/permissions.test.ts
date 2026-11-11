@@ -9,9 +9,25 @@ describe('матрица прав (domain.md §2)', () => {
 	it.each([
 		[
 			'owner',
-			['schools.access', 'schools.delete', 'schools.members.manage', 'schools.members.read', 'schools.settings.manage'],
+			[
+				'schools.access',
+				'schools.delete',
+				'schools.members.manage',
+				'schools.members.read',
+				'schools.pd.manage',
+				'schools.settings.manage',
+			],
 		],
-		['admin', ['schools.access', 'schools.members.manage', 'schools.members.read', 'schools.settings.manage']],
+		[
+			'admin',
+			[
+				'schools.access',
+				'schools.members.manage',
+				'schools.members.read',
+				'schools.pd.manage',
+				'schools.settings.manage',
+			],
+		],
 		['teacher', ['schools.access', 'schools.members.read']],
 		['curator', ['schools.access']],
 		['student', ['schools.access']],

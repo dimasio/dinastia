@@ -1,10 +1,13 @@
+import { MEMBER_DATA_EXPORT } from '@dinastia/contracts/learning'
 import { AVATAR, type Me } from '@dinastia/contracts/schools'
-import { Card, CardContent, ImageInput, PageHeader } from '@dinastia/ui'
-import { useQueryClient } from '@tanstack/react-query'
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, ImageInput, PageHeader } from '@dinastia/ui'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FileDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
+import { runExport } from '#/app/exports.ts'
 import { uploadFile } from '#/app/files.ts'
-import { client } from '#/app/orpc.ts'
+import { client, orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 
 /** Профиль участника в школе: аватар (в каждой школе свой), имя, email, роль. Общий для кабинета и обучения. */
@@ -39,6 +42,45 @@ export function ProfilePage({ me }: { me: Me }) {
 					</dl>
 				</CardContent>
 			</Card>
+			<MyData />
 		</>
+	)
+}
+
+/** Мои данные в школе (5.5): архив по запросу; удалить — через школу (она оператор ПДн). */
+function MyData() {
+	const { t } = useTranslation(['schools', 'errors'])
+	const { data: legal } = useQuery(orpc.schools.legal.queryOptions())
+	const download = useMutation({ mutationFn: () => runExport(MEMBER_DATA_EXPORT, {}) })
+	return (
+		<Card className="mt-6" data-testid="my-data">
+			<CardHeader>
+				<CardTitle>{t('profile.data.title')}</CardTitle>
+				<CardDescription>{t('profile.data.description')}</CardDescription>
+			</CardHeader>
+			<CardContent className="grid gap-3 text-sm">
+				<div>
+					<Button
+						variant="outline"
+						onClick={() => download.mutate()}
+						disabled={download.isPending}
+						data-testid="my-data-download"
+					>
+						<FileDown />
+						{download.isPending ? t('profile.data.preparing') : t('profile.data.download')}
+					</Button>
+				</div>
+				{download.error ? (
+					<p role="alert" className="text-destructive">
+						{t(errorText(download.error), { ns: 'errors' })}
+					</p>
+				) : null}
+				<p className="text-muted-foreground" data-testid="my-data-delete">
+					{legal?.contact
+						? t('profile.data.deleteContact', { contact: legal.contact, operator: legal.operator })
+						: t('profile.data.deleteSchool', { operator: legal?.operator ?? '' })}
+				</p>
+			</CardContent>
+		</Card>
 	)
 }

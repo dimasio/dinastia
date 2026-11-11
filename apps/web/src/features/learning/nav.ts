@@ -1,5 +1,14 @@
+import { GraduationCap } from 'lucide-react'
 import { defineNav } from '#/app/nav.ts'
 
-// Пункты меню модуля learning (скилл web-screens), например:
-// { area: 'admin', to: '/admin/learning', label: 'learning:nav.title', icon: BookOpen, perm: 'learning.access', group: 'content', order: 10 }
-export const nav = defineNav([])
+export const nav = defineNav([
+	{
+		area: 'admin',
+		to: '/admin/students',
+		label: 'learning:nav.students',
+		icon: GraduationCap,
+		perm: 'schools.members.read',
+		group: 'people',
+		order: 10,
+	},
+])

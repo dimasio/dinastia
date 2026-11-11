@@ -21,6 +21,8 @@ export const users = pgTable('users', {
 	emailVerified: boolean('email_verified').notNull().default(false),
 	image: pii(text('image')),
 	platformRole: platformRole('platform_role'),
+	/** Заглушка обезличенного участника (5.5): без входа, имя «Удалённый ученик»; не попадает в поиск оператора. */
+	deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	createdAt: createdAt(),
 	updatedAt: updatedAt(),
 })

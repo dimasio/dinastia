@@ -387,3 +387,44 @@ export const joinContract = {
 		.input(JoinToken.extend(ConsentGiven.shape))
 		.output(z.object({ courseId: Id, school: SchoolPublic })),
 }
+
+// --- Ученики школы (5.5, ресурс): данные по запросу ученика — выгрузить и удалить ---
+
+/** `deleted` — обезличенный ученик: имя «Удалённый ученик», данных нет. */
+export const STUDENT_STATUSES = ['active', 'blocked', 'deleted'] as const
+export const StudentStatus = z.enum(STUDENT_STATUSES)
+
+export const SchoolStudent = z.object({
+	id: Id,
+	name: z.string(),
+	/** У обезличенного — пусто. */
+	email: z.string().nullable(),
+	status: StudentStatus,
+	/** Курсов, на которые зачислен (любой статус зачисления). */
+	courses: z.number().int(),
+	joinedAt: DateTime,
+})
+export type SchoolStudent = z.infer<typeof SchoolStudent>
+
+export const StudentListInput = pageInput({
+	sorts: ['name', 'joinedAt'] as const,
+	defaultSort: 'joinedAt',
+	filters: { status: StudentStatus },
+})
+export type StudentListQuery = z.output<typeof StudentListInput>
+
+/** Ключ выгрузки данных ученика (zip): `exports.start({ key, input: { memberId } })`; без memberId — свои данные. */
+export const MEMBER_DATA_EXPORT = 'learning.member-data'
+
+export const studentsContract = {
+	/** Ученики школы: поиск по имени и email, фильтр по статусу. */
+	list: oc.route({ method: 'GET', path: '/school/students' }).input(StudentListInput).output(page(SchoolStudent)),
+	/**
+	 * Удалить данные ученика (обезличить, необратимо): файлы и тексты удаляются, оценки и прогресс остаются, сертификаты
+	 * аннулируются. Только для учеников.
+	 */
+	anonymize: oc
+		.route({ method: 'POST', path: '/school/students/{id}/anonymize' })
+		.input(z.object({ id: Id }))
+		.output(SchoolStudent),
+}

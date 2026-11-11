@@ -178,6 +178,8 @@ describe('OpenAPI', () => {
 				'/school/legal',
 				'/school/settings',
 				'/school/settings/{module}',
+				'/school/students',
+				'/school/students/{id}/anonymize',
 				'/school/me',
 				'/school/me/avatar',
 				'/school/members',

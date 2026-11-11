@@ -4,6 +4,7 @@
 import type { ExportState } from '@dinastia/contracts/exports'
 import { createI18n } from '@dinastia/i18n'
 import { and, eq, lt } from 'drizzle-orm'
+import { zipSync } from 'fflate'
 import writeXlsxFile, { type Cell, type SheetData } from 'write-excel-file/node'
 import { z } from 'zod'
 import type { BaseCtx, SchoolCtx } from '../context.ts'
@@ -11,13 +12,22 @@ import { fail } from '../errors.ts'
 import { defineJob } from '../jobs.ts'
 import { exportByKey } from '../registry.ts'
 import { signFileKey, storeFile } from '../storage/files.ts'
+import { getObject } from '../storage/s3.ts'
 import { files } from '../storage/schema.ts'
-import { type AnyExport, EXPORT_MAX_ROWS, type ExportCell, type ExportColumn } from './define.ts'
+import {
+	ARCHIVE_MAX_BYTES,
+	type ArchiveExportDef,
+	EXPORT_MAX_ROWS,
+	type ExportCell,
+	type ExportColumn,
+	type ExportDef,
+} from './define.ts'
 import { exports } from './schema.ts'
 
 export const EXPORT_FILE_PURPOSE = 'exports.file'
 export const EXPORT_TTL_MS = 24 * 60 * 60 * 1000
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const ZIP_MIME = 'application/zip'
 /** Москва без перехода на летнее время: дата в файле — как на часах школы. */
 const MSK_MS = 3 * 60 * 60 * 1000
 
@@ -94,7 +104,8 @@ const cellOf = (value: ExportCell, type: ExportColumn<unknown>['type']): Cell =>
 }
 
 /** Собрать xlsx: заголовки (i18n), строки пачками, не больше `EXPORT_MAX_ROWS`. */
-export async function buildXlsx(ctx: BaseCtx, def: AnyExport, params: unknown) {
+// biome-ignore lint/suspicious/noExplicitAny: строки выгрузки — свои у каждого определения
+export async function buildXlsx(ctx: BaseCtx, def: ExportDef<any, any, any>, params: unknown) {
 	const { t } = createI18n('ru')
 	const columns = def.columns as ExportColumn<Record<string, ExportCell>>[]
 	const data: SheetData = [
@@ -118,6 +129,31 @@ export async function buildXlsx(ctx: BaseCtx, def: AnyExport, params: unknown) {
 		stickyRowsCount: 1,
 	}).toBuffer()
 	return { buffer: new Uint8Array(buffer), rows: count }
+}
+
+/**
+ * Собрать zip: записи определения, файлы школы — из S3 (только этой школы: строка `files` под RLS); суммарно не больше
+ * `ARCHIVE_MAX_BYTES`. Пути — внутри архива, без `..` и абсолютных.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: параметры — свои у каждого определения
+export async function buildZip(ctx: BaseCtx, def: ArchiveExportDef<any, any>, params: unknown) {
+	const out: Record<string, Uint8Array> = {}
+	let total = 0
+	const encoder = new TextEncoder()
+	for (const entry of await def.entries(ctx, params)) {
+		const path = entry.path.replace(/\\/g, '/')
+		if (path.startsWith('/') || path.split('/').includes('..')) throw new Error(`zip: недопустимый путь «${path}»`)
+		let body: Uint8Array | null
+		if ('fileId' in entry) {
+			const [file] = await ctx.db.select().from(files).where(eq(files.id, entry.fileId)).limit(1)
+			body = file?.status === 'ready' ? ((await getObject(file.key))?.body ?? null) : null
+			if (!body) continue
+		} else body = typeof entry.body === 'string' ? encoder.encode(entry.body) : entry.body
+		total += body.length
+		if (total > ARCHIVE_MAX_BYTES) return fail.invalid('EXPORT_TOO_LARGE', { maxBytes: ARCHIVE_MAX_BYTES })
+		out[path in out ? `${path}.${Object.keys(out).length}` : path] = body
+	}
+	return { buffer: zipSync(out, { level: 6 }), rows: Object.keys(out).length }
 }
 
 /** Имя файла: без символов, недопустимых в именах файлов, не длиннее 100 символов. */
@@ -144,12 +180,13 @@ export const runExportJob = defineJob({
 			// точка сохранения: ошибка запроса не обрывает транзакцию задачи — статус `failed` записывается
 			await ctx.db.transaction(async (sp) => {
 				const inner = { ...ctx, db: sp }
-				const { buffer, rows } = await buildXlsx(inner, def, row.params)
-				const name = `${safeName(await def.fileName(inner, row.params))}.xlsx`
+				const zip = def.format === 'zip'
+				const { buffer, rows } = zip ? await buildZip(inner, def, row.params) : await buildXlsx(inner, def, row.params)
+				const name = `${safeName(await def.fileName(inner, row.params))}.${zip ? 'zip' : 'xlsx'}`
 				const fileId = await storeFile(inner, {
 					purpose: EXPORT_FILE_PURPOSE,
 					name,
-					mime: XLSX_MIME,
+					mime: zip ? ZIP_MIME : XLSX_MIME,
 					body: buffer,
 					ownerMemberId: row.requestedByMemberId,
 				})

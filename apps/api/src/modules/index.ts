@@ -10,6 +10,7 @@ import {
 	registerExports,
 	registerFilePurposes,
 	registerJobs,
+	registerPersonalData,
 	registerSettings,
 	registerWebhookHandlers,
 } from '#/kernel/registry.ts'
@@ -44,3 +45,6 @@ registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
 registerExports(Object.values(modules).flatMap((m) => m.exports ?? []))
 registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))
 registerSettings(Object.values(modules).flatMap((m) => (m.settings ? [m.settings] : [])))
+registerPersonalData(
+	Object.values(modules).flatMap((m) => (m.personalData ? [{ module: m.name, part: m.personalData }] : [])),
+)

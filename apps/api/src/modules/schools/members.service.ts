@@ -21,9 +21,15 @@ const columns = {
 	avatarKey: files.key,
 }
 
-/** Строка сотрудника для API: ключ аватара → подписанная ссылка. */
-async function toStaff({ avatarKey, ...row }: Omit<StaffMember, 'avatarUrl'> & { avatarKey: string | null }) {
-	return { ...row, avatarUrl: avatarKey ? await signFileKey(avatarKey) : null } satisfies StaffMember
+type StaffRow = Omit<StaffMember, 'avatarUrl' | 'status'> & {
+	status: StaffMember['status'] | 'deleted'
+	avatarKey: string | null
+}
+
+/** Строка сотрудника для API: ключ аватара → подписанная ссылка. `deleted` бывает только у учеников (5.5). */
+async function toStaff({ avatarKey, status, ...row }: StaffRow): Promise<StaffMember> {
+	if (status === 'deleted') throw new Error('обезличенный участник среди сотрудников')
+	return { ...row, status, avatarUrl: avatarKey ? await signFileKey(avatarKey) : null }
 }
 
 export async function listStaff(ctx: SchoolCtx, input: StaffListQuery) {
