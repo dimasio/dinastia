@@ -2,11 +2,13 @@
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@dinastia/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { sessionQuery } from '#/app/queries.ts'
 import { SignInForm } from '#/features/auth/sign-in-form.tsx'
+import { PdConsent } from '#/features/legal/pd-consent.tsx'
 
 export function JoinPage({ token }: { token: string }) {
 	const { t } = useTranslation(['learning', 'errors'])
@@ -14,6 +16,7 @@ export function JoinPage({ token }: { token: string }) {
 	const navigate = useNavigate()
 	const joinQuery = useQuery(orpc.join.get.queryOptions({ input: { token }, retry: false }))
 	const { data: session } = useQuery(sessionQuery)
+	const [consent, setConsent] = useState(false)
 	const accept = useMutation(
 		orpc.join.accept.mutationOptions({
 			onSuccess: async (res) => {
@@ -46,7 +49,12 @@ export function JoinPage({ token }: { token: string }) {
 			<CardContent className="grid gap-4">
 				{session ? (
 					<>
-						<Button onClick={() => accept.mutate({ token })} disabled={accept.isPending} data-testid="join-accept">
+						<PdConsent legal={join.legal} checked={consent} onChange={setConsent} />
+						<Button
+							onClick={() => accept.mutate({ token, consent: true })}
+							disabled={!consent || accept.isPending}
+							data-testid="join-accept"
+						>
 							{t('learning:join.accept')}
 						</Button>
 						{accept.error ? (

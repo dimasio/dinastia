@@ -42,6 +42,7 @@
 		"@sentry/node": "catalog:",
 		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",
+		"fflate": "0.8.3",
 		"hono": "catalog:",
 		"i18next": "catalog:",
 		"nodemailer": "catalog:",

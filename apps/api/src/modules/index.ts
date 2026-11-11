@@ -13,6 +13,7 @@ import {
 	registerSettings,
 	registerWebhookHandlers,
 } from '#/kernel/registry.ts'
+import settingsModule from '#/kernel/settings/module.ts'
 import files from '#/kernel/storage/module.ts'
 import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
 import assessments from './assessments/index.ts'
@@ -25,6 +26,7 @@ import schools from './schools/index.ts'
 export const modules = {
 	files, // модуль ядра: загрузка файлов (kernel/storage)
 	exports: exportsModule, // модуль ядра: выгрузки таблиц в xlsx (kernel/exports)
+	settings: settingsModule, // модуль ядра: экран настроек школы (kernel/settings)
 	schools,
 	courses,
 	learning,

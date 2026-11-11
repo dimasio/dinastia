@@ -5,6 +5,7 @@ import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
+import { recordPdConsent, schoolLegal } from './legal.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
 import { createSchool, listMySchools } from './service.ts'
 
@@ -36,6 +37,12 @@ export const schoolsRouter = {
 		.use(mw.host)
 		.use(mw.school)
 		.handler(({ context }) => context.school),
+
+	legal: impl.schools.legal
+		.use(mw.host)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.handler(({ context }) => schoolLegal(context.db, context.school)),
 
 	me: impl.schools.me
 		.use(mw.host)
@@ -92,6 +99,7 @@ export const invitationsRouter = {
 		.handler(async ({ input, context }) => ({
 			...(await getInvitation(context.db, input.token, context.now())),
 			school: context.school,
+			legal: await schoolLegal(context.db, context.school),
 		})),
 
 	accept: impl.invitations.accept
@@ -103,6 +111,7 @@ export const invitationsRouter = {
 		.handler(async ({ input, context }) => {
 			const res = await acceptInvitation(context.db, input.token, context.user, context.now())
 			if (!res.role) throw new Error('приглашение принято без роли')
+			await recordPdConsent(context.db, { userId: context.user.id, schoolId: context.school.id, ip: context.ip })
 			return { role: res.role, school: context.school }
 		}),
 }

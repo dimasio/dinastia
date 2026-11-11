@@ -51,7 +51,7 @@ describe('ссылка-приглашение', () => {
 		expect(info).toMatchObject({ courseTitle: 'Акварель', email: null, school: { slug: t.school.slug } })
 
 		const newcomer = await signUp('newcomer')
-		const res = await t.as(newcomer).join.accept({ token })
+		const res = await t.as(newcomer).join.accept({ token, consent: true })
 		expect(res.courseId).toBe(course.id)
 		expect(await t.as(newcomer).learn.courses.list()).toMatchObject([{ id: course.id }])
 		const list = await c.learning.enrollments.list({ courseId: course.id })
@@ -59,7 +59,7 @@ describe('ссылка-приглашение', () => {
 		expect((await c.learning.invites.list({ courseId: course.id }))[0]).toMatchObject({ uses: 1 })
 
 		// повтор тем же человеком — без нового использования
-		await t.as(newcomer).join.accept({ token })
+		await t.as(newcomer).join.accept({ token, consent: true })
 		expect((await c.learning.invites.list({ courseId: course.id }))[0]).toMatchObject({ uses: 1 })
 	})
 
@@ -67,7 +67,7 @@ describe('ссылка-приглашение', () => {
 		const { t, c, course } = await setup()
 		await c.courses.update({ id: course.id, accessDays: 14 })
 		const { url } = await c.learning.invites.create({ courseId: course.id })
-		await t.as('student').join.accept({ token: tokenOf(url) })
+		await t.as('student').join.accept({ token: tokenOf(url), consent: true })
 		const [row] = (await c.learning.enrollments.list({ courseId: course.id })).items
 		expect(row?.expiresAt).not.toBeNull()
 	})
@@ -75,14 +75,16 @@ describe('ссылка-приглашение', () => {
 	it('лимит, срок, отзыв, неизвестный токен — понятные коды', async () => {
 		const { t, c, course } = await setup()
 		const one = await c.learning.invites.create({ courseId: course.id, maxUses: 1 })
-		await t.as('student').join.accept({ token: tokenOf(one.url) })
+		await t.as('student').join.accept({ token: tokenOf(one.url), consent: true })
 		const other = await signUp('late')
-		expect(await fails(t.as(other).join.accept({ token: tokenOf(one.url) }))).toMatchObject({ code: 'JOIN_EXHAUSTED' })
+		expect(await fails(t.as(other).join.accept({ token: tokenOf(one.url), consent: true }))).toMatchObject({
+			code: 'JOIN_EXHAUSTED',
+		})
 		expect(await fails(t.as('guest').join.get({ token: tokenOf(one.url) }))).toMatchObject({ code: 'JOIN_EXHAUSTED' })
 
 		const revoked = await c.learning.invites.create({ courseId: course.id })
 		expect(await c.learning.invites.revoke({ id: revoked.invite.id })).toMatchObject({ status: 'revoked' })
-		expect(await fails(t.as(other).join.accept({ token: tokenOf(revoked.url) }))).toMatchObject({
+		expect(await fails(t.as(other).join.accept({ token: tokenOf(revoked.url), consent: true }))).toMatchObject({
 			code: 'JOIN_REVOKED',
 		})
 
@@ -93,7 +95,9 @@ describe('ссылка-приглашение', () => {
 				.set({ expiresAt: new Date(Date.now() - 1000) })
 				.where(eq(enrollmentInvites.id, old.invite.id)),
 		)
-		expect(await fails(t.as(other).join.accept({ token: tokenOf(old.url) }))).toMatchObject({ code: 'JOIN_EXPIRED' })
+		expect(await fails(t.as(other).join.accept({ token: tokenOf(old.url), consent: true }))).toMatchObject({
+			code: 'JOIN_EXPIRED',
+		})
 		expect(await fails(t.as('guest').join.get({ token: 'x'.repeat(43) }))).toMatchObject({ code: 'JOIN_NOT_FOUND' })
 	})
 
@@ -101,12 +105,12 @@ describe('ссылка-приглашение', () => {
 		const { t, c, course } = await setup()
 		const { url } = await c.learning.invites.create({ courseId: course.id })
 		const token = tokenOf(url)
-		expect(await fails(t.as('curator').join.accept({ token }))).toMatchObject({ code: 'NOT_A_STUDENT' })
+		expect(await fails(t.as('curator').join.accept({ token, consent: true }))).toMatchObject({ code: 'NOT_A_STUDENT' })
 		await withTenant(t.school.id, (tx) =>
 			tx.update(members).set({ status: 'blocked' }).where(eq(members.userId, t.people.student.id)),
 		)
-		expect(await fails(t.as('student').join.accept({ token }))).toMatchObject({ code: 'MEMBER_BLOCKED' })
-		expect(await fails(t.as('guest').join.accept({ token }))).toMatchObject({ code: 'UNAUTHENTICATED' })
+		expect(await fails(t.as('student').join.accept({ token, consent: true }))).toMatchObject({ code: 'MEMBER_BLOCKED' })
+		expect(await fails(t.as('guest').join.accept({ token, consent: true }))).toMatchObject({ code: 'UNAUTHENTICATED' })
 	})
 
 	it('курс в черновике: ссылку создать нельзя', async () => {
@@ -130,7 +134,9 @@ describe('приглашение на почту', () => {
 		expect((await t.as('guest').join.get({ token })).email).toBe(email)
 
 		const stranger = await signUp('stranger')
-		expect(await fails(t.as(stranger).join.accept({ token }))).toMatchObject({ code: 'JOIN_EMAIL_MISMATCH' })
+		expect(await fails(t.as(stranger).join.accept({ token, consent: true }))).toMatchObject({
+			code: 'JOIN_EMAIL_MISMATCH',
+		})
 	})
 
 	it('приглашённый с этой почтой присоединяется: источник «invite», приглашение использовано', async () => {
@@ -138,7 +144,7 @@ describe('приглашение на почту', () => {
 		const person = await signUp('invited')
 		await c.learning.enrollments.enroll({ courseId: course.id, email: person.email })
 		const token = (await lastMailTo(person.email)).text.match(/\/join\/([\w-]+)/)?.[1] as string
-		await t.as(person).join.accept({ token })
+		await t.as(person).join.accept({ token, consent: true })
 		expect((await c.learning.enrollments.list({ courseId: course.id })).items).toMatchObject([
 			{ studentEmail: person.email, source: 'invite' },
 		])

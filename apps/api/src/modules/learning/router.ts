@@ -234,6 +234,6 @@ export const joinRouter = {
 		.use(mw.tenantTx)
 		.use(rateLimit({ name: 'learning.join', max: 20, windowSeconds: 3600, by: 'user' }))
 		.handler(({ input, context }) =>
-			acceptJoin(tenantCtx(context.db, context.school, context), input.token, context.user),
+			acceptJoin(tenantCtx(context.db, context.school, context), input.token, context.user, context.ip),
 		),
 }

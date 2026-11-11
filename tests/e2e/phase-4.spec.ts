@@ -95,6 +95,7 @@ test('демо фазы 4: приглашение → поток с курато
 		await student.getByTestId('auth-signin-submit').click()
 		await expect(student.getByTestId('auth-link-sent')).toBeVisible()
 		await student.goto(await waitForLink(STUDENT, /http:\/\/\S+\/api\/auth\/magic-link\/verify\S+/))
+		await student.getByTestId('pd-consent-checkbox').check()
 		await student.getByTestId('join-accept').click()
 		await expect(student).toHaveURL(new RegExp(`/learn/courses/${ids.courseId}$`))
 		await shoot(student, 'phase-4-joined')

@@ -197,6 +197,13 @@
       "when": 1794392366824,
       "tag": "0027_fk_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794422789404,
+      "tag": "0028_schools_settings",
+      "breakpoints": true
     }
   ]
 }

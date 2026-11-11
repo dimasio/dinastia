@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminProfileRouteImport } from './routes/admin/profile'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as CertificatesVerifyRouteImport } from './routes/certificates.verify'
 import { Route as DevBlocksRouteImport } from './routes/dev.blocks'
 import { Route as DevQuestionsRouteImport } from './routes/dev.questions'
@@ -24,6 +25,8 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as LearnIndexRouteImport } from './routes/learn/index'
 import { Route as LearnProfileRouteImport } from './routes/learn/profile'
+import { Route as LegalOfferRouteImport } from './routes/legal.offer'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as AdminCoursesIndexRouteImport } from './routes/admin/courses/index'
 import { Route as AdminCoursesCourseIdRouteImport } from './routes/admin/courses/$courseId'
 import { Route as AdminReviewIndexRouteImport } from './routes/admin/review/index'
@@ -75,6 +78,11 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const CertificatesVerifyRoute = CertificatesVerifyRouteImport.update({
   id: '/certificates/verify',
   path: '/certificates/verify',
@@ -114,6 +122,16 @@ const LearnProfileRoute = LearnProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
   getParentRoute: () => LearnRouteRoute,
+} as any)
+const LegalOfferRoute = LegalOfferRouteImport.update({
+  id: '/legal/offer',
+  path: '/legal/offer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCoursesIndexRoute = AdminCoursesIndexRouteImport.update({
   id: '/courses/',
@@ -207,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
@@ -214,6 +233,8 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
+  '/legal/offer': typeof LegalOfferRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
@@ -237,6 +258,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
@@ -244,6 +266,8 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
+  '/legal/offer': typeof LegalOfferRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
@@ -270,6 +294,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
@@ -277,6 +302,8 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/learn/profile': typeof LearnProfileRoute
+  '/legal/offer': typeof LegalOfferRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
@@ -304,6 +331,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/admin/settings'
     | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
@@ -311,6 +339,8 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/join/$token'
     | '/learn/profile'
+    | '/legal/offer'
+    | '/legal/privacy'
     | '/admin/'
     | '/learn/'
     | '/admin/courses/$courseId'
@@ -334,6 +364,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/admin/settings'
     | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
@@ -341,6 +372,8 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/join/$token'
     | '/learn/profile'
+    | '/legal/offer'
+    | '/legal/privacy'
     | '/admin'
     | '/learn'
     | '/admin/courses/$courseId'
@@ -366,6 +399,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/admin/settings'
     | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
@@ -373,6 +407,8 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/join/$token'
     | '/learn/profile'
+    | '/legal/offer'
+    | '/legal/privacy'
     | '/admin/'
     | '/learn/'
     | '/admin/courses/$courseId'
@@ -404,6 +440,8 @@ export interface RootRouteChildren {
   DevRichTextRoute: typeof DevRichTextRoute
   InviteTokenRoute: typeof InviteTokenRoute
   JoinTokenRoute: typeof JoinTokenRoute
+  LegalOfferRoute: typeof LegalOfferRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -455,6 +493,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/admin/profile'
       preLoaderRoute: typeof AdminProfileRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/certificates/verify': {
@@ -512,6 +557,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/learn/profile'
       preLoaderRoute: typeof LearnProfileRouteImport
       parentRoute: typeof LearnRouteRoute
+    }
+    '/legal/offer': {
+      id: '/legal/offer'
+      path: '/legal/offer'
+      fullPath: '/legal/offer'
+      preLoaderRoute: typeof LegalOfferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/courses/': {
       id: '/admin/courses/'
@@ -623,6 +682,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteRouteChildren {
   AdminProfileRoute: typeof AdminProfileRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCoursesCourseIdRoute: typeof AdminCoursesCourseIdRoute
   AdminReviewSubmissionIdRoute: typeof AdminReviewSubmissionIdRoute
@@ -641,6 +701,7 @@ interface AdminRouteRouteChildren {
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminProfileRoute: AdminProfileRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCoursesCourseIdRoute: AdminCoursesCourseIdRoute,
   AdminReviewSubmissionIdRoute: AdminReviewSubmissionIdRoute,
@@ -695,6 +756,8 @@ const rootRouteChildren: RootRouteChildren = {
   DevRichTextRoute: DevRichTextRoute,
   InviteTokenRoute: InviteTokenRoute,
   JoinTokenRoute: JoinTokenRoute,
+  LegalOfferRoute: LegalOfferRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

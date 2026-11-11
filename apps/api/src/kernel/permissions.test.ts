@@ -73,6 +73,7 @@ describe('публичные процедуры (5.1)', () => {
 			{ path: 'schools.create', session: true }, // регистрация школы: лимит 5 в час на пользователя
 			{ path: 'schools.mine', session: true }, // свои школы пользователя
 			{ path: 'schools.current', session: false }, // название школы хоста — публично
+			{ path: 'schools.legal', session: false }, // реквизиты школы как оператора ПДн — публичны по закону (5.5)
 			{ path: 'invitations.get', session: false }, // по токену (хэш в БД), лимит по IP
 			{ path: 'invitations.accept', session: true }, // по токену, лимит на пользователя
 			{ path: 'join.get', session: false }, // по токену, лимит по IP

@@ -4,7 +4,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 import { LESSON_COMPLETION_RULES } from './courses.ts'
-import { SchoolPublic } from './schools.ts'
+import { ConsentGiven, SchoolLegal, SchoolPublic } from './schools.ts'
 
 export const LESSON_STATUSES = ['locked', 'available', 'in_progress', 'completed'] as const
 export const LessonStatus = z.enum(LESSON_STATUSES)
@@ -376,6 +376,7 @@ export const JoinPublic = z.object({
 	/** Для адресного приглашения — почта, на которую оно выписано; для ссылки — пусто. */
 	email: z.string().nullable(),
 	expiresAt: DateTime,
+	legal: SchoolLegal,
 })
 
 export const joinContract = {
@@ -383,6 +384,6 @@ export const joinContract = {
 	/** Принять приглашение вошедшим пользователем: становится учеником школы и зачисляется на курс. */
 	accept: oc
 		.route({ method: 'POST', path: '/join/{token}/accept' })
-		.input(JoinToken)
+		.input(JoinToken.extend(ConsentGiven.shape))
 		.output(z.object({ courseId: Id, school: SchoolPublic })),
 }

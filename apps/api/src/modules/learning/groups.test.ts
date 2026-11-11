@@ -187,7 +187,7 @@ describe('потоки', () => {
 		const { url } = await s.c.learning.invites.create({ courseId: s.course.id, groupId: g.id })
 		const token = url.split('/join/')[1] as string
 		const joiner = await signUp('joiner')
-		await s.t.as(joiner).join.accept({ token })
+		await s.t.as(joiner).join.accept({ token, consent: true })
 		const row = (await s.c.learning.enrollments.list({ courseId: s.course.id, q: joiner.email })).items[0]
 		expect(row).toMatchObject({ groupId: g.id, source: 'link' })
 	})

@@ -100,7 +100,7 @@ describe('приглашения через API', () => {
 		const accept = await call('POST', `/api/v1/invitations/${link}/accept`, {
 			slug: school.slug,
 			cookie: invitee.cookie,
-			body: {},
+			body: { consent: true },
 		})
 		expect(await json(accept)).toMatchObject({ role: 'teacher' })
 		const me = await json(await call('GET', '/api/v1/school/me', { slug: school.slug, cookie: invitee.cookie }))
@@ -175,6 +175,9 @@ describe('OpenAPI', () => {
 				'/school/files/{id}/complete',
 				'/school/exports',
 				'/school/exports/{id}',
+				'/school/legal',
+				'/school/settings',
+				'/school/settings/{module}',
 				'/school/me',
 				'/school/me/avatar',
 				'/school/members',

@@ -54,6 +54,7 @@ test('демо фазы 0', async ({ page, browser }) => {
 	// …возвращается на приглашение уже вошедшим и принимает его
 	await expect(teacher.getByTestId('invite-accept')).toBeVisible()
 	await teacher.screenshot(shots('04-invite-signed-in'))
+	await teacher.getByTestId('pd-consent-checkbox').check()
 	await teacher.getByTestId('invite-accept').click()
 
 	// 4. Видит пустой кабинет школы

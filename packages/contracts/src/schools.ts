@@ -61,6 +61,20 @@ export type SchoolPublic = z.infer<typeof SchoolPublic>
 
 export const MySchool = SchoolPublic.extend({ role: MemberRole, url: z.url() })
 
+/**
+ * Реквизиты школы как оператора ПДн (5.5): видит ученик и сотрудник при согласии. `privacyUrl` null — политика по шаблону
+ * Dinastia на сайте школы (`/legal/privacy`).
+ */
+export const SchoolLegal = z.object({
+	operator: z.string(),
+	contact: z.string().nullable(),
+	privacyUrl: z.url().nullable(),
+})
+export type SchoolLegal = z.infer<typeof SchoolLegal>
+
+/** Принятие приглашения: согласие на обработку ПДн школой обязательно (фиксируется с версией текста и IP). */
+export const ConsentGiven = z.object({ consent: z.literal(true) })
+
 /** Аватар участника: назначение файла schools.avatar (сервер) и проверка до загрузки (клиент). */
 export const AVATAR = {
 	purpose: 'schools.avatar',
@@ -85,6 +99,7 @@ export const InvitationPublic = z.object({
 	role: MemberRole,
 	expiresAt: DateTime,
 	school: SchoolPublic,
+	legal: SchoolLegal,
 })
 
 export const schoolsContract = {
@@ -94,6 +109,8 @@ export const schoolsContract = {
 	mine: oc.route({ method: 'GET', path: '/me/schools' }).output(z.array(MySchool)),
 	/** Школа текущего хоста — публично (страница входа, брендинг). */
 	current: oc.route({ method: 'GET', path: '/school' }).output(SchoolPublic),
+	/** Реквизиты школы как оператора ПДн — публично (страница политики школы, профиль ученика). */
+	legal: oc.route({ method: 'GET', path: '/school/legal' }).output(SchoolLegal),
 	/** Кто я в школе текущего хоста. */
 	me: oc.route({ method: 'GET', path: '/school/me' }).output(Me),
 	/** Свой аватар в школе: файл назначения schools.avatar (загружен и подтверждён), null — убрать. */
@@ -114,7 +131,7 @@ export const invitationsContract = {
 	/** Принять приглашение вошедшим пользователем (email сессии = email приглашения). */
 	accept: oc
 		.route({ method: 'POST', path: '/invitations/{token}/accept' })
-		.input(InvitationToken)
+		.input(InvitationToken.extend(ConsentGiven.shape))
 		.output(z.object({ role: MemberRole, school: SchoolPublic })),
 }
 

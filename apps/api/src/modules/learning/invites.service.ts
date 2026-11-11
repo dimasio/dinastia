@@ -10,6 +10,7 @@ import { fail } from '#/kernel/errors.ts'
 import { deliverEmail } from '#/kernel/mail/send.ts'
 import { members } from '#/kernel/members/schema.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
+import { recordPdConsent, schoolLegal } from '../schools/legal.ts'
 import { courseInvitationEmail } from './emails/course-invitation.tsx'
 import { enroll } from './enrollment.service.ts'
 import { groupOfCourse } from './groups.service.ts'
@@ -213,14 +214,25 @@ export async function getJoin(ctx: BaseCtx, token: string) {
 	const inv = await findJoin(ctx.db, token, ctx.now())
 	const [card] = await courseCards(ctx, [inv.courseId])
 	if (!card) return fail.notFound('JOIN_NOT_FOUND')
-	return { school: ctx.school, courseTitle: card.title, email: inv.email, expiresAt: inv.expiresAt }
+	return {
+		school: ctx.school,
+		courseTitle: card.title,
+		email: inv.email,
+		expiresAt: inv.expiresAt,
+		legal: await schoolLegal(ctx.db, ctx.school),
+	}
 }
 
 /**
  * Принять приглашение вошедшим пользователем: участник `student` создаётся (если его нет), затем зачисление
  * (источник `link`/`invite`). Использование считается один раз на человека; сотрудник и заблокированный — отказ.
  */
-export async function acceptJoin(ctx: BaseCtx, token: string, user: { id: string; email: string }) {
+export async function acceptJoin(
+	ctx: BaseCtx,
+	token: string,
+	user: { id: string; email: string },
+	ip: string | null = null,
+) {
 	const inv = await findJoin(ctx.db, token, ctx.now(), true)
 	if (inv.email && inv.email !== user.email.toLowerCase()) return fail.forbidden('JOIN_EMAIL_MISMATCH')
 	await publishedCourse(ctx, inv.courseId)
@@ -236,6 +248,7 @@ export async function acceptJoin(ctx: BaseCtx, token: string, user: { id: string
 				.returning()
 		)[0]
 	if (!member) throw new Error('участник не создан')
+	await recordPdConsent(ctx.db, { userId: user.id, schoolId: ctx.school.id, ip })
 	const { enrollment, outcome } = await enroll(ctx, {
 		memberId: member.id,
 		courseId: inv.courseId,

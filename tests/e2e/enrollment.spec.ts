@@ -172,6 +172,7 @@ test('ссылка-приглашение и приглашение на поч�
 	const email = `join-${run}@e2e.local`
 	const guest = await join(url, email)
 	await guest.screenshot(shots('4.1-join-signed-in'))
+	await guest.getByTestId('pd-consent-checkbox').check()
 	await guest.getByTestId('join-accept').click()
 	await expect(guest).toHaveURL(new RegExp(`/learn/courses/${courseId}$`))
 	await expect(guest.getByText(`Приглашения ${run}`).first()).toBeVisible()
@@ -199,6 +200,7 @@ test('ссылка-приглашение и приглашение на поч�
 	await page.getByTestId('resource-enrollments-create-form-submit').click()
 	const link = await waitForLink(invited, /http:\/\/\S+\/join\/\S+/)
 	const person = await join(link, invited)
+	await person.getByTestId('pd-consent-checkbox').check()
 	await person.getByTestId('join-accept').click()
 	await expect(person).toHaveURL(new RegExp(`/learn/courses/${courseId}$`))
 })

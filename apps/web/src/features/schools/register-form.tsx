@@ -2,7 +2,7 @@ import { SchoolCreate } from '@dinastia/contracts/schools'
 import { Alert, AlertDescription, Button, Field, Input } from '@dinastia/ui'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { authClient } from '#/app/auth.ts'
 import { errorText } from '#/app/errors.ts'
 import { client } from '#/app/orpc.ts'
@@ -95,7 +95,18 @@ export function RegisterSchoolForm() {
 					<span className="text-sm text-muted-foreground">.{import.meta.env.VITE_APP_DOMAIN}</span>
 				</div>
 			</Field>
-			<p className="text-xs text-muted-foreground">{t('register.consent')}</p>
+			<p className="text-xs text-muted-foreground">
+				<Trans
+					t={t}
+					i18nKey="register.consent"
+					components={{
+						// biome-ignore lint/a11y/useAnchorContent: текст ссылки подставляет Trans
+						offer: <a href="/legal/offer" target="_blank" rel="noopener noreferrer" className="underline" />,
+						// biome-ignore lint/a11y/useAnchorContent: текст ссылки подставляет Trans
+						privacy: <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline" />,
+					}}
+				/>
+			</p>
 			{error ? (
 				<Alert variant="destructive">
 					<AlertDescription data-testid="schools-register-error">{error}</AlertDescription>

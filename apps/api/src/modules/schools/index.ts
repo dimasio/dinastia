@@ -4,6 +4,7 @@ import { avatarPurpose } from './files.ts'
 import { sendInvitationJob } from './jobs.ts'
 import { permissions } from './permissions.ts'
 import { invitationsRouter, membersRouter, schoolsRouter } from './router.ts'
+import { schoolsSettings } from './settings.ts'
 
 export default defineModule({
 	name: 'schools',
@@ -12,4 +13,5 @@ export default defineModule({
 	jobs: [sendInvitationJob],
 	emails: [invitationEmail],
 	files: [avatarPurpose],
+	settings: schoolsSettings,
 })

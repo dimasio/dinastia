@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react'
+import { Settings, Users } from 'lucide-react'
 import { defineNav } from '#/app/nav.ts'
 
 export const nav = defineNav([
@@ -10,5 +10,14 @@ export const nav = defineNav([
 		perm: 'schools.members.read',
 		group: 'people',
 		order: 20,
+	},
+	{
+		area: 'admin',
+		to: '/admin/settings',
+		label: 'schools:nav.settings',
+		icon: Settings,
+		perm: 'schools.settings.manage',
+		group: 'settings',
+		order: 10,
 	},
 ])
