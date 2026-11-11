@@ -40,6 +40,12 @@ export async function activeSchool(id: string): Promise<BaseCtx['school'] | null
 	return row?.status === 'active' ? { id: row.id, slug: row.slug, name: row.name } : null
 }
 
+/** Школа в любом статусе (задачи `inactiveSchool`); удалена совсем — null. */
+export async function schoolById(id: string): Promise<BaseCtx['school'] | null> {
+	const [row] = await db.select().from(schools).where(eq(schools.id, id)).limit(1)
+	return row ? { id: row.id, slug: row.slug, name: row.name } : null
+}
+
 /**
  * Выполнить fn для каждой активной школы — своя транзакция на школу (скилл background-jobs, scope 'all-schools').
  * Ошибка одной школы не останавливает остальные; вернёт ошибки по школам.

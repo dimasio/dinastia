@@ -1,9 +1,11 @@
 // S3 (D-011): подписанные ссылки на загрузку и чтение, проверка и удаление объекта. Файлы не проходят через API.
 import {
 	DeleteObjectCommand,
+	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadBucketCommand,
 	HeadObjectCommand,
+	ListObjectsV2Command,
 	PutObjectCommand,
 	S3Client,
 } from '@aws-sdk/client-s3'
@@ -76,6 +78,19 @@ export async function getObject(key: string): Promise<{ body: Uint8Array; mime: 
 /** Удалить объект (нет объекта — не ошибка). */
 export async function deleteObject(key: string) {
 	await client.send(new DeleteObjectCommand({ Bucket, Key: key }))
+}
+
+/** Удалить все объекты с префиксом (файлы удаляемой школы `schools/<id>/`, 5.5): пачками по 1000; вернёт число. */
+export async function deletePrefix(prefix: string): Promise<number> {
+	if (!/^schools\/[0-9a-f-]{36}\/$/.test(prefix)) throw new Error(`deletePrefix: только папка школы, а не «${prefix}»`)
+	let removed = 0
+	for (;;) {
+		const page = await client.send(new ListObjectsV2Command({ Bucket, Prefix: prefix, MaxKeys: 1000 }))
+		const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []))
+		if (!keys.length) return removed
+		await client.send(new DeleteObjectsCommand({ Bucket, Delete: { Objects: keys, Quiet: true } }))
+		removed += keys.length
+	}
 }
 
 /** Хранилище доступно и бакет есть — для `/health/ready` (5.4). */

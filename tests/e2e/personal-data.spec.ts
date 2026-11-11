@@ -110,3 +110,37 @@ test('ученик с согласием присоединяется и ска�
 	await expect(page.getByTestId('resource-enrollments-row').first()).toContainText('Удалённый ученик')
 	await expect(page.getByText(email)).toHaveCount(0)
 })
+
+test('владелец удаляет школу: школа закрыта, в «Моих школах» — дата и отмена', async ({ page }) => {
+	const slug = `del-${run}`
+	await page.goto('http://dinastia.localhost:5173/register')
+	await page.getByLabel('Ваше имя').fill('Владелец Удаляемой')
+	await page.getByLabel('Email').fill(`del-${run}@e2e.local`)
+	await page.getByLabel('Пароль').fill('e2e-password-1')
+	await page.getByLabel('Название школы').fill('Школа на удаление')
+	await page.getByLabel('Адрес школы').fill(slug)
+	await page.getByTestId('schools-register-submit').click()
+	await expect(page).toHaveURL(`http://${slug}.dinastia.localhost:5173/admin`)
+
+	await page.goto(schoolUrl(slug, '/admin/settings'))
+	await page.getByTestId('delete-school-open').click()
+	await expect(page.getByTestId('delete-school-submit')).toBeDisabled()
+	await page.getByTestId('delete-school-slug').fill(slug)
+	await page.screenshot(shots('5.5-delete-school'))
+	await page.getByTestId('delete-school-submit').click()
+
+	// корневой домен: дата удаления и отмена
+	await expect(page).toHaveURL('http://dinastia.localhost:5173/')
+	await expect(page.getByTestId(`schools-deleting-${slug}`)).toContainText('Удаляется')
+	await page.screenshot(shots('5.5-my-schools-deleting'))
+
+	// школа закрыта
+	const closed = await page.context().newPage()
+	await closed.goto(schoolUrl(slug, '/login'))
+	await expect(closed.getByText('Школа закрыта и будет удалена')).toBeVisible()
+
+	await page.getByTestId(`schools-cancel-deletion-${slug}`).click()
+	await expect(page.getByTestId(`schools-open-${slug}`)).toBeVisible()
+	await closed.reload()
+	await expect(closed.getByTestId('login-title')).toContainText('Школа на удаление')
+})

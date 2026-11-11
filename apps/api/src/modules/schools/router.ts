@@ -3,6 +3,7 @@ import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
+import { cancelSchoolDeletion, requestSchoolDeletion } from '#/kernel/school-deletion/school-deletion.ts'
 import { can, rolePermissions } from '#/permissions.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { recordPdConsent, schoolLegal } from './legal.ts'
@@ -23,6 +24,7 @@ export const schoolsRouter = {
 				name: school.name,
 				role: 'owner' as const,
 				url: appOrigin(school.slug),
+				deleteAt: null,
 			}
 		}),
 
@@ -37,6 +39,29 @@ export const schoolsRouter = {
 		.use(mw.host)
 		.use(mw.school)
 		.handler(({ context }) => context.school),
+
+	requestDeletion: impl.schools.requestDeletion
+		.use(mw.host)
+		.use(mw.session)
+		.use(mw.school)
+		.use(mw.tenantTx)
+		.use(mw.member)
+		.use(can('schools.delete'))
+		.use(rateLimit({ name: 'schools.delete', max: 5, windowSeconds: 3600, by: 'member' }))
+		.handler(({ input, context }) => requestSchoolDeletion(schoolCtx(context), input.slug)),
+
+	cancelDeletion: impl.schools.cancelDeletion
+		.use(mw.host)
+		.use(mw.session)
+		.use(rateLimit({ name: 'schools.cancel-deletion', max: 20, windowSeconds: 3600, by: 'user' }))
+		.handler(async ({ input, context }) => {
+			if (context.host.kind !== 'root') fail.notFound('NOT_ON_ROOT_DOMAIN')
+			await cancelSchoolDeletion(context.user.id, input.id, { ip: context.ip })
+			const mine = await listMySchools(context.user.id)
+			const school = mine.find((s) => s.id === input.id)
+			if (!school) return fail.notFound('SCHOOL_NOT_FOUND')
+			return { ...school, url: appOrigin(school.slug) }
+		}),
 
 	legal: impl.schools.legal
 		.use(mw.host)

@@ -14,6 +14,8 @@ import {
 	registerSettings,
 	registerWebhookHandlers,
 } from '#/kernel/registry.ts'
+import { deletionEmail } from '#/kernel/school-deletion/emails.tsx'
+import { deletionNoticeJob, purgeSchoolsJob } from '#/kernel/school-deletion/school-deletion.ts'
 import settingsModule from '#/kernel/settings/module.ts'
 import files from '#/kernel/storage/module.ts'
 import { processWebhookJob } from '#/kernel/webhooks/receive.ts'
@@ -39,8 +41,11 @@ export const modules = {
 // Задачи, подписчики, письма, назначения файлов и обработчики вебхуков модулей — в реестр ядра (воркер, ctx.emit,
 // ctx.mail, ctx.files, webhooks.process).
 const { jobs, subscribers } = collectJobs(modules)
-registerJobs([mailSendJob, processWebhookJob, requestLimitsCleanupJob, ...jobs], subscribers)
-registerEmails([magicLinkEmail, ...Object.values(modules).flatMap((m) => m.emails ?? [])])
+registerJobs(
+	[mailSendJob, processWebhookJob, requestLimitsCleanupJob, deletionNoticeJob, purgeSchoolsJob, ...jobs],
+	subscribers,
+)
+registerEmails([magicLinkEmail, deletionEmail, ...Object.values(modules).flatMap((m) => m.emails ?? [])])
 registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
 registerExports(Object.values(modules).flatMap((m) => m.exports ?? []))
 registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))

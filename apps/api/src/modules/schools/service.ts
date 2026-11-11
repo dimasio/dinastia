@@ -2,7 +2,7 @@
 
 import { type SchoolCreate, SchoolCreate as SchoolCreateSchema } from '@dinastia/contracts/schools'
 import { schools } from '@dinastia/db'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, or, sql } from 'drizzle-orm'
 import { consents } from '#/kernel/auth/schema.ts'
 // biome-ignore lint/style/noRestrictedImports: регистрация школы и поиск школы по slug идут до появления тенанта (D-006)
 import { db } from '#/kernel/db/client.ts'
@@ -10,6 +10,7 @@ import { withUser } from '#/kernel/db/tenant.ts'
 import { fail } from '#/kernel/errors.ts'
 import { LEGAL_VERSIONS } from '#/kernel/legal.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { deleteAtOf } from '#/kernel/school-deletion/school-deletion.ts'
 
 /** Зарегистрировать школу: школа + владелец + согласия с офертой и политикой — одной транзакцией. */
 export async function createSchool(input: SchoolCreate, owner: { userId: string; ip?: string | null }) {
@@ -39,16 +40,35 @@ export async function createSchool(input: SchoolCreate, owner: { userId: string;
 	})
 }
 
-/** Школы, где пользователь — активный участник (корневой домен: выбор школы). */
+/** Школы, где пользователь — активный участник (корневой домен: выбор школы); владелец видит и удаляемые (5.5). */
 export async function listMySchools(userId: string) {
-	return withUser(userId, (tx) =>
+	const rows = await withUser(userId, (tx) =>
 		tx
-			.select({ id: schools.id, slug: schools.slug, name: schools.name, role: members.role })
+			.select({
+				id: schools.id,
+				slug: schools.slug,
+				name: schools.name,
+				role: members.role,
+				deletionRequestedAt: schools.deletionRequestedAt,
+			})
 			.from(members)
 			.innerJoin(schools, eq(schools.id, members.schoolId))
-			.where(and(eq(members.userId, userId), eq(members.status, 'active'), eq(schools.status, 'active')))
+			.where(
+				and(
+					eq(members.userId, userId),
+					eq(members.status, 'active'),
+					or(
+						eq(schools.status, 'active'),
+						and(eq(schools.status, 'deleted'), eq(members.role, 'owner'), isNotNull(schools.deletionRequestedAt)),
+					),
+				),
+			)
 			.orderBy(schools.name),
 	)
+	return rows.map(({ deletionRequestedAt, ...s }) => ({
+		...s,
+		deleteAt: deletionRequestedAt ? deleteAtOf(deletionRequestedAt) : null,
+	}))
 }
 
 export async function findSchoolBySlug(slug: string) {

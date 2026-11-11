@@ -59,7 +59,12 @@ export type StaffInvite = z.infer<typeof StaffInvite>
 export const SchoolPublic = z.object({ id: Id, slug: z.string(), name: z.string() })
 export type SchoolPublic = z.infer<typeof SchoolPublic>
 
-export const MySchool = SchoolPublic.extend({ role: MemberRole, url: z.url() })
+export const MySchool = SchoolPublic.extend({
+	role: MemberRole,
+	url: z.url(),
+	/** Школа удаляется (видит только владелец): дата удаления; до неё можно отменить (5.5). */
+	deleteAt: DateTime.nullable(),
+})
 
 /**
  * Реквизиты школы как оператора ПДн (5.5): видит ученик и сотрудник при согласии. `privacyUrl` null — политика по шаблону
@@ -113,6 +118,19 @@ export const schoolsContract = {
 	legal: oc.route({ method: 'GET', path: '/school/legal' }).output(SchoolLegal),
 	/** Кто я в школе текущего хоста. */
 	me: oc.route({ method: 'GET', path: '/school/me' }).output(Me),
+	/**
+	 * Удалить школу (только владелец; подтверждение — адрес школы): школа закрывается сразу, через 30 дней все данные и
+	 * файлы удаляются; до этого — `cancelDeletion` с корневого домена.
+	 */
+	requestDeletion: oc
+		.route({ method: 'POST', path: '/school/deletion' })
+		.input(z.object({ slug: z.string().max(40) }))
+		.output(z.object({ deleteAt: DateTime })),
+	/** Отменить удаление своей школы (корневой домен, владелец). */
+	cancelDeletion: oc
+		.route({ method: 'POST', path: '/schools/{id}/cancel-deletion' })
+		.input(z.object({ id: Id }))
+		.output(MySchool),
 	/** Свой аватар в школе: файл назначения schools.avatar (загружен и подтверждён), null — убрать. */
 	updateMyAvatar: oc
 		.route({ method: 'POST', path: '/school/me/avatar' })

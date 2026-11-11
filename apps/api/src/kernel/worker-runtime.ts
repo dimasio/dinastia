@@ -10,7 +10,7 @@ import { type AnyJob, ensureQueue, type JobPayload } from './jobs.ts'
 import { log as rootLog } from './log.ts'
 import { jobDuration, jobFailures } from './metrics.ts'
 import { allJobs } from './registry.ts'
-import { activeSchool, forEachSchool, tenantCtx } from './tenant-ctx.ts'
+import { activeSchool, forEachSchool, schoolById, tenantCtx } from './tenant-ctx.ts'
 
 export type JobOutcome = JobResult['status']
 
@@ -37,7 +37,7 @@ export async function runJob(def: AnyJob, payload: JobPayload, meta: { jobId: st
 		return
 	}
 	if (!payload.schoolId) throw new AppError('invalid', 'JOB_WITHOUT_SCHOOL')
-	const school = await activeSchool(payload.schoolId)
+	const school = await (def.inactiveSchool ? schoolById : activeSchool)(payload.schoolId)
 	if (!school) {
 		log.warn('school is not active, job skipped')
 		return

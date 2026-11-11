@@ -21,11 +21,13 @@ import {
 	Switch,
 	toast,
 } from '@dinastia/ui'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
+import { meQuery } from '#/app/queries.ts'
+import { DeleteSchool } from './delete-school.tsx'
 
 type Value = SettingField['value']
 
@@ -34,6 +36,7 @@ export function SettingsPage() {
 	const { data: fields } = useSuspenseQuery(orpc.settings.list.queryOptions())
 	// раздел экрана = модуль + группа: сохраняется одним запросом в модуль
 	const sections = [...new Map(fields.map((f) => [`${f.module}:${f.group}`, f])).keys()]
+	const { data: me } = useQuery(meQuery())
 	return (
 		<>
 			<PageHeader title={t('title')} description={t('description')} />
@@ -42,6 +45,7 @@ export function SettingsPage() {
 				{sections.map((key) => (
 					<Section key={key} fields={fields.filter((f) => `${f.module}:${f.group}` === key)} />
 				))}
+				{me?.permissions.includes('schools.delete') ? <DeleteSchool school={me.school} /> : null}
 			</div>
 		</>
 	)
