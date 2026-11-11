@@ -11,6 +11,9 @@
 		"./styles.css": "./src/styles/globals.css",
 		"./rich-text": "./src/rich-text/index.ts"
 	},
+	"sideEffects": [
+		"*.css"
+	],
 	"scripts": {
 		"typecheck": "tsc -p .",
 		"test": "vitest run"

@@ -14,6 +14,7 @@ import { listBlocks } from '#/kernel/blocks/blocks.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { signFileKey } from '#/kernel/storage/files.ts'
 import { files } from '#/kernel/storage/schema.ts'
 import { enrollmentScope } from '../learning/policies.ts'
 import { openLessonContext, recordBlockResult } from '../learning/service.ts'
@@ -34,6 +35,10 @@ type DocValue = Submission['body']
 type Answer = { body: DocValue; fileIds: string[] }
 
 /** Настройки опубликованного блока урока; нет — QUIZ_NOT_FOUND-подобный ASSIGNMENT_NOT_FOUND. */
+/** Подписанная ссылка на файл работы или комментария: картинка — показать, остальное — скачать с исходным именем. */
+const fileUrl = (f: { key: string; name: string; mime: string }) =>
+	signFileKey(f.key, f.mime.startsWith('image/') ? {} : { downloadName: f.name })
+
 export async function blockOf(ctx: SchoolCtx, lessonId: string, blockKey: string) {
 	const block = (await listBlocks(ctx, lessonId, 'published')).find(
 		(b) => b.blockKey === blockKey && b.type === 'assignment',
@@ -79,6 +84,7 @@ export async function commentsOf(ctx: SchoolCtx, submissionId: string): Promise<
 			name: files.name,
 			mime: files.mime,
 			size: files.size,
+			key: files.key,
 		})
 		.from(submissionCommentFiles)
 		.innerJoin(files, eq(files.id, submissionCommentFiles.fileId))
@@ -90,7 +96,8 @@ export async function commentsOf(ctx: SchoolCtx, submissionId: string): Promise<
 		)
 		.orderBy(asc(submissionCommentFiles.position))
 	const urls = new Map<string, string>()
-	for (const f of fileRows) urls.set(f.id, await ctx.files.signedUrl(f.id, { download: !f.mime.startsWith('image/') }))
+	// ключ — тем же запросом: подпись без запроса на каждый файл (5.2)
+	for (const f of fileRows) urls.set(f.id, await fileUrl(f))
 	return rows.map((c) => ({
 		id: c.id,
 		authorName: c.name,
@@ -136,7 +143,7 @@ export async function addComment(ctx: SchoolCtx, submissionId: string, input: { 
 
 export async function viewOf(ctx: SchoolCtx, row: Row): Promise<Submission> {
 	const fileRows = await ctx.db
-		.select({ id: files.id, name: files.name, mime: files.mime, size: files.size })
+		.select({ id: files.id, name: files.name, mime: files.mime, size: files.size, key: files.key })
 		.from(submissionFiles)
 		.innerJoin(files, eq(files.id, submissionFiles.fileId))
 		.where(eq(submissionFiles.submissionId, row.id))
@@ -146,12 +153,7 @@ export async function viewOf(ctx: SchoolCtx, row: Row): Promise<Submission> {
 		id: row.id,
 		status: row.status,
 		body: (row.body as DocValue) ?? null,
-		files: await Promise.all(
-			fileRows.map(async (f) => ({
-				...f,
-				url: await ctx.files.signedUrl(f.id, { download: !f.mime.startsWith('image/') }),
-			})),
-		),
+		files: await Promise.all(fileRows.map(async ({ key, ...f }) => ({ ...f, url: await fileUrl({ ...f, key }) }))),
 		comments,
 		revision: row.revision,
 		submittedAt: row.submittedAt,

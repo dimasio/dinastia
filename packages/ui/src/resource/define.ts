@@ -1,5 +1,5 @@
 // Описание ресурса и состояние списка (скилл admin-resource).
-import { z } from 'zod'
+import type { z } from 'zod'
 import {
 	type ActionDef,
 	type ListPage,
@@ -29,14 +29,29 @@ export function action<Row, S extends z.ZodObject = z.ZodObject>(def: ActionDef<
 	return def
 }
 
-/** Схема параметров адреса для маршрута ресурса; лишнее и битое отбрасывается, а не ломает экран. */
-export const resourceSearch = z.object({
-	page: z.coerce.number().int().min(1).optional().catch(undefined),
-	q: z.string().max(200).optional().catch(undefined),
-	sort: z.string().max(50).optional().catch(undefined),
-	dir: z.enum(['asc', 'desc']).optional().catch(undefined),
-	filters: z.record(z.string(), z.string()).optional().catch(undefined),
-}) satisfies z.ZodType<ResourceSearch>
+/**
+ * Параметры адреса для маршрута ресурса; лишнее и битое отбрасывается, а не ломает экран. Функция, а не схема zod: маршруты
+ * разбирают адрес при старте приложения, и zod не должен попадать в начальную загрузку (5.2).
+ */
+export function resourceSearch(raw: Record<string, unknown>): ResourceSearch {
+	const str = (v: unknown, max: number) => (typeof v === 'string' && v.length <= max ? v : undefined)
+	const page = typeof raw.page === 'number' ? raw.page : Number(str(raw.page, 10))
+	const filters =
+		raw.filters && typeof raw.filters === 'object' && !Array.isArray(raw.filters)
+			? Object.fromEntries(
+					Object.entries(raw.filters as Record<string, unknown>).filter(
+						(e): e is [string, string] => e[0].length <= 50 && typeof e[1] === 'string' && e[1].length <= 200,
+					),
+				)
+			: undefined
+	return {
+		page: Number.isInteger(page) && page >= 1 ? page : undefined,
+		q: str(raw.q, 200),
+		sort: str(raw.sort, 50),
+		dir: raw.dir === 'asc' || raw.dir === 'desc' ? raw.dir : undefined,
+		filters,
+	}
+}
 
 /** Адрес → вход списка: только сортировки колонок и значения фильтров ресурса (чужое — не уходит на сервер). */
 export function toListInput(

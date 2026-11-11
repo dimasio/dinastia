@@ -40,6 +40,9 @@ jobs:
       - name: Lint, типы, тесты, документация
         run: pnpm check
 
+      - name: Бюджет размера веба (начальная загрузка ≤ 200 КБ gzip)
+        run: pnpm bundle:budget
+
       - name: Миграции на чистой БД и демо-данные
         run: |
           pnpm db:reset

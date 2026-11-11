@@ -16,6 +16,7 @@
 		"check": "pnpm lint && turbo run typecheck test && pnpm docs:check && pnpm check:registries",
 		"check:registries": "pnpm --filter @dinastia/api run check:registries",
 		"docs:check": "pnpm --filter @dinastia/tools run docs:check",
+		"bundle:budget": "pnpm --filter @dinastia/web build && pnpm --filter @dinastia/tools run bundle:budget",
 		"env:check": "pnpm --filter @dinastia/tools run env:check",
 		"skills:link": "pnpm --filter @dinastia/tools run skills:link",
 		"env:up": "docker compose -f docker/compose.yml --env-file .env up -d --wait && docker compose -f docker/compose.yml --env-file .env run --rm seaweedfs-init",

@@ -5,7 +5,8 @@ import { staffResource } from '#/features/schools/resources/staff.ts'
 
 export const Route = createFileRoute('/admin/staff/')({
 	validateSearch: resourceSearch,
-	beforeLoad: requirePerm(staffResource.perms.read),
+	// право строкой, а не `staffResource.perms.read`: beforeLoad — в начальной загрузке, ресурс (и zod) — в чанке экрана (5.2)
+	beforeLoad: requirePerm('schools.members.read'),
 	component: () => {
 		const search = Route.useSearch()
 		const navigate = Route.useNavigate()

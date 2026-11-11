@@ -38,8 +38,14 @@ export async function shoot(page: Page, name: string, opts: ShootOptions = {}): 
 	if (opts.mobile !== false) {
 		const size = page.viewportSize()
 		await page.setViewportSize({ width: 375, height: 800 })
-		const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-		expect(overflow, 'горизонтальная прокрутка страницы на 375px').toBeLessThanOrEqual(0)
+		// раскладка перестраивается после смены размера (таблица ресурса → карточки по matchMedia) — ждём, пока установится; сама
+		// проверка не мягче: прокрутки на 375px быть не должно
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+				message: 'горизонтальная прокрутка страницы на 375px',
+				timeout: 3_000,
+			})
+			.toBeLessThanOrEqual(0)
 		await snap('mobile')
 		if (size) await page.setViewportSize(size)
 	}

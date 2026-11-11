@@ -12,7 +12,8 @@
 		"gen:question": "tsx src/gen/question.ts",
 		"env:check": "tsx src/env-check.ts",
 		"gen:probe": "tsx src/gen-probe.ts",
-		"test:repeat": "tsx src/test-repeat.ts"
+		"test:repeat": "tsx src/test-repeat.ts",
+		"bundle:budget": "tsx src/bundle-budget.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

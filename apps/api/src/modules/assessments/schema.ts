@@ -74,6 +74,7 @@ export const quizAttempts = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		index().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
 		index().on(t.schoolId, t.status, t.deadlineAt),
 	],
@@ -107,6 +108,7 @@ export const attemptQuestionItems = tenantTable(
 	(t) => [
 		tenantRef(t, t.attemptQuestionId, attemptQuestions, 'cascade'),
 		tenantRef(t, t.itemId, questionItems, 'no action'),
+		index().on(t.schoolId, t.itemId),
 		uniqueIndex().on(t.schoolId, t.attemptQuestionId, t.itemId),
 	],
 )
@@ -129,6 +131,7 @@ export const quizAnswers = tenantTable(
 	(t) => [
 		tenantRef(t, t.attemptQuestionId, attemptQuestions, 'cascade'),
 		tenantRef(t, t.gradedByMemberId, members, 'no action'),
+		index().on(t.schoolId, t.gradedByMemberId),
 		uniqueIndex().on(t.schoolId, t.attemptQuestionId),
 	],
 )
@@ -145,6 +148,7 @@ export const quizAnswerItems = tenantTable(
 	(t) => [
 		tenantRef(t, t.answerId, quizAnswers, 'cascade'),
 		tenantRef(t, t.itemId, questionItems, 'no action'),
+		index().on(t.schoolId, t.itemId),
 		index().on(t.schoolId, t.answerId),
 	],
 )
@@ -172,7 +176,9 @@ export const submissions = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		tenantRef(t, t.reviewerMemberId, members, 'no action'),
+		index().on(t.schoolId, t.reviewerMemberId),
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
 		index().on(t.schoolId, t.status, t.submittedAt),
 	],
@@ -189,6 +195,7 @@ export const submissionFiles = tenantTable(
 	(t) => [
 		tenantRef(t, t.submissionId, submissions, 'cascade'),
 		tenantRef(t, t.fileId, files, 'no action'),
+		index().on(t.schoolId, t.fileId),
 		uniqueIndex().on(t.schoolId, t.submissionId, t.fileId),
 	],
 )
@@ -204,6 +211,7 @@ export const submissionComments = tenantTable(
 	(t) => [
 		tenantRef(t, t.submissionId, submissions, 'cascade'),
 		tenantRef(t, t.authorMemberId, members, 'no action'),
+		index().on(t.schoolId, t.authorMemberId),
 		index().on(t.schoolId, t.submissionId, t.createdAt),
 	],
 )
@@ -219,6 +227,7 @@ export const submissionCommentFiles = tenantTable(
 	(t) => [
 		tenantRef(t, t.commentId, submissionComments, 'cascade'),
 		tenantRef(t, t.fileId, files, 'no action'),
+		index().on(t.schoolId, t.fileId),
 		uniqueIndex().on(t.schoolId, t.commentId, t.fileId),
 	],
 )

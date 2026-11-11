@@ -95,7 +95,9 @@ export const enrollmentInvites = tenantTable(
 	(t) => [
 		tenantRef(t, t.courseId, courses, 'cascade'),
 		tenantRef(t, t.createdByMemberId, members, 'cascade'),
+		index().on(t.schoolId, t.createdByMemberId),
 		tenantRef(t, t.groupId, groups, 'no action'),
+		index().on(t.schoolId, t.groupId),
 		index().on(t.schoolId, t.courseId),
 	],
 )
@@ -118,6 +120,7 @@ export const deadlineReminders = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.kind),
 	],
 )
@@ -136,6 +139,7 @@ export const lessonOpenNotices = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId),
 	],
 )
@@ -152,6 +156,7 @@ export const lessonProgress = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId),
 	],
 )
@@ -176,6 +181,7 @@ export const blockProgress = tenantTable(
 	(t) => [
 		tenantRef(t, t.enrollmentId, enrollments, 'cascade'),
 		tenantRef(t, t.lessonId, lessons, 'cascade'),
+		index().on(t.schoolId, t.lessonId),
 		uniqueIndex().on(t.schoolId, t.enrollmentId, t.lessonId, t.blockKey),
 	],
 )

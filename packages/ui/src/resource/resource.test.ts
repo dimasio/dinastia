@@ -86,8 +86,8 @@ describe('адрес → вход списка', () => {
 	})
 
 	it('битые параметры адреса не ломают экран', () => {
-		expect(resourceSearch.parse({ page: 'abc', dir: 'up', q: 'x', filters: 5 })).toEqual({ q: 'x' })
-		expect(resourceSearch.parse({ page: '3' })).toEqual({ page: 3 })
+		expect(resourceSearch({ page: 'abc', dir: 'up', q: 'x', filters: 5 })).toEqual({ q: 'x' })
+		expect(resourceSearch({ page: '3' })).toEqual({ page: 3 })
 	})
 })
 

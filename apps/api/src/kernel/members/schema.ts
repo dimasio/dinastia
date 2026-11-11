@@ -29,7 +29,9 @@ export const members = tenantTable(
 		uniqueIndex().on(t.schoolId, t.userId),
 		index().on(t.userId),
 		tenantRef(t, t.invitedBy, t, 'no action'),
+		index().on(t.schoolId, t.invitedBy),
 		tenantRef(t, t.avatarFileId, files, 'no action'),
+		index().on(t.schoolId, t.avatarFileId),
 		// Только вне школы (withUser): иначе политики сложились бы через OR и в школе A были бы видны членства
 		// пользователя в других школах — findActiveMember выдал бы чужую роль.
 		pgPolicy('members_own_memberships', {

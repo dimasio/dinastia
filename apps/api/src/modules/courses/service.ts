@@ -12,6 +12,8 @@ import { and, asc, count, eq, inArray, isNotNull, like, ne, or, sql } from 'driz
 import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { listQuery, toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
+import { signFileKey } from '#/kernel/storage/files.ts'
+import { files } from '#/kernel/storage/schema.ts'
 import { courseProgressRulesChanged } from './events.ts'
 import { coverPurpose } from './files.ts'
 import { courses, lessons, sections } from './schema.ts'
@@ -434,56 +436,81 @@ export interface PublishedOutline {
 
 /** Курс `draft` и несуществующий для ученика не различаются — `null`. Разделы без опубликованных уроков опущены. */
 export async function publishedOutline(ctx: BaseCtx, courseId: string): Promise<PublishedOutline | null> {
-	const [course] = await ctx.db.select().from(courses).where(eq(courses.id, courseId)).limit(1)
-	if (!course || course.status === 'draft') return null
-	const [sectionRows, lessonRows] = await Promise.all([
-		ctx.db
-			.select()
-			.from(sections)
-			.where(eq(sections.courseId, courseId))
-			.orderBy(asc(sections.position), asc(sections.id)),
-		ctx.db
-			.select()
-			.from(lessons)
-			.where(and(eq(lessons.courseId, courseId), isNotNull(lessons.publishedAt)))
-			.orderBy(asc(lessons.position), asc(lessons.id)),
-	])
-	return {
-		course: {
-			id: course.id,
-			title: course.title,
-			status: course.status,
-			defaultAccessMode: course.defaultAccessMode,
-			accessDays: course.accessDays,
-			completionThresholdPct: course.completionThresholdPct,
-		},
-		sections: sectionRows
-			.map((s) => ({
-				id: s.id,
-				title: s.title,
-				lessons: lessonRows
-					.filter((l) => l.sectionId === s.id)
-					.map((l) => ({
-						id: l.id,
-						title: l.title,
-						accessMode: l.accessMode,
-						dripDays: l.dripDays,
-						dripDate: l.dripDate,
-						deadlineDays: l.deadlineDays,
-						deadlineDate: l.deadlineDate,
-						completionRule: l.completionRule,
-					})),
-			}))
-			.filter((s) => s.lessons.length > 0),
+	return (await publishedOutlines(ctx, [courseId])).get(courseId) ?? null
+}
+
+/** Оглавления нескольких курсов — тремя запросами на все (5.2: без N+1 в кабинете ученика и списках). */
+export async function publishedOutlines(
+	ctx: BaseCtx,
+	courseIds: string[],
+): Promise<Map<string, PublishedOutline | null>> {
+	const out = new Map<string, PublishedOutline | null>(courseIds.map((id) => [id, null]))
+	if (!courseIds.length) return out
+	const courseRows = await ctx.db
+		.select()
+		.from(courses)
+		.where(and(inArray(courses.id, courseIds), ne(courses.status, 'draft')))
+	if (!courseRows.length) return out
+	const ids = courseRows.map((c) => c.id)
+	const sectionRows = await ctx.db
+		.select()
+		.from(sections)
+		.where(inArray(sections.courseId, ids))
+		.orderBy(asc(sections.position), asc(sections.id))
+	const lessonRows = await ctx.db
+		.select()
+		.from(lessons)
+		.where(and(inArray(lessons.courseId, ids), isNotNull(lessons.publishedAt)))
+		.orderBy(asc(lessons.position), asc(lessons.id))
+	for (const course of courseRows) {
+		if (course.status === 'draft') continue
+		out.set(course.id, {
+			course: {
+				id: course.id,
+				title: course.title,
+				status: course.status,
+				defaultAccessMode: course.defaultAccessMode,
+				accessDays: course.accessDays,
+				completionThresholdPct: course.completionThresholdPct,
+			},
+			sections: sectionRows
+				.filter((s) => s.courseId === course.id)
+				.map((s) => ({
+					id: s.id,
+					title: s.title,
+					lessons: lessonRows
+						.filter((l) => l.sectionId === s.id)
+						.map((l) => ({
+							id: l.id,
+							title: l.title,
+							accessMode: l.accessMode,
+							dripDays: l.dripDays,
+							dripDate: l.dripDate,
+							deadlineDays: l.deadlineDays,
+							deadlineDate: l.deadlineDate,
+							completionRule: l.completionRule,
+						})),
+				}))
+				.filter((s) => s.lessons.length > 0),
+		})
 	}
+	return out
 }
 
 /** Карточки опубликованных (и архивных) курсов для «Моих курсов»: название, адрес, обложка (подписанная ссылка). */
 export async function courseCards(ctx: BaseCtx, ids: string[]) {
 	if (!ids.length) return []
+	// ключ обложки — тем же запросом: подпись ссылки без запроса на каждый файл (5.2)
 	const rows = await ctx.db
-		.select({ id: courses.id, title: courses.title, slug: courses.slug, coverFileId: courses.coverFileId })
+		.select({
+			id: courses.id,
+			title: courses.title,
+			slug: courses.slug,
+			coverKey: files.key,
+			coverStatus: files.status,
+		})
 		.from(courses)
+		.leftJoin(files, eq(files.id, courses.coverFileId))
 		.where(and(inArray(courses.id, ids), ne(courses.status, 'draft')))
 		.orderBy(asc(courses.title))
 	return Promise.all(
@@ -491,7 +518,7 @@ export async function courseCards(ctx: BaseCtx, ids: string[]) {
 			id: c.id,
 			title: c.title,
 			slug: c.slug,
-			coverUrl: c.coverFileId ? await ctx.files.signedUrl(c.coverFileId) : null,
+			coverUrl: c.coverKey && c.coverStatus === 'ready' ? await signFileKey(c.coverKey) : null,
 		})),
 	)
 }

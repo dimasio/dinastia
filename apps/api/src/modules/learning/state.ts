@@ -2,7 +2,7 @@
 // (кабинет ученика — все его курсы, «Ученики» курса — страница списка). Доступ и сроки в БД не хранятся (D-057).
 import { inArray } from 'drizzle-orm'
 import type { BaseCtx } from '#/kernel/context.ts'
-import { type PublishedOutline, publishedOutline } from '../courses/service.ts'
+import { type PublishedOutline, publishedOutlines } from '../courses/service.ts'
 import { computeAccess, type LessonAccess, type ProgressFact } from './access.ts'
 import { type enrollments, groups, lessonProgress } from './schema.ts'
 
@@ -45,8 +45,7 @@ export async function courseStates(ctx: BaseCtx, rows: Enrollment[]): Promise<Co
 			),
 		)
 	// оглавление — одно на курс (у сотрудника на странице «Учеников» все строки одного курса)
-	const byCourse = new Map<string, PublishedOutline | null>()
-	for (const id of new Set(rows.map((r) => r.courseId))) byCourse.set(id, await publishedOutline(ctx, id))
+	const byCourse = await publishedOutlines(ctx, [...new Set(rows.map((r) => r.courseId))])
 	const startOf = new Map(starts.map((g) => [g.id, g.startsAt]))
 	const facts = new Map<string, Map<string, ProgressFact>>()
 	for (const f of factRows) {

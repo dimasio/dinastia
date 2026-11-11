@@ -5,7 +5,8 @@ import { coursesResource } from '#/features/courses/resources/courses.tsx'
 
 export const Route = createFileRoute('/admin/courses/')({
 	validateSearch: resourceSearch,
-	beforeLoad: requirePerm(coursesResource.perms.read),
+	// право строкой, а не `coursesResource.perms.read`: beforeLoad — в начальной загрузке, ресурс (и zod) — в чанке экрана (5.2)
+	beforeLoad: requirePerm('courses.read'),
 	component: () => {
 		const search = Route.useSearch()
 		const navigate = Route.useNavigate()

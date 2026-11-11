@@ -23,6 +23,7 @@ export const auditLog = tenantTable(
 	},
 	(t) => [
 		tenantRef(t, t.actorMemberId, members, 'no action'),
+		index().on(t.schoolId, t.actorMemberId),
 		index().on(t.schoolId, t.createdAt),
 		index().on(t.schoolId, t.entity, t.entityId),
 	],

@@ -1,5 +1,5 @@
 import { blockChildTable, blockTable } from '@dinastia/db'
-import { boolean, integer, text, uuid } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, text, uuid } from 'drizzle-orm/pg-core'
 
 /**
  * block_quiz: настройки теста (скилл lesson-blocks, карточка 3.3). Вопросы — дочерняя таблица `block_quiz_questions`
@@ -17,10 +17,13 @@ export const blockQuiz = blockTable('quiz', {
 	showCorrect: text('show_correct').notNull().default('after_submit'),
 })
 
-export const blockQuizQuestions = blockChildTable(blockQuiz, 'questions', {
-	questionId: uuid('question_id').notNull(),
-})
+export const blockQuizQuestions = blockChildTable(
+	blockQuiz,
+	'questions',
+	{ questionId: uuid('question_id').notNull() },
+	(t) => [index().on(t.schoolId, t.questionId)],
+)
 
-export const blockQuizTags = blockChildTable(blockQuiz, 'tags', {
-	tagId: uuid('tag_id').notNull(),
-})
+export const blockQuizTags = blockChildTable(blockQuiz, 'tags', { tagId: uuid('tag_id').notNull() }, (t) => [
+	index().on(t.schoolId, t.tagId),
+])

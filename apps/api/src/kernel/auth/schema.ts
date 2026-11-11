@@ -100,5 +100,5 @@ export const consents = pgTable(
 		ip: pii(text('ip')),
 		createdAt: createdAt(),
 	},
-	(t) => [index().on(t.userId)],
+	(t) => [index().on(t.userId), index().on(t.schoolId)],
 )

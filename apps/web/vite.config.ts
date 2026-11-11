@@ -12,6 +12,8 @@ const s3Origin = new URL(process.env.S3_ENDPOINT ?? 'http://localhost:8333').ori
 export default defineConfig({
 	plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
 	define: { 'import.meta.env.VITE_APP_DOMAIN': JSON.stringify(appDomain) },
+	// манифест — для проверки бюджета размера (`pnpm bundle:budget`, 5.2)
+	build: { manifest: true },
 	server: {
 		port: Number(process.env.WEB_PORT ?? 5173),
 		host: true,

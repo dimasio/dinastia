@@ -1,0 +1,26 @@
+CREATE INDEX "block_file_school_id_file_id_index" ON "block_file" USING btree ("school_id","file_id");--> statement-breakpoint
+CREATE INDEX "block_image_school_id_file_id_index" ON "block_image" USING btree ("school_id","file_id");--> statement-breakpoint
+CREATE INDEX "block_quiz_questions_school_id_question_id_index" ON "block_quiz_questions" USING btree ("school_id","question_id");--> statement-breakpoint
+CREATE INDEX "block_quiz_tags_school_id_tag_id_index" ON "block_quiz_tags" USING btree ("school_id","tag_id");--> statement-breakpoint
+CREATE INDEX "audit_log_school_id_actor_member_id_index" ON "audit_log" USING btree ("school_id","actor_member_id");--> statement-breakpoint
+CREATE INDEX "consents_school_id_index" ON "consents" USING btree ("school_id");--> statement-breakpoint
+CREATE INDEX "members_school_id_invited_by_index" ON "members" USING btree ("school_id","invited_by");--> statement-breakpoint
+CREATE INDEX "members_school_id_avatar_file_id_index" ON "members" USING btree ("school_id","avatar_file_id");--> statement-breakpoint
+CREATE INDEX "attempt_question_items_school_id_item_id_index" ON "attempt_question_items" USING btree ("school_id","item_id");--> statement-breakpoint
+CREATE INDEX "quiz_answer_items_school_id_item_id_index" ON "quiz_answer_items" USING btree ("school_id","item_id");--> statement-breakpoint
+CREATE INDEX "quiz_answers_school_id_graded_by_member_id_index" ON "quiz_answers" USING btree ("school_id","graded_by_member_id");--> statement-breakpoint
+CREATE INDEX "quiz_attempts_school_id_lesson_id_index" ON "quiz_attempts" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "submission_comment_files_school_id_file_id_index" ON "submission_comment_files" USING btree ("school_id","file_id");--> statement-breakpoint
+CREATE INDEX "submission_comments_school_id_author_member_id_index" ON "submission_comments" USING btree ("school_id","author_member_id");--> statement-breakpoint
+CREATE INDEX "submission_files_school_id_file_id_index" ON "submission_files" USING btree ("school_id","file_id");--> statement-breakpoint
+CREATE INDEX "submissions_school_id_lesson_id_index" ON "submissions" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "submissions_school_id_reviewer_member_id_index" ON "submissions" USING btree ("school_id","reviewer_member_id");--> statement-breakpoint
+CREATE INDEX "courses_school_id_cover_file_id_index" ON "courses" USING btree ("school_id","cover_file_id");--> statement-breakpoint
+CREATE INDEX "block_progress_school_id_lesson_id_index" ON "block_progress" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "deadline_reminders_school_id_lesson_id_index" ON "deadline_reminders" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "enrollment_invites_school_id_created_by_member_id_index" ON "enrollment_invites" USING btree ("school_id","created_by_member_id");--> statement-breakpoint
+CREATE INDEX "enrollment_invites_school_id_group_id_index" ON "enrollment_invites" USING btree ("school_id","group_id");--> statement-breakpoint
+CREATE INDEX "lesson_open_notices_school_id_lesson_id_index" ON "lesson_open_notices" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "lesson_progress_school_id_lesson_id_index" ON "lesson_progress" USING btree ("school_id","lesson_id");--> statement-breakpoint
+CREATE INDEX "invitations_accepted_by_user_id_index" ON "invitations" USING btree ("accepted_by_user_id");--> statement-breakpoint
+CREATE INDEX "invitations_school_id_invited_by_index" ON "invitations" USING btree ("school_id","invited_by");

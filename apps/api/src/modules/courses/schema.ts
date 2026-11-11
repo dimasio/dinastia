@@ -40,6 +40,7 @@ export const courses = tenantTable(
 		uniqueIndex().on(t.schoolId, t.slug),
 		index().on(t.schoolId, t.status, t.updatedAt),
 		tenantRef(t, t.coverFileId, files, 'no action'),
+		index().on(t.schoolId, t.coverFileId),
 	],
 )
 

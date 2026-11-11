@@ -98,6 +98,9 @@ export function blockChildTable<TPart extends string, TColumns extends Record<st
 	parent: PgTable & { schoolId: AnyPgColumn; blockId: AnyPgColumn },
 	part: TPart,
 	columns: TColumns,
+	extraConfig?: (
+		t: ReturnType<typeof pgTable<string, TColumns & ChildColumns>>['_']['columns'],
+	) => PgTableExtraConfigValue[],
 ) {
 	const name = `${getTableName(parent)}_${part}`
 	return pgTable(
@@ -116,6 +119,7 @@ export function blockChildTable<TPart extends string, TColumns extends Record<st
 			),
 			index().on(t.schoolId, t.blockId, t.position),
 			tenantIsolation(name, t.schoolId),
+			...(extraConfig?.(t as never) ?? []),
 		],
 	).enableRLS()
 }
