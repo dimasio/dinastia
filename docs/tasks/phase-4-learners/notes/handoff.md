@@ -4,8 +4,8 @@
 
 ## Где остановились
 
-Фаза 4 — **принята и закрыта** (2026-11-11, демо `tests/e2e/phase-4.spec.ts` зелёное, e2e 63/63). Дальше — фаза 5 «Запуск»
-(`docs/plan/roadmap.md`): задачу `phase-5-launch` создать по скиллу `roadmap-task`.
+Фаза 4 — **принята и закрыта** (2026-11-11, демо `tests/e2e/phase-4.spec.ts` зелёное, e2e 63/63). Дальше — фаза 5: `docs/tasks/phase-5-launch/`
+(её `notes/handoff.md`).
 
 Демо-школа `trud` (`pnpm db:seed:trud`): 5 курсов, включая «Пожарная безопасность для работников организации» (с сертификатом:
 4 выданы в конце сида, PDF печатает воркер `pnpm dev`), потоки с куратором `curator@trud.local`. Пересоздать базу: `pnpm env:reset && pnpm db:migrate && pnpm db:seed && pnpm db:seed:trud` (e2e засоряют базу).
