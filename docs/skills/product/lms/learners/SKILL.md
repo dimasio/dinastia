@@ -48,6 +48,17 @@ description: Ученики и прогресс в Dinastia — модуль lea
 | новое напоминание         | задача `background-jobs` + письмо `notifications`                                            |
 | поле сертификата          | колонка `certificate_templates` (миграция) + поле контракта + `CertificateData` и вёрстка `document.tsx` (`documents`) + форма `certificate-tab.tsx`; в выданные — через снимок `layout` |
 
+## Ученики школы и их данные (5.5)
+
+- Экран «Ученики школы» `/admin/students` (ресурс `features/learning/resources/students.ts`, `students.list` —
+  `schools.members.read`): все ученики, число курсов, статус `active`/`blocked`/`deleted`.
+- «Выгрузить данные» — выгрузка `learning.member-data` (`member-data.ts`, zip, право в `prepare`: свои — любой участник, ученика —
+  `schools.pd.manage`). Ученик — «Профиль» → «Скачать мои данные».
+- «Удалить данные» — `students.anonymize` (`schools.pd.manage`, только `student`) → ядро `anonymizeMember`: части модулей
+  (`personal-data.ts` в `learning`, `assessments`, `certificates`) + заглушка «Удалённый ученик». Прогресс, сроки и оценки остаются.
+- Новые данные ученика в модуле — в часть `definePersonalData` модуля (выгрузка и обезличивание) и её `tables`; тест-страж
+  `learning/personal-data.test.ts` падает на тенантной таблице с `pii()` без части.
+
 ## Остановись и спроси, если
 
 - правило меняет прогресс уже зачисленных учеников (нужна миграция данных и решение человека);

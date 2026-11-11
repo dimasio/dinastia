@@ -19,9 +19,10 @@ description: Школа как тенант в Dinastia — модуль schools
 | сотрудники: список, смена роли, блокировка | `apps/api/src/modules/schools/members.service.ts` (`listStaff`, `changeStaffRole`, `setStaffStatus`) |
 | API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`, `membersContract`), `apps/api/src/modules/schools/router.ts` |
 | схемы slug, ролей, приглашения | `packages/contracts/src/schools.ts` (`SchoolSlug`, `RESERVED_SLUGS`, `StaffInvite`) |
-| брендинг и общие настройки                                       | `apps/api/src/modules/schools/settings.ts` (скилл `settings`)        |
+| настройки школы: реквизиты оператора ПДн (5.5); брендинг — 5.9 | `apps/api/src/modules/schools/settings.ts` (`schoolsSettings`, скилл `settings`), согласие — `legal.ts` (`schoolLegal`, `recordPdConsent`) |
+| удаление школы (5.5) | ядро `apps/api/src/kernel/school-deletion/` (`requestSchoolDeletion`, `cancelSchoolDeletion`, `purgeDeletedSchools`, письмо `school-deletion.notice`) |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |
-| экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`), выбор школы, регистрация; настройки — позже | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |
+| экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`, «Мои данные»), выбор школы (с «Отменить удаление»), регистрация; настройки `/admin/settings` (+ «Удаление школы») | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |
 
 ## Правила
 
@@ -47,10 +48,15 @@ description: Школа как тенант в Dinastia — модуль schools
 - **Один пользователь — много школ**: на корневом домене — список школ участника; внутри школы — только её данные.
   Сессия общая, членство проверяется по школе запроса.
 - **Жизненный цикл**: `active` → `suspended` (оператор SaaS в `/ops`: неоплата, нарушение — вход только владельцу с баннером)
-  → `deleted` (по запросу владельца: 30 дней на отмену, затем задача удаляет данные школы и файлы; скилл
-  `personal-data`).
+  → `deleted` (5.5): владелец в «Настройках» вводит адрес школы → `schools.requestDeletion`: школа **сразу закрыта** для всех
+  (`schoolMw` → `SCHOOL_DELETING`), письма владельцам (сейчас и за 3 дня; задача `school-deletion.notice` с `inactiveSchool`),
+  30 дней владелец отменяет в «Моих школах» корня (`schools.cancelDeletion`; `schools.mine` отдаёт удаляемые школы владельца с
+  `deleteAt`); затем задача `school-deletion.purge` удаляет S3 `schools/<id>/`, строку `schools` (каскад) и пользователей без других
+  школ, кроме владельца. Задачи школы со статусом не `active` пропускаются (кроме `inactiveSchool`).
+- **Согласие на обработку ПДн школой** — при принятии приглашения сотрудника и присоединении ученика (`consent: true`,
+  `recordPdConsent`); реквизиты — `schoolLegal` (скилл `personal-data`).
 - Права: `schools.members.read` (owner, admin, teacher — только просмотр), `schools.members.manage` (owner, admin),
-  `schools.settings.manage` (owner, admin), `schools.delete` (owner).
+  `schools.settings.manage` (owner, admin), `schools.pd.manage` (owner, admin — данные учеников, 5.5), `schools.delete` (owner).
 
 ## События
 

@@ -5,8 +5,8 @@ description: Настройки в Dinastia — настройки школы �
 
 # Настройки
 
-> Статус: сверено с кодом в 1.14 (`settingsTable`, `defineSettings`, `ctx.settings`, `updateSettings`).
-> Экран `/admin/settings` и процедуры `settings.*` — с первой настройкой модуля.
+> Статус: сверено с кодом в 5.5 (`settingsTable`, `defineSettings`, `ctx.settings`, `updateSettings`, экран `/admin/settings`,
+> процедуры `settings.list`/`settings.update`). Первая настройка — `schools_settings` (реквизиты оператора ПДн).
 
 Три вида — не путать:
 
@@ -54,8 +54,11 @@ export const learningSettings = defineSettings('learning', learningSettingsTable
 | `check:registries` | то же + строки `settings:<модуль>.<имя>.title\|description` и `settings:groups.<группа>` (`packages/i18n/locales/ru/settings.json`) |
 | новая настройка | колонка с default + поле в `defineSettings` + строки; миграция `pnpm db:generate` (скилл `db-schema`) — существующие школы получают default без заполнения данных |
 
-- Экран `/admin/settings` строится из реестра (`allSettings()` из `kernel/registry.ts`: группы, виджеты по zod — как
-  в `admin-resource`) — появится вместе с первой настройкой модуля.
+- Экран `/admin/settings` (`apps/web/src/features/settings/settings-page.tsx`) строится из реестра: `settings.list`
+  (`kernel/settings/router.ts`, право `schools.settings.manage`) отдаёт поля всех модулей с видом контрола из zod
+  (`kernel/settings/view.ts`: `text`/`email`/`url`/`number`/`boolean`/`select`, `''` в схеме — «необязательно»), значением и
+  `editable`; раздел = модуль + группа, сохраняется `settings.update({ module, patch })`. Пояснение раздела — строка
+  `settings:groupHints.<группа>` (необязательна); варианты `select` — `settings:<модуль>.<имя>.options.<значение>`.
 - Что относится к одной сущности (курс, урок, брендинг школы) — **колонка этой сущности**, а не настройка.
 - **Фича-флаг школы** — булева колонка с `edit: []` (меняет только оператор SaaS в `/ops`) — способ «временно
   включить/выключить» для школы вместо удаления кода.
