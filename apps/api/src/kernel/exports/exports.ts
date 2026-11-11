@@ -3,15 +3,14 @@
 // пользователем), ссылку получает только запросивший, через сутки файл удаляет `exports.cleanup`.
 import type { ExportState } from '@dinastia/contracts/exports'
 import { createI18n } from '@dinastia/i18n'
-import { and, eq, lt, sql } from 'drizzle-orm'
+import { and, eq, lt } from 'drizzle-orm'
 import writeXlsxFile, { type Cell, type SheetData } from 'write-excel-file/node'
 import { z } from 'zod'
 import type { BaseCtx, SchoolCtx } from '../context.ts'
 import { fail } from '../errors.ts'
 import { defineJob } from '../jobs.ts'
 import { exportByKey } from '../registry.ts'
-import { objectKey, signFileKey } from '../storage/files.ts'
-import { putObject } from '../storage/s3.ts'
+import { signFileKey, storeFile } from '../storage/files.ts'
 import { files } from '../storage/schema.ts'
 import { type AnyExport, EXPORT_MAX_ROWS, type ExportCell, type ExportColumn } from './define.ts'
 import { exports } from './schema.ts'
@@ -147,23 +146,16 @@ export const runExportJob = defineJob({
 				const inner = { ...ctx, db: sp }
 				const { buffer, rows } = await buildXlsx(inner, def, row.params)
 				const name = `${safeName(await def.fileName(inner, row.params))}.xlsx`
-				const [id] = await sp.execute<{ id: string }>(sql`select uuidv7() as id`).then((r) => r.rows)
-				if (!id) throw new Error('uuidv7 не вернул id')
-				const key = objectKey(ctx.school.id, EXPORT_FILE_PURPOSE, id.id)
-				await putObject(key, buffer, XLSX_MIME)
-				await sp.insert(files).values({
-					id: id.id,
-					key,
+				const fileId = await storeFile(inner, {
 					purpose: EXPORT_FILE_PURPOSE,
 					name,
 					mime: XLSX_MIME,
-					size: buffer.length,
+					body: buffer,
 					ownerMemberId: row.requestedByMemberId,
-					status: 'ready',
 				})
 				await sp
 					.update(exports)
-					.set({ status: 'ready', fileId: id.id, rows, finishedAt: ctx.now() })
+					.set({ status: 'ready', fileId, rows, finishedAt: ctx.now() })
 					.where(eq(exports.id, row.id))
 			})
 		} catch (error) {

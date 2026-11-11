@@ -1,4 +1,4 @@
-// Оглавление курса ученика (карточка 2.6).
+// Оглавление курса ученика (карточка 2.6); у пройденного — «Скачать сертификат» (4.7).
 import { Button, EmptyState, PageHeader, Skeleton } from '@dinastia/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
+import { MyCertificate } from '../certificates/my-certificate.tsx'
 import { LessonList } from './lesson-list.tsx'
 import { ProgressBar } from './progress-bar.tsx'
 
@@ -51,6 +52,7 @@ export function CoursePage({ courseId }: { courseId: string }) {
 					) : undefined
 				}
 			/>
+			{o.course.completedAt && <MyCertificate courseId={courseId} className="mb-4" />}
 			<div className="mb-6 max-w-sm">
 				<ProgressBar
 					pct={o.course.progressPct}

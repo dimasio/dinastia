@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminProfileRouteImport } from './routes/admin/profile'
+import { Route as CertificatesVerifyRouteImport } from './routes/certificates.verify'
 import { Route as DevBlocksRouteImport } from './routes/dev.blocks'
 import { Route as DevQuestionsRouteImport } from './routes/dev.questions'
 import { Route as DevRichTextRouteImport } from './routes/dev.rich-text'
@@ -30,6 +31,7 @@ import { Route as AdminReviewSubmissionIdRouteImport } from './routes/admin/revi
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
 import { Route as LearnCoursesCourseIdRouteImport } from './routes/learn/courses/$courseId'
 import { Route as AdminCoursesCourseIdAnalyticsRouteImport } from './routes/admin/courses/$courseId_.analytics'
+import { Route as AdminCoursesCourseIdCertificateRouteImport } from './routes/admin/courses/$courseId_.certificate'
 import { Route as AdminCoursesCourseIdGroupsRouteImport } from './routes/admin/courses/$courseId_.groups'
 import { Route as AdminCoursesCourseIdLearnersRouteImport } from './routes/admin/courses/$courseId_.learners'
 import { Route as AdminReviewAttemptsAttemptIdRouteImport } from './routes/admin/review/attempts.$attemptId'
@@ -72,6 +74,11 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const CertificatesVerifyRoute = CertificatesVerifyRouteImport.update({
+  id: '/certificates/verify',
+  path: '/certificates/verify',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DevBlocksRoute = DevBlocksRouteImport.update({
   id: '/dev/blocks',
@@ -144,6 +151,12 @@ const AdminCoursesCourseIdAnalyticsRoute =
     path: '/courses/$courseId/analytics',
     getParentRoute: () => AdminRouteRoute,
   } as any)
+const AdminCoursesCourseIdCertificateRoute =
+  AdminCoursesCourseIdCertificateRouteImport.update({
+    id: '/courses/$courseId_/certificate',
+    path: '/courses/$courseId/certificate',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AdminCoursesCourseIdGroupsRoute =
   AdminCoursesCourseIdGroupsRouteImport.update({
     id: '/courses/$courseId_/groups',
@@ -194,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
@@ -209,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
+  '/admin/courses/$courseId/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -222,6 +237,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
@@ -237,6 +253,7 @@ export interface FileRoutesByTo {
   '/admin/review': typeof AdminReviewIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
+  '/admin/courses/$courseId/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -253,6 +270,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/certificates/verify': typeof CertificatesVerifyRoute
   '/dev/blocks': typeof DevBlocksRoute
   '/dev/questions': typeof DevQuestionsRoute
   '/dev/rich-text': typeof DevRichTextRoute
@@ -268,6 +286,7 @@ export interface FileRoutesById {
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
   '/admin/courses/$courseId_/analytics': typeof AdminCoursesCourseIdAnalyticsRoute
+  '/admin/courses/$courseId_/certificate': typeof AdminCoursesCourseIdCertificateRoute
   '/admin/courses/$courseId_/groups': typeof AdminCoursesCourseIdGroupsRoute
   '/admin/courses/$courseId_/learners': typeof AdminCoursesCourseIdLearnersRoute
   '/admin/review/attempts/$attemptId': typeof AdminReviewAttemptsAttemptIdRoute
@@ -285,6 +304,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
     | '/dev/rich-text'
@@ -300,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/review/'
     | '/admin/staff/'
     | '/admin/courses/$courseId/analytics'
+    | '/admin/courses/$courseId/certificate'
     | '/admin/courses/$courseId/groups'
     | '/admin/courses/$courseId/learners'
     | '/admin/review/attempts/$attemptId'
@@ -313,6 +334,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
     | '/dev/rich-text'
@@ -328,6 +350,7 @@ export interface FileRouteTypes {
     | '/admin/review'
     | '/admin/staff'
     | '/admin/courses/$courseId/analytics'
+    | '/admin/courses/$courseId/certificate'
     | '/admin/courses/$courseId/groups'
     | '/admin/courses/$courseId/learners'
     | '/admin/review/attempts/$attemptId'
@@ -343,6 +366,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/profile'
+    | '/certificates/verify'
     | '/dev/blocks'
     | '/dev/questions'
     | '/dev/rich-text'
@@ -358,6 +382,7 @@ export interface FileRouteTypes {
     | '/admin/review/'
     | '/admin/staff/'
     | '/admin/courses/$courseId_/analytics'
+    | '/admin/courses/$courseId_/certificate'
     | '/admin/courses/$courseId_/groups'
     | '/admin/courses/$courseId_/learners'
     | '/admin/review/attempts/$attemptId'
@@ -373,6 +398,7 @@ export interface RootRouteChildren {
   LearnRouteRoute: typeof LearnRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  CertificatesVerifyRoute: typeof CertificatesVerifyRoute
   DevBlocksRoute: typeof DevBlocksRoute
   DevQuestionsRoute: typeof DevQuestionsRoute
   DevRichTextRoute: typeof DevRichTextRoute
@@ -430,6 +456,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/profile'
       preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/certificates/verify': {
+      id: '/certificates/verify'
+      path: '/certificates/verify'
+      fullPath: '/certificates/verify'
+      preLoaderRoute: typeof CertificatesVerifyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dev/blocks': {
       id: '/dev/blocks'
@@ -529,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCoursesCourseIdAnalyticsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/courses/$courseId_/certificate': {
+      id: '/admin/courses/$courseId_/certificate'
+      path: '/courses/$courseId/certificate'
+      fullPath: '/admin/courses/$courseId/certificate'
+      preLoaderRoute: typeof AdminCoursesCourseIdCertificateRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/courses/$courseId_/groups': {
       id: '/admin/courses/$courseId_/groups'
       path: '/courses/$courseId/groups'
@@ -590,6 +630,7 @@ interface AdminRouteRouteChildren {
   AdminReviewIndexRoute: typeof AdminReviewIndexRoute
   AdminStaffIndexRoute: typeof AdminStaffIndexRoute
   AdminCoursesCourseIdAnalyticsRoute: typeof AdminCoursesCourseIdAnalyticsRoute
+  AdminCoursesCourseIdCertificateRoute: typeof AdminCoursesCourseIdCertificateRoute
   AdminCoursesCourseIdGroupsRoute: typeof AdminCoursesCourseIdGroupsRoute
   AdminCoursesCourseIdLearnersRoute: typeof AdminCoursesCourseIdLearnersRoute
   AdminReviewAttemptsAttemptIdRoute: typeof AdminReviewAttemptsAttemptIdRoute
@@ -607,6 +648,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminReviewIndexRoute: AdminReviewIndexRoute,
   AdminStaffIndexRoute: AdminStaffIndexRoute,
   AdminCoursesCourseIdAnalyticsRoute: AdminCoursesCourseIdAnalyticsRoute,
+  AdminCoursesCourseIdCertificateRoute: AdminCoursesCourseIdCertificateRoute,
   AdminCoursesCourseIdGroupsRoute: AdminCoursesCourseIdGroupsRoute,
   AdminCoursesCourseIdLearnersRoute: AdminCoursesCourseIdLearnersRoute,
   AdminReviewAttemptsAttemptIdRoute: AdminReviewAttemptsAttemptIdRoute,
@@ -647,6 +689,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnRouteRoute: LearnRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  CertificatesVerifyRoute: CertificatesVerifyRoute,
   DevBlocksRoute: DevBlocksRoute,
   DevQuestionsRoute: DevQuestionsRoute,
   DevRichTextRoute: DevRichTextRoute,

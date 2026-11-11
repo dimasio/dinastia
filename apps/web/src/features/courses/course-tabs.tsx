@@ -1,5 +1,5 @@
-// Вкладки курса: «Содержание» (конструктор), «Вопросы» (банк, 3.1), «Ученики» (4.1), «Потоки» (4.2), «Аналитика» (4.6) — ссылки
-// между экранами курса.
+// Вкладки курса: «Содержание» (конструктор), «Вопросы» (банк, 3.1), «Ученики» (4.1), «Потоки» (4.2), «Аналитика» (4.6),
+// «Сертификат» (4.7) — ссылки между экранами курса.
 import { cn } from '@dinastia/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -16,7 +16,7 @@ export function CourseTabs({
 	actions,
 }: {
 	courseId: string
-	active: 'content' | 'questions' | 'learners' | 'groups' | 'analytics'
+	active: 'content' | 'questions' | 'learners' | 'groups' | 'analytics' | 'certificate'
 	/** Справа от вкладок — действия экрана. */
 	actions?: ReactNode
 }) {
@@ -25,7 +25,8 @@ export function CourseTabs({
 	const canBank = me?.permissions.includes('assessments.bank.read') ?? false
 	const canLearners = me?.permissions.includes('learning.read') ?? false
 	const canAnalytics = me?.permissions.includes('learning.analytics') ?? false
-	if (!canBank && !canLearners && !canAnalytics && !actions) return null
+	const canCertificate = me?.permissions.includes('certificates.view') ?? false
+	if (!canBank && !canLearners && !canAnalytics && !canCertificate && !actions) return null
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b pb-2" data-testid="course-tabs">
 			<nav className="flex flex-wrap gap-1" aria-label={t('tabs.label')}>
@@ -80,6 +81,17 @@ export function CourseTabs({
 						data-testid="course-tab-analytics"
 					>
 						{t('tabs.analytics')}
+					</Link>
+				)}
+				{canCertificate && (
+					<Link
+						to="/admin/courses/$courseId/certificate"
+						params={{ courseId }}
+						aria-current={active === 'certificate' ? 'page' : undefined}
+						className={cn(LINK, active === 'certificate' && 'bg-accent font-medium')}
+						data-testid="course-tab-certificate"
+					>
+						{t('tabs.certificate')}
 					</Link>
 				)}
 			</nav>

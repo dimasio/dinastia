@@ -164,7 +164,8 @@
 		"questions": "Вопросы",
 		"learners": "Ученики",
 		"groups": "Потоки",
-		"analytics": "Аналитика"
+		"analytics": "Аналитика",
+		"certificate": "Сертификат"
 	},
 	"access": {
 		"saved": "Доступ к урокам сохранён",

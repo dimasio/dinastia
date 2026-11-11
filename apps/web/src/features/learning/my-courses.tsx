@@ -1,5 +1,5 @@
 // Кабинет ученика (карточки 2.6, 4.5): «Продолжить обучение», «Ближайшие сроки», «На доработке» и «Мои курсы» по вкладкам
-// «Учусь» / «Пройденные» / «Доступ закончился». Пустые блоки и вкладки не показываются.
+// «Учусь» / «Пройденные» / «Доступ закончился». Пустые блоки и вкладки не показываются. У пройденного — «Скачать сертификат» (4.7).
 import type { MyRevision } from '@dinastia/contracts/assessments'
 import type { HomeDeadline, LearnHome, MyCourse } from '@dinastia/contracts/learning'
 import { Button, Card, CardContent, cn, EmptyState, PageHeader, Skeleton } from '@dinastia/ui'
@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
+import { MyCertificate } from '../certificates/my-certificate.tsx'
 import { useDueText } from './lesson-list.tsx'
 import { ProgressBar } from './progress-bar.tsx'
 
@@ -246,6 +247,7 @@ function CourseCard({ course: c }: { course: MyCourse }) {
 						)}
 					</Button>
 				)}
+				{c.completedAt && <MyCertificate courseId={c.id} className="relative z-10 justify-self-start" />}
 			</CardContent>
 		</Card>
 	)

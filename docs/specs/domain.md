@@ -74,8 +74,9 @@ status: draft
 
 | Таблица                 | Колонки                                                                                                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `certificate_templates` | `course_id`, `title`, `orientation`, `background_file_id`, `heading`, `body rich`, `signer_name`, `signer_title`, `signature_file_id`, `show_number`, `show_date` |
-| `certificates`          | `enrollment_id`, `template_id`, `number`, `issued_at`, `file_id`; `certificate_counters` (`school_id`, `year`, `last_number`)                                     |
+| `certificate_templates` | шаблон курса (4.7), один на курс: `course_id`, `enabled`, `orientation` (`landscape`, `portrait`), `heading`, `body rich` (подстановки `{имя}`, `{курс}`, `{дата}`), `signer_name`, `signer_title`, `signature_file_id`, `background_file_id`, `show_number`, `show_date` |
+| `certificates`          | выданный (4.7), один на зачисление: `enrollment_id`, `course_id`, `member_id`, `number` (уникален в школе), `verify_code`, снимок `student_name`, `course_title`, `layout jsonb` (вид шаблона, непрозрачный), `issued_at`, `status` (`pending`, `ready`, `failed`), `file_id`, `revoked_at` |
+| `certificate_counters`  | последний номер школы за год: `year`, `last_number` (уникально `school_id` + `year`)                                                                              |
 
 ### Ядро
 
@@ -369,10 +370,29 @@ status: draft
   `exports.file`, пользователю не загрузить), ссылка — только запросившему, 10 минут; выгрузка и файл удаляются через сутки
   (`exports.cleanup`); журнал `exports.export.created`. Не больше 100 тыс. строк (`EXPORT_TOO_LARGE`).
 
-### Сертификат
+### Сертификат (4.7)
 
-- Выдаётся при `enrollment.completed`, если у курса есть шаблон; номер — `<slug школы>-<год>-<порядковый>`
-  (счётчик `certificate_counters` под блокировкой).
+- Права: `certificates.manage` — owner, admin, teacher (шаблон, «Выдать прошедшим», аннулировать); `certificates.view` — + curator
+  (выданные курса и скачивание, куратор — только свои потоки, `groupScope`); `certificates.own` — student (свои).
+- **Шаблон** — вкладка курса «Сертификат» (`/admin/courses/$courseId/certificate`), один на курс, один встроенный макет: «Выдавать
+  сертификат», ориентация, заголовок, текст с подстановками `{имя}`, `{курс}`, `{дата}`, подписант и должность, картинка подписи
+  (`certificates.signature`, PNG/JPEG до 2 МБ), фон-бланк на весь лист (`certificates.background`, до 10 МБ), показывать номер с
+  QR-кодом и дату. «Предпросмотр» — HTML той же вёрстки с именем-примером. Выключение не отменяет выданные.
+- **Выдача** — подписчик `enrollment.completed`: шаблон включён и сертификата у зачисления ещё нет. Номер —
+  `<SLUG>-<год по Москве>-<000001>`, сквозной по школе внутри года: счётчик `certificate_counters` увеличивается в той же транзакции,
+  что и запись сертификата (строка заблокирована до коммита) — без дублей и пропусков. Имя, курс и вид шаблона — **снимок** на момент
+  выдачи; правки шаблона и имени выданное не меняют. «Выдать прошедшим» — прошедшим курс до включения, и заново ставит PDF
+  несформированных (`failed`).
+- **PDF** — задача `certificates.render` (без повторов): `kernel/documents` печатает HTML Chromium-ом в private-файл
+  (`certificates.pdf`, не загружается пользователем), `ready` → событие `certificate.issued`; сбой → `failed`. Скачивание — подписанная
+  ссылка на 10 минут: ученику — свой неаннулированный, сотруднику — в своей области.
+- **Аннулирование** — сотрудник (`certificates.certificate.revoked` в журнал): ученик больше не видит и не скачивает, проверка
+  показывает «аннулирован». Отменить нельзя; переоформить — нельзя (повторно на то же зачисление не выдаётся).
+- **Проверка** — публичная страница школы `/certificates/verify` без входа (`certificates.verify`, 30 запросов за 10 минут с IP):
+  номер без учёта регистра → действителен / аннулирован, курс, дата выдачи, школа и имя **сокращённо** («Иван П.» — номера идут по
+  порядку, перебором иначе собрали бы имена учеников); по ссылке из QR в PDF (`?number=…&code=<verify_code>`) — имя полностью. Номер
+  чужой школы и несформированный — «не найден».
+- У ученика — «Скачать сертификат» у пройденного курса (кабинет, страница курса); пока PDF готовится — «Сертификат готовится».
 
 ## 4. События (MVP)
 
@@ -385,5 +405,6 @@ status: draft
 | `quiz.submitted` / `quiz.graded`               | попытка отправлена / оценена  | `attemptId`, `passed`                  |
 | `submission.submitted` / `submission.reviewed` | ДЗ отправлено / проверено     | `submissionId`, `status`               |
 | `enrollment.completed`                         | курс пройден                  | `enrollmentId`                         |
+| `certificate.issued`                           | PDF сертификата готов (4.7)   | `certificateId`, `enrollmentId`, `courseId`, `memberId` |
 
 Эти же события — триггеры автоматизаций после MVP.

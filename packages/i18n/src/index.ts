@@ -3,6 +3,7 @@ import i18next, { type i18n } from 'i18next'
 import assessments from '../locales/ru/assessments.json' with { type: 'json' }
 import auth from '../locales/ru/auth.json' with { type: 'json' }
 import blocks from '../locales/ru/blocks.json' with { type: 'json' }
+import certificates from '../locales/ru/certificates.json' with { type: 'json' }
 import common from '../locales/ru/common.json' with { type: 'json' }
 import courses from '../locales/ru/courses.json' with { type: 'json' }
 import emails from '../locales/ru/emails.json' with { type: 'json' }
@@ -30,6 +31,7 @@ export const resources = {
 		courses,
 		learning,
 		assessments,
+		certificates,
 		// gen:module:entry
 	},
 } as const

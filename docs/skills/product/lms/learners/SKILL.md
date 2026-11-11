@@ -17,8 +17,9 @@ description: Ученики и прогресс в Dinastia — модуль lea
 | подписчики событий (`lesson.published`, `course.published`, `course.progress_rules_changed`)      | `apps/api/src/modules/learning/subscribers.ts`        |
 | задачи `learning.expire-enrollments`, `learning.recalc-course-progress`, `learning.deadline-reminders` | `apps/api/src/modules/learning/jobs.ts`; напоминания — `deadlines.service.ts` |
 | аналитика (запросы-агрегаты)                                                                      | `apps/api/src/modules/learning/analytics.service.ts`  |
-| сертификаты                                                                                       | `apps/api/src/modules/certificates/`                  |
+| сертификаты: шаблон, выдача, PDF, проверка (`service.ts`), вёрстка (`document.tsx`)               | `apps/api/src/modules/certificates/`                  |
 | экраны: ученики курса, потоки, кабинет ученика                                                    | `apps/web/src/features/learning/`                     |
+| экраны сертификатов: вкладка курса, «Скачать сертификат», «Проверка сертификата»                  | `apps/web/src/features/certificates/`                 |
 
 ## Ключевые правила для кода
 
@@ -44,7 +45,7 @@ description: Ученики и прогресс в Dinastia — модуль lea
 | новый способ зачисления   | `change-workflow`; процедура в контракте, `enrollment.service`, событие `enrollment.created` |
 | новая метрика в аналитике | `analytics.service` + индекс (`db-schema`) + виджет (`web-screens`)                          |
 | новое напоминание         | задача `background-jobs` + письмо `notifications`                                            |
-| поле сертификата          | шаблон сертификата, `documents`                                                              |
+| поле сертификата          | колонка `certificate_templates` (миграция) + поле контракта + `CertificateData` и вёрстка `document.tsx` (`documents`) + форма `certificate-tab.tsx`; в выданные — через снимок `layout` |
 
 ## Остановись и спроси, если
 
@@ -68,7 +69,13 @@ description: Ученики и прогресс в Dinastia — модуль lea
   `courseStates`), колонки «Учеников» — `withProgress` в `enrollment.service.ts` (общие фильтры `enrollmentsWhere` с выгрузкой),
   выгрузка `learning.course-students` — `exports.ts` (область куратора — `scopeGroupList`/`groupScopeOf` в `policies.ts`); результаты
   тестов и заданий — модуль `assessments` (`results.service.ts`); экран — `features/learning/analytics.tsx`.
-- Нет (фаза 4, дальше): сертификаты.
+- Сертификаты (4.7, модуль `certificates` → `learning`, `courses`): права `certificates.manage` (admin, teacher), `.view` (+ curator —
+  свои потоки, `groupScope`), `.own` (student). Выдача — подписчик `enrollment.completed` → `issueForEnrollment` (номер из
+  `certificate_counters` upsert-ом в той же транзакции, снимок имени, курса и `layout`), PDF — задача `certificates.render`
+  (`kernel/documents`, без повторов; `failed` повторяет «Выдать прошедшим» — `issueCompleted`). Проверка `certificates.verify` —
+  публичная (`mw.host → school → rateLimit(ip) → tenantTx`), имя `maskName` без кода из QR. Экраны — вкладка курса «Сертификат»
+  (`certificate-tab.tsx`, ресурс `resources/issued.tsx`), `my-certificate.tsx` (кабинет и страница курса), `/certificates/verify`.
+  Сид `trud`: шаблон у «Пожарной безопасности», выдача прошедшим в конце сида (подписчиков событий в сиде нет).
 
 ## Зачисление (4.1)
 

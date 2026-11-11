@@ -14,11 +14,12 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 
 1. `pnpm install --frozen-lockfile`
 2. `pnpm env:up` (Postgres 18, SeaweedFS, Mailpit)
-3. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`)
-4. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + демо-данные для e2e
-5. `pnpm audit --prod --audit-level high`
-6. `pnpm exec playwright install --with-deps chromium` → `pnpm e2e`
-7. при падении — артефакты Playwright (trace, скриншоты) и логи compose
+3. `pnpm exec playwright install --with-deps chromium` — до `check`: тесты API печатают PDF (`kernel/documents`, D-059)
+4. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`)
+5. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + демо-данные для e2e
+6. `pnpm audit --prod --audit-level high`
+7. `pnpm e2e`
+8. при падении — артефакты Playwright (trace, скриншоты) и логи compose
 
 Красный CI — не мержить. Флейки — чинить (скилл `testing`). Локально та же последовательность — команды выше по
 порядку. Отчёт размера бандла — добавить, когда появятся тяжёлые экраны (фаза 2, скилл `performance`).
@@ -35,6 +36,8 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 
 `api` (HTTP), `worker` (pg-boss: задачи, подписчики, расписания), `web` (статические файлы за CDN/nginx).
 Один образ сервера с командой `serve | worker | migrate`. Конфиг — env (скилл `settings`).
+В образе воркера — Chromium для PDF (`pnpm exec playwright install --with-deps chromium`, версия — по `playwright-core` из
+каталога; D-059); `api` браузер не нужен (PDF печатает только задача).
 
 ## Миграции при деплое
 

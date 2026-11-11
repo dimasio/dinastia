@@ -243,6 +243,15 @@ describe('OpenAPI', () => {
 				'/learn/lessons/{lessonId}',
 				'/learn/lessons/{lessonId}/complete',
 				'/learn/lessons/{lessonId}/open',
+				'/courses/{courseId}/certificate-template',
+				'/courses/{courseId}/certificate-template/preview',
+				'/courses/{courseId}/certificates',
+				'/courses/{courseId}/certificates/issue-completed',
+				'/certificates/{id}/revoke',
+				'/certificates/{id}/download',
+				'/learn/certificates',
+				'/learn/certificates/{id}/download',
+				'/certificates/verify',
 			].sort(),
 		)
 	})

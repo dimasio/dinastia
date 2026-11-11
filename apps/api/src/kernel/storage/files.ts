@@ -8,7 +8,7 @@ import type { Tx } from '../db/client.ts'
 import { fail } from '../errors.ts'
 import { defineJob, type Jobs } from '../jobs.ts'
 import { filePurpose } from '../registry.ts'
-import { deleteObject, headObject, presignGet, presignPut } from './s3.ts'
+import { deleteObject, headObject, presignGet, presignPut, putObject } from './s3.ts'
 import { files } from './schema.ts'
 
 export const MB = 1024 * 1024
@@ -78,6 +78,31 @@ export async function completeUpload(ctx: SchoolCtx, fileId: string) {
 	}
 	await ctx.db.update(files).set({ status: 'ready' }).where(eq(files.id, file.id))
 	return info
+}
+
+/**
+ * Файл, который сделал сервер (выгрузка, PDF): объект в S3 и готовая строка `files`. Назначение не обязано быть
+ * зарегистрированным — тогда пользователь не может загрузить файл этого назначения. Вернёт id файла.
+ */
+export async function storeFile(
+	ctx: Pick<BaseCtx, 'db' | 'school'>,
+	input: { purpose: string; name: string; mime: string; body: Uint8Array; ownerMemberId: string | null },
+): Promise<string> {
+	const [row] = await ctx.db.execute<{ id: string }>(sql`select uuidv7() as id`).then((r) => r.rows)
+	if (!row) throw new Error('uuidv7 не вернул id')
+	const key = objectKey(ctx.school.id, input.purpose, row.id)
+	await putObject(key, input.body, input.mime)
+	await ctx.db.insert(files).values({
+		id: row.id,
+		key,
+		purpose: input.purpose,
+		name: input.name,
+		mime: input.mime,
+		size: input.body.length,
+		ownerMemberId: input.ownerMemberId,
+		status: 'ready',
+	})
+	return row.id
 }
 
 /** Ссылка на чтение по ключу объекта (для выборок с join, без лишнего запроса). */

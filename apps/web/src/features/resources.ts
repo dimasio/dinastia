@@ -2,6 +2,7 @@
 import type { ResourceDef } from '@dinastia/ui/resource'
 import { questionsResource } from './assessments/resources/questions.tsx'
 import { reviewResource } from './assessments/resources/review.tsx'
+import { issuedResource } from './certificates/resources/issued.tsx'
 import { coursesResource } from './courses/resources/courses.tsx'
 import { enrollmentsResource } from './learning/resources/enrollments.tsx'
 import { staffResource } from './schools/resources/staff.ts'
@@ -16,5 +17,7 @@ export const resources: ResourceDef<any, any>[] = [
 	reviewResource({ courses: [] }),
 	// ученики курса строятся на курс — образец без курса
 	enrollmentsResource({ courseId: '' }),
+	// выданные сертификаты курса — образец без курса
+	issuedResource({ courseId: '' }),
 	// gen:resource:entry
 ]

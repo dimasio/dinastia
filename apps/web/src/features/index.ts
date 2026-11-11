@@ -1,6 +1,7 @@
 // Реестр фич веба: пункты меню областей. Новая фича — `pnpm gen:module` добавит строки у маркеров gen:module.
 import type { NavItem } from '#/app/nav.ts'
 import { nav as assessments } from './assessments/nav.ts'
+import { nav as certificates } from './certificates/nav.ts'
 import { nav as courses } from './courses/nav.ts'
 import { nav as home } from './home/nav.ts'
 import { nav as learning } from './learning/nav.ts'
@@ -13,5 +14,6 @@ export const navItems: NavItem[] = [
 	...courses,
 	...learning,
 	...assessments,
+	...certificates,
 	// gen:module:nav
 ]

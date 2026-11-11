@@ -52,11 +52,24 @@ export async function headObject(key: string): Promise<{ size: number; mime: str
 	}
 }
 
-/** Записать объект с сервера (файлы, которые делает API: выгрузки). */
+/** Записать объект с сервера (файлы, которые делает API: выгрузки, документы). */
 export async function putObject(key: string, body: Uint8Array, mime: string) {
 	await client.send(
 		new PutObjectCommand({ Bucket, Key: key, Body: body, ContentType: mime, ContentLength: body.length }),
 	)
+}
+
+/** Прочитать объект с сервера (картинки в PDF документа); нет объекта — null. */
+export async function getObject(key: string): Promise<{ body: Uint8Array; mime: string } | null> {
+	try {
+		const res = await client.send(new GetObjectCommand({ Bucket, Key: key }))
+		if (!res.Body) return null
+		return { body: await res.Body.transformToByteArray(), mime: res.ContentType ?? '' }
+	} catch (error) {
+		const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+		if (status === 404 || (error as { name?: string }).name === 'NoSuchKey') return null
+		throw error
+	}
 }
 
 /** Удалить объект (нет объекта — не ошибка). */

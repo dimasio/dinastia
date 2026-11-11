@@ -5,40 +5,42 @@ description: Генерация документов в Dinastia — PDF из Re
 
 # Документы и экспорт
 
-> Статус: целевой — PDF сверить с кодом в 4.7; экспорт таблиц уже по коду (4.6, `kernel/exports`).
+> Статус: сверено с кодом — PDF в 4.7 (`kernel/documents`, сертификаты), экспорт таблиц в 4.6 (`kernel/exports`).
 
-Документы делаются **только в фоновой задаче** (D-013): запрос ставит задачу и возвращает её id, клиент ждёт
-статус и получает файл.
+Документы делаются **только в фоновой задаче** (D-013): запрос ставит задачу, клиент ждёт статус и получает файл.
 
 ## PDF
 
-```ts
-// apps/api/src/modules/certificates/documents.ts
-import { z } from 'zod'
-import { defineDocument } from '#/kernel/documents'
-import { CertificateTemplate } from './templates/certificate'
+Ядро — `apps/api/src/kernel/documents/` (D-059). Образец — сертификат `modules/certificates/document.tsx`:
 
-export const certificatePdf = defineDocument({
+```tsx
+export const certificateDocument = defineDocument({
 	key: 'certificates.certificate',
-	schema: z.object({
-		studentName: z.string(),
-		courseTitle: z.string(),
-		number: z.string(),
-		issuedAt: z.coerce.date(),
-		layout: CertificateLayout,
-	}),
-	page: { size: 'A4', orientation: 'landscape', margin: 0 },
-	Component: CertificateTemplate, // React-компонент → HTML (renderToStaticMarkup) → Chromium → PDF
-	filePurpose: 'certificate', // private
+	schema: CertificateData, // zod: всё, что нужно вёрстке, уже посчитано (HTML текста, дата строкой, data URI картинок)
+	orientation: (d) => d.orientation, // лист A4, ориентация может зависеть от данных
+	render: (d) => <Certificate d={d} />, // React без хуков → renderToStaticMarkup
+	example: { … }, // образец данных — предпросмотр и тест
 })
 
-// в сервисе/задаче:
-const fileId = await ctx.documents.render(certificatePdf, data) // ставит задачу или выполняется в задаче
+// в задаче (никогда в запросе):
+const pdf = await renderPdf(certificateDocument, data) // Uint8Array
+const fileId = await storeFile(ctx, { purpose: 'certificates.pdf', name, mime: PDF_MIME, body: pdf, ownerMemberId })
 ```
 
-- Шаблон — обычный React без клиентских хуков; стили — инлайн/встроенный CSS; шрифты — из
-  `packages/ui/assets/fonts` (с кириллицей), картинки — data URI или signed URL.
-- Предпросмотр шаблона в браузере: `pnpm documents:preview certificates.certificate --data sample.json`.
+- `documentHtml(def, data)` — полный HTML: `@page` A4 без полей, шрифты **PT Serif** и **PT Sans** (латиница и кириллица,
+  `@fontsource`, встроены data URI — `kernel/documents/fonts.ts`). Его же показывает предпросмотр в браузере (`iframe sandbox`,
+  `srcDoc`) — PDF для предпросмотра не нужен.
+- `renderPdf` — `playwright-core`: один браузер на процесс воркера (закрывает `closeBrowser()` при остановке), на документ —
+  контекст **без JavaScript и без сети** (все запросы отклоняются): картинки — только `data:` URI (задача читает файл из S3 —
+  `getObject`), текст пользователя — `toHtml` из `@dinastia/contracts/rich-text/server` (экранирует). На macOS — установленный Google
+  Chrome (`channel: 'chrome'`, как e2e), в Linux — `pnpm exec playwright install --with-deps chromium` (CI, образ воркера).
+- Размеры в `mm`, лист чуть меньше A4 (`209.5mm`) — иначе округление даёт вторую пустую страницу.
+- Файл — `storeFile` (`kernel/storage/files.ts`): объект в S3 + готовая строка `files`; назначение без `defineFilePurpose` — пользователь
+  такой файл загрузить не может. Ссылка на скачивание — `ctx.files.signedUrl(id, { ttlSeconds: 600, download: true })` после проверки
+  прав сервисом.
+- Задача документа — без повторов (`retry: { limit: 0 }`), сбой → статус `failed` у сущности, повтор — действием пользователя
+  (сертификаты: «Выдать прошедшим»). Печать — внутри точки сохранения (`ctx.db.transaction`), чтобы статус `failed` записался.
+- Тест: текст PDF читается обратно (`unpdf` — `extractText`), кириллица, номер; `closeBrowser()` в `afterAll`.
 
 ## Экспорт таблиц
 
@@ -72,12 +74,10 @@ export const courseStudentsExport = defineExport({
 UI: действие страницы ресурса `pageActions: [{ key: 'export', perm, icon, run: (input) => runExport('<ключ>', {…фильтры}) }]`
 (`apps/web/src/app/exports.ts`: запуск, опрос раз в секунду до 3 минут, скачивание; ошибки `EXPORT_FAILED`/`EXPORT_TIMEOUT`).
 
-PDF (выше) — целевой, сверить в 4.7.
-
 ## Готово, когда
 
-Документ генерируется из задачи на тестовых данных, кириллица и разметка корректны (снапшот PNG первой страницы в
-тесте), экспорт большой выборки (10 тыс. строк) проходит без роста памяти. `pnpm check` зелёный.
+Документ генерируется из задачи на тестовых данных, кириллица и разметка корректны (текст PDF читается обратно, вид —
+снимок предпросмотра в e2e), экспорт большой выборки (10 тыс. строк) проходит без роста памяти. `pnpm check` зелёный.
 
 ## Остановись и спроси, если
 

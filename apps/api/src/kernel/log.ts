@@ -20,6 +20,8 @@ export const SECRET_KEYS = [
 	'ipAddress',
 	'userAgent',
 	'image',
+	'studentName',
+	'signerName',
 ]
 export const REDACT_PATHS = SECRET_KEYS.flatMap((k) => [k, `*.${k}`, `*.*.${k}`])
 

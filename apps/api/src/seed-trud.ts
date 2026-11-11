@@ -7,6 +7,7 @@ import type { MemberRole } from '@dinastia/contracts/schools'
 import { and, desc, eq } from 'drizzle-orm'
 import { auth } from './kernel/auth/auth.ts'
 import { users } from './kernel/auth/schema.ts'
+import { stopBoss } from './kernel/boss.ts'
 import { config } from './kernel/config.ts'
 import type { SchoolCtx } from './kernel/context.ts'
 import { db, pool, type Tx } from './kernel/db/client.ts'
@@ -19,6 +20,7 @@ import { createBankQuestion, listTags, normalizeTags } from './modules/assessmen
 import { saveAnswer, startAttempt, submitAttempt } from './modules/assessments/quiz.service.ts'
 import { submissions } from './modules/assessments/schema.ts'
 import { replyAsStudent, reviewSubmission, submitAssignment } from './modules/assessments/submission.service.ts'
+import { getTemplate, issueCompleted, saveTemplate } from './modules/certificates/service.ts'
 import { addLessonBlock, listLessonBlocks, updateLessonBlock } from './modules/courses/blocks.service.ts'
 import { publishCourse, publishLesson } from './modules/courses/publish.service.ts'
 import {
@@ -1908,6 +1910,23 @@ await withTenant(school.id, async (tx: Tx) => {
 	]
 	for (const [id, days] of deadlines) await updateLessonSettings(as('teacher', ago(40)), { id, deadlineDays: days })
 
+	// Сертификат (4.7) у «Пожарной безопасности»; выдача прошедшим — в конце (подписчиков событий в сиде нет)
+	{
+		const {
+			courseId,
+			signatureUrl: _s,
+			backgroundUrl: _b,
+			...fields
+		} = await getTemplate(as('teacher', ago(40)), fire.courseId)
+		await saveTemplate(as('teacher', ago(40)), {
+			...fields,
+			courseId,
+			enabled: true,
+			signerName: 'Марина Соколова',
+			signerTitle: 'Директор учебного центра',
+		})
+	}
+
 	// Потоки (4.2) — до зачислений: ученики зачисляются сразу в поток. У куратора Анны Кузнецовой свои потоки;
 	// кто без потока, тот виден только преподавателям.
 	const groupOf = new Map<string, string>()
@@ -2224,6 +2243,9 @@ await withTenant(school.id, async (tx: Tx) => {
 	})
 	const linkA = await createLinkInvite(as('teacher', ago(1)), { courseId: courseA.courseId, expiresInDays: 14 })
 	const linkFire = await createLinkInvite(as('admin', ago(3)), { courseId: fire.courseId, expiresInDays: 30 })
+	// сертификаты прошедшим «Пожарную безопасность»: номера сейчас, PDF напечатает воркер `pnpm dev`
+	const issued = await issueCompleted(as('teacher'), fire.courseId)
+	console.log(`сертификаты «Пожарной безопасности»: выдано ${issued.issued}`)
 	console.log(
 		`ссылки-приглашения:\n  первая помощь — ${linkFirstAid.url}\n  программа А   — ${linkA.url}\n  пожарная      — ${linkFire.url}`,
 	)
@@ -2241,4 +2263,6 @@ console.log(
 		`  ученики        <фамилия>@trud.local  ${STUDENTS.map(([k]) => k).join(', ')}`,
 	].join('\n'),
 )
+// выдача сертификатов поставила задачи PDF — соединение очереди закрыть, иначе процесс не завершится
+await stopBoss()
 await pool.end()
