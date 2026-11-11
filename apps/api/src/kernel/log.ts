@@ -19,6 +19,7 @@ export const SECRET_KEYS = [
 	'ip',
 	'ipAddress',
 	'userAgent',
+	'ownerEmail',
 	'image',
 	'studentName',
 	'signerName',

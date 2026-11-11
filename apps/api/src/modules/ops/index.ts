@@ -2,9 +2,11 @@
 import { defineModule } from '#/kernel/module.ts'
 import { permissions } from './permissions.ts'
 import { opsRouter } from './router.ts'
+import { schoolStatsJob } from './stats.ts'
 
 export default defineModule({
 	name: 'ops',
 	router: { ops: opsRouter },
 	permissions,
+	jobs: [schoolStatsJob],
 })

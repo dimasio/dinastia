@@ -23,5 +23,6 @@ export * from './modules/assessments/schema.ts'
 export * from './modules/certificates/schema.ts'
 export * from './modules/courses/schema.ts'
 export * from './modules/learning/schema.ts'
+export * from './modules/ops/schema.ts'
 export * from './modules/schools/schema.ts'
 // gen:module:schema

@@ -27,6 +27,9 @@ import { Route as LearnIndexRouteImport } from './routes/learn/index'
 import { Route as LearnProfileRouteImport } from './routes/learn/profile'
 import { Route as LegalOfferRouteImport } from './routes/legal.offer'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as OpsIndexRouteImport } from './routes/ops/index'
+import { Route as OpsAuditRouteImport } from './routes/ops/audit'
+import { Route as OpsPeopleRouteImport } from './routes/ops/people'
 import { Route as AdminCoursesIndexRouteImport } from './routes/admin/courses/index'
 import { Route as AdminCoursesCourseIdRouteImport } from './routes/admin/courses/$courseId'
 import { Route as AdminReviewIndexRouteImport } from './routes/admin/review/index'
@@ -34,6 +37,7 @@ import { Route as AdminReviewSubmissionIdRouteImport } from './routes/admin/revi
 import { Route as AdminStaffIndexRouteImport } from './routes/admin/staff/index'
 import { Route as AdminStudentsIndexRouteImport } from './routes/admin/students/index'
 import { Route as LearnCoursesCourseIdRouteImport } from './routes/learn/courses/$courseId'
+import { Route as OpsSchoolsIdRouteImport } from './routes/ops/schools.$id'
 import { Route as AdminCoursesCourseIdAnalyticsRouteImport } from './routes/admin/courses/$courseId_.analytics'
 import { Route as AdminCoursesCourseIdCertificateRouteImport } from './routes/admin/courses/$courseId_.certificate'
 import { Route as AdminCoursesCourseIdGroupsRouteImport } from './routes/admin/courses/$courseId_.groups'
@@ -134,6 +138,21 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpsIndexRoute = OpsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsAuditRoute = OpsAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => OpsRoute,
+} as any)
+const OpsPeopleRoute = OpsPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => OpsRoute,
+} as any)
 const AdminCoursesIndexRoute = AdminCoursesIndexRouteImport.update({
   id: '/courses/',
   path: '/courses/',
@@ -168,6 +187,11 @@ const LearnCoursesCourseIdRoute = LearnCoursesCourseIdRouteImport.update({
   id: '/courses/$courseId',
   path: '/courses/$courseId',
   getParentRoute: () => LearnRouteRoute,
+} as any)
+const OpsSchoolsIdRoute = OpsSchoolsIdRouteImport.update({
+  id: '/schools/$id',
+  path: '/schools/$id',
+  getParentRoute: () => OpsRoute,
 } as any)
 const AdminCoursesCourseIdAnalyticsRoute =
   AdminCoursesCourseIdAnalyticsRouteImport.update({
@@ -229,7 +253,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -241,11 +265,15 @@ export interface FileRoutesByFullPath {
   '/learn/profile': typeof LearnProfileRoute
   '/legal/offer': typeof LegalOfferRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/ops/audit': typeof OpsAuditRoute
+  '/ops/people': typeof OpsPeopleRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/ops/': typeof OpsIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
   '/admin/review/$submissionId': typeof AdminReviewSubmissionIdRoute
   '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
+  '/ops/schools/$id': typeof OpsSchoolsIdRoute
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
@@ -263,7 +291,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -275,11 +302,15 @@ export interface FileRoutesByTo {
   '/learn/profile': typeof LearnProfileRoute
   '/legal/offer': typeof LegalOfferRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/ops/audit': typeof OpsAuditRoute
+  '/ops/people': typeof OpsPeopleRoute
   '/admin': typeof AdminIndexRoute
   '/learn': typeof LearnIndexRoute
+  '/ops': typeof OpsIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
   '/admin/review/$submissionId': typeof AdminReviewSubmissionIdRoute
   '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
+  '/ops/schools/$id': typeof OpsSchoolsIdRoute
   '/admin/courses': typeof AdminCoursesIndexRoute
   '/admin/review': typeof AdminReviewIndexRoute
   '/admin/staff': typeof AdminStaffIndexRoute
@@ -300,7 +331,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/learn': typeof LearnRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/ops': typeof OpsRoute
+  '/ops': typeof OpsRouteWithChildren
   '/admin/profile': typeof AdminProfileRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/certificates/verify': typeof CertificatesVerifyRoute
@@ -312,11 +343,15 @@ export interface FileRoutesById {
   '/learn/profile': typeof LearnProfileRoute
   '/legal/offer': typeof LegalOfferRoute
   '/legal/privacy': typeof LegalPrivacyRoute
+  '/ops/audit': typeof OpsAuditRoute
+  '/ops/people': typeof OpsPeopleRoute
   '/admin/': typeof AdminIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/ops/': typeof OpsIndexRoute
   '/admin/courses/$courseId': typeof AdminCoursesCourseIdRoute
   '/admin/review/$submissionId': typeof AdminReviewSubmissionIdRoute
   '/learn/courses/$courseId': typeof LearnCoursesCourseIdRoute
+  '/ops/schools/$id': typeof OpsSchoolsIdRoute
   '/admin/courses/': typeof AdminCoursesIndexRoute
   '/admin/review/': typeof AdminReviewIndexRoute
   '/admin/staff/': typeof AdminStaffIndexRoute
@@ -350,11 +385,15 @@ export interface FileRouteTypes {
     | '/learn/profile'
     | '/legal/offer'
     | '/legal/privacy'
+    | '/ops/audit'
+    | '/ops/people'
     | '/admin/'
     | '/learn/'
+    | '/ops/'
     | '/admin/courses/$courseId'
     | '/admin/review/$submissionId'
     | '/learn/courses/$courseId'
+    | '/ops/schools/$id'
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
@@ -372,7 +411,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/ops'
     | '/admin/profile'
     | '/admin/settings'
     | '/certificates/verify'
@@ -384,11 +422,15 @@ export interface FileRouteTypes {
     | '/learn/profile'
     | '/legal/offer'
     | '/legal/privacy'
+    | '/ops/audit'
+    | '/ops/people'
     | '/admin'
     | '/learn'
+    | '/ops'
     | '/admin/courses/$courseId'
     | '/admin/review/$submissionId'
     | '/learn/courses/$courseId'
+    | '/ops/schools/$id'
     | '/admin/courses'
     | '/admin/review'
     | '/admin/staff'
@@ -420,11 +462,15 @@ export interface FileRouteTypes {
     | '/learn/profile'
     | '/legal/offer'
     | '/legal/privacy'
+    | '/ops/audit'
+    | '/ops/people'
     | '/admin/'
     | '/learn/'
+    | '/ops/'
     | '/admin/courses/$courseId'
     | '/admin/review/$submissionId'
     | '/learn/courses/$courseId'
+    | '/ops/schools/$id'
     | '/admin/courses/'
     | '/admin/review/'
     | '/admin/staff/'
@@ -445,7 +491,7 @@ export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LearnRouteRoute: typeof LearnRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  OpsRoute: typeof OpsRoute
+  OpsRoute: typeof OpsRouteWithChildren
   CertificatesVerifyRoute: typeof CertificatesVerifyRoute
   DevBlocksRoute: typeof DevBlocksRoute
   DevQuestionsRoute: typeof DevQuestionsRoute
@@ -584,6 +630,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ops/': {
+      id: '/ops/'
+      path: '/'
+      fullPath: '/ops/'
+      preLoaderRoute: typeof OpsIndexRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/audit': {
+      id: '/ops/audit'
+      path: '/audit'
+      fullPath: '/ops/audit'
+      preLoaderRoute: typeof OpsAuditRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/people': {
+      id: '/ops/people'
+      path: '/people'
+      fullPath: '/ops/people'
+      preLoaderRoute: typeof OpsPeopleRouteImport
+      parentRoute: typeof OpsRoute
+    }
     '/admin/courses/': {
       id: '/admin/courses/'
       path: '/courses'
@@ -632,6 +699,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/learn/courses/$courseId'
       preLoaderRoute: typeof LearnCoursesCourseIdRouteImport
       parentRoute: typeof LearnRouteRoute
+    }
+    '/ops/schools/$id': {
+      id: '/ops/schools/$id'
+      path: '/schools/$id'
+      fullPath: '/ops/schools/$id'
+      preLoaderRoute: typeof OpsSchoolsIdRouteImport
+      parentRoute: typeof OpsRoute
     }
     '/admin/courses/$courseId_/analytics': {
       id: '/admin/courses/$courseId_/analytics'
@@ -765,12 +839,28 @@ const LearnRouteRouteWithChildren = LearnRouteRoute._addFileChildren(
   LearnRouteRouteChildren,
 )
 
+interface OpsRouteChildren {
+  OpsAuditRoute: typeof OpsAuditRoute
+  OpsPeopleRoute: typeof OpsPeopleRoute
+  OpsIndexRoute: typeof OpsIndexRoute
+  OpsSchoolsIdRoute: typeof OpsSchoolsIdRoute
+}
+
+const OpsRouteChildren: OpsRouteChildren = {
+  OpsAuditRoute: OpsAuditRoute,
+  OpsPeopleRoute: OpsPeopleRoute,
+  OpsIndexRoute: OpsIndexRoute,
+  OpsSchoolsIdRoute: OpsSchoolsIdRoute,
+}
+
+const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   LearnRouteRoute: LearnRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  OpsRoute: OpsRoute,
+  OpsRoute: OpsRouteWithChildren,
   CertificatesVerifyRoute: CertificatesVerifyRoute,
   DevBlocksRoute: DevBlocksRoute,
   DevQuestionsRoute: DevQuestionsRoute,

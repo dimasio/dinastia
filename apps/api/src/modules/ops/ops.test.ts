@@ -5,9 +5,12 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { consents, users } from '#/kernel/auth/schema.ts'
 import { db, pool } from '#/kernel/db/client.ts'
+import { withTenant } from '#/kernel/db/tenant.ts'
+import { log } from '#/kernel/log.ts'
 import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { opsAudit } from '#/kernel/ops/schema.ts'
 import { findOperatorProceduresWithout2fa } from '#/kernel/router-guard.ts'
+import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { router } from '#/router.ts'
 import { call, signUp } from '#/test/http.ts'
 import { drainJobs, inviteToken, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
@@ -15,6 +18,7 @@ import { cleanupTestSchools, clientFor, withTestSchool } from '#/test/school.ts'
 import { totp } from '#/test/totp.ts'
 import { TEST_PASSWORD, uniqueSlug } from '#/test/users.ts'
 import { findSchoolBySlug } from '../schools/service.ts'
+import { refreshSchoolStats } from './stats.ts'
 
 beforeAll(startTestWorker)
 afterAll(async () => {
@@ -114,5 +118,47 @@ describe('консоль оператора', () => {
 		const log = await db.select().from(opsAudit).where(eq(opsAudit.schoolId, created.id))
 		expect(log).toMatchObject([{ operatorId: ops.id, action: 'ops.school.created' }])
 		expect(JSON.stringify(log)).not.toContain(owner.email)
+	})
+})
+
+describe('школы, люди, журнал (5.6б)', () => {
+	it('список с метриками из задачи, поиск по почте владельца; карточка — метрики сейчас, сотрудники, журнал', async () => {
+		const ops = await operator()
+		const { cookie } = await enable2fa(ops.cookie)
+		const root = clientFor(cookie)
+		const t = await withTestSchool('Школа метрик')
+		await t.as('teacher').courses.create({ title: 'Курс метрик' })
+
+		// без задачи метрик — нули
+		const before = await root.ops.schools.list({ q: t.school.slug })
+		expect(before.items).toMatchObject([{ id: t.school.id, students: 0, ownerEmail: null }])
+
+		// задача ops.school-stats делает то же для каждой школы
+		await withTenant(t.school.id, (tx) => refreshSchoolStats(tenantCtx(tx, t.school, { now: () => new Date(), log })))
+		const after = await root.ops.schools.list({ q: t.people.owner.email })
+		expect(after.items).toMatchObject([
+			{ id: t.school.id, students: 1, courses: 1, ownerEmail: t.people.owner.email, status: 'active' },
+		])
+
+		const card = await root.ops.schools.get({ id: t.school.id })
+		expect(card).toMatchObject({ name: 'Школа метрик', students: 1, courses: 1 })
+		expect(card.staff.map((s) => s.role).sort()).toEqual(['admin', 'curator', 'owner', 'teacher'])
+		expect(await fails(root.ops.schools.get({ id: crypto.randomUUID() }))).toMatchObject({ code: 'SCHOOL_NOT_FOUND' })
+	})
+
+	it('человек по точной почте: школы и роли; не найден — null; поиск в журнале без почты', async () => {
+		const ops = await operator()
+		const { cookie } = await enable2fa(ops.cookie)
+		const root = clientFor(cookie)
+		const t = await withTestSchool('Школа поиска')
+		const found = await root.ops.people.find({ email: t.people.teacher.email.toUpperCase() })
+		expect(found).toMatchObject({
+			email: t.people.teacher.email,
+			schools: [{ id: t.school.id, role: 'teacher', status: 'active' }],
+		})
+		expect(await root.ops.people.find({ email: 'nobody-here@test.local' })).toBeNull()
+		const log = await root.ops.audit.list({})
+		expect(log.items.filter((r) => r.action === 'ops.person.searched').length).toBeGreaterThanOrEqual(2)
+		expect(JSON.stringify(log)).not.toContain(t.people.teacher.email)
 	})
 })

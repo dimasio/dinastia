@@ -6,6 +6,7 @@ import { issuedResource } from './certificates/resources/issued.tsx'
 import { coursesResource } from './courses/resources/courses.tsx'
 import { enrollmentsResource } from './learning/resources/enrollments.tsx'
 import { studentsResource } from './learning/resources/students.ts'
+import { opsAuditResource, opsSchoolsResource } from './ops/resources.tsx'
 import { staffResource } from './schools/resources/staff.ts'
 // gen:resource:import
 
@@ -21,5 +22,7 @@ export const resources: ResourceDef<any, any>[] = [
 	// выданные сертификаты курса — образец без курса
 	issuedResource({ courseId: '' }),
 	studentsResource,
+	opsSchoolsResource,
+	opsAuditResource,
 	// gen:resource:entry
 ]

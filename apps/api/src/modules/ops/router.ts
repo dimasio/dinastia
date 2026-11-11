@@ -9,6 +9,7 @@ import { opsAuditWrite } from '#/kernel/ops/audit.ts'
 import { impl, mw } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { createSchoolByOperator } from '../schools/service.ts'
+import { findPerson, getSchool, listAudit, listSchools } from './service.ts'
 
 export const opsRouter = {
 	me: impl.ops.me
@@ -26,6 +27,18 @@ export const opsRouter = {
 		}),
 
 	schools: {
+		list: impl.ops.schools.list
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(({ input }) => listSchools(input)),
+		get: impl.ops.schools.get
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(({ input, context }) => getSchool(input.id, context.now())),
 		create: impl.ops.schools.create
 			.use(mw.host)
 			.use(mw.session)
@@ -50,5 +63,32 @@ export const opsRouter = {
 					invitationExpiresAt: invitation.expiresAt,
 				}
 			}),
+	},
+	people: {
+		find: impl.ops.people.find
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.use(rateLimit({ name: 'ops.people.find', max: 60, windowSeconds: 600, by: 'user' }))
+			.handler(async ({ input, context }) => {
+				const person = await findPerson(input.email)
+				// почта — ПДн: в журнале только id найденного
+				await opsAuditWrite(db, {
+					operatorId: context.operator.id,
+					action: 'ops.person.searched',
+					target: person?.id ?? null,
+					ip: context.ip,
+				})
+				return person
+			}),
+	},
+	audit: {
+		list: impl.ops.audit.list
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(({ input }) => listAudit(input)),
 	},
 }

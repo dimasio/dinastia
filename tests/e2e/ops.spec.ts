@@ -42,12 +42,17 @@ test('оператор: второй фактор, создание школы, 
 	// создание школы
 	const slug = `ops-${run}`
 	const ownerEmail = `owner-ops-${run}@e2e.local`
-	await page.getByTestId('ops-school-name').fill('Школа из консоли')
-	await page.getByTestId('ops-school-slug').fill(slug)
-	await page.getByTestId('ops-school-owner').fill(ownerEmail)
-	await page.getByTestId('ops-create-submit').click()
-	await expect(page.getByTestId('ops-create-done')).toContainText('Школа «Школа из консоли» создана')
+	await page.getByTestId('resource-schools-create').click()
+	const form = page.getByTestId('resource-schools-create-form')
+	await form.getByLabel('Школа').fill('Школа из консоли')
+	await form.getByLabel('Адрес').fill(slug)
+	await form.getByLabel('Владелец').fill(ownerEmail)
 	await page.screenshot(shots('5.6-create-school'))
+	await form.getByTestId('resource-schools-create-form-submit').click()
+	await expect(page.getByText('Школа создана, приглашение отправлено владельцу')).toBeVisible()
+	await page.goto(rootUrl(`/ops?q=${slug}`))
+	await expect(page.getByTestId('resource-schools-row')).toHaveCount(1)
+	await expect(page.getByTestId('resource-schools-row')).toContainText('Работает')
 
 	// владелец: письмо → вход по ссылке → оферта и политика → владелец
 	const owner = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
@@ -62,6 +67,21 @@ test('оператор: второй фактор, создание школы, 
 	await expect(owner).toHaveURL(schoolUrl(slug, '/admin'))
 	await expect(owner.getByTestId('admin-school-name')).toHaveText('Школа из консоли')
 
+	// карточка школы: владелец среди сотрудников; поиск человека; журнал консоли
+	await page.goto(rootUrl(`/ops?q=${slug}`))
+	await page.getByTestId('resource-schools-row').getByRole('link', { name: 'Школа из консоли' }).click()
+	await expect(page.getByTestId('ops-school-staff')).toContainText(ownerEmail)
+	await expect(page.getByTestId('ops-metric-students')).toHaveText('0')
+	await page.screenshot(shots('5.6-school-card'))
+	await page.getByTestId('ops-nav-people').click()
+	await page.getByTestId('ops-people-email').fill(ownerEmail)
+	await page.getByTestId('ops-people-find').click()
+	await expect(page.getByTestId('ops-person-schools')).toContainText('Школа из консоли')
+	await expect(page.getByTestId('ops-person-schools')).toContainText('Владелец')
+	await page.getByTestId('ops-nav-audit').click()
+	await expect(page.getByTestId('resource-audit-row').first()).toContainText('Искал человека')
+	await page.screenshot(shots('5.6-audit'))
+
 	// повторный вход оператора — пароль, затем код (код следующего шага: текущий уже использован)
 	const again = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
 	await again.goto(rootUrl())
@@ -73,7 +93,7 @@ test('оператор: второй фактор, создание школы, 
 	await again.getByTestId('auth-signin-code-submit').click()
 	await expect(again.getByTestId('schools-mine')).toBeVisible()
 	await again.goto(rootUrl('/ops'))
-	await expect(again.getByTestId('ops-create-school')).toBeVisible()
+	await expect(again.getByTestId('resource-schools-create')).toBeVisible()
 })
 
 test('не оператор в /ops — «не найдено»', async ({ page, loginAs }) => {
