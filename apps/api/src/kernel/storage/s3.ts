@@ -2,6 +2,7 @@
 import {
 	DeleteObjectCommand,
 	GetObjectCommand,
+	HeadBucketCommand,
 	HeadObjectCommand,
 	PutObjectCommand,
 	S3Client,
@@ -75,4 +76,9 @@ export async function getObject(key: string): Promise<{ body: Uint8Array; mime: 
 /** Удалить объект (нет объекта — не ошибка). */
 export async function deleteObject(key: string) {
 	await client.send(new DeleteObjectCommand({ Bucket, Key: key }))
+}
+
+/** Хранилище доступно и бакет есть — для `/health/ready` (5.4). */
+export async function checkBucket() {
+	await client.send(new HeadBucketCommand({ Bucket }))
 }

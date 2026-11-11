@@ -8,9 +8,11 @@ export interface CspOptions {
 	s3Origin: string
 	/** Dev-сервер Vite: встроенный скрипт React Refresh и HMR по WebSocket. */
 	dev: boolean
+	/** Origin сбора ошибок (GlitchTip, 5.4) — если включён. */
+	reportOrigin?: string
 }
 
-export function contentSecurityPolicy({ s3Origin, dev }: CspOptions): string {
+export function contentSecurityPolicy({ s3Origin, dev, reportOrigin }: CspOptions): string {
 	const frames = [...new Set(EMBED_SERVICES.flatMap((s) => s.hosts))].flatMap((h) => [`https://${h}`, `https://*.${h}`])
 	const directives: Record<string, string[]> = {
 		'default-src': ["'self'"],
@@ -20,7 +22,7 @@ export function contentSecurityPolicy({ s3Origin, dev }: CspOptions): string {
 		'img-src': ["'self'", 'data:', 'blob:', s3Origin],
 		'media-src': ["'self'", 'blob:', s3Origin],
 		'font-src': ["'self'", 'data:'],
-		'connect-src': ["'self'", s3Origin, ...(dev ? ['ws:', 'wss:'] : [])],
+		'connect-src': ["'self'", s3Origin, ...(reportOrigin ? [reportOrigin] : []), ...(dev ? ['ws:', 'wss:'] : [])],
 		'frame-src': ["'self'", ...frames],
 		'frame-ancestors': ["'none'"],
 		'object-src': ["'none'"],

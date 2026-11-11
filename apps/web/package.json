@@ -22,6 +22,7 @@
 		"@orpc/client": "catalog:",
 		"@orpc/contract": "catalog:",
 		"@orpc/tanstack-query": "catalog:",
+		"@sentry/react": "catalog:",
 		"@tanstack/react-query": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",

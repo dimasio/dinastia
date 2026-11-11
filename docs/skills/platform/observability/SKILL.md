@@ -5,7 +5,8 @@ description: Наблюдаемость Dinastia — структурные ло
 
 # Наблюдаемость
 
-> Статус: логи, requestId, health — сверено с кодом в фазе 0 (пункт 0.9); ошибки (GlitchTip), метрики, алерты — фаза 5.
+> Статус: сверено с кодом в 5.4 (логи, ошибки, метрики, health, правила оповещений). Сам GlitchTip, Prometheus и доставка
+> оповещений — на стенде (5.3).
 
 ## Логи
 
@@ -35,27 +36,38 @@ ctx.log.error({ err, provider: 'kinescope' }, 'video status failed')
 
 ## Ошибки
 
-- Необработанные исключения API и задач уходят в GlitchTip (Sentry SDK) с тегами `schoolId`, `route|job`, релиз.
-- `fail.*` (ожидаемые бизнес-ошибки) — не отправляются как ошибки, только счётчик.
-- Клиент — Sentry SDK для React с `beforeSend`, вырезающим ПДн; source maps загружаются при деплое.
+- `kernel/error-report.ts`: `initErrorReporting('api' | 'worker')` в `main.ts`/`worker.ts`; без `SENTRY_DSN` — выключено (локально и в
+  тестах). GlitchTip — **свой экземпляр в РФ** (152-ФЗ), Sentry SDK `@sentry/node` без трассировки и автоинструментации.
+- Неожиданное исключение процедуры (`errorsMw` в `kernel/orpc.ts`) и задачи, которую стоит повторить (`settle` в
+  `worker-runtime.ts`), — `reportError(error, { procedure | job, schoolId, requestId })`. `fail.*`, валидация, права, битые данные
+  задачи — **не отправляются**.
+- `beforeSend` (`scrub`) вырезает запрос (тело, заголовки, cookie), пользователя, IP, историю действий — остаются стек, теги, релиз
+  (`APP_RELEASE`). Тест — `kernel/observability.test.ts` (транспорт в памяти).
+- Веб: `apps/web/src/app/error-report.ts` — `@sentry/react` лениво (вне начальной загрузки), при `SENTRY_DSN_WEB` на сборке; граница
+  ошибок маршрутов (`__root.tsx`) отправляет неожиданные; адрес страницы не уходит (в нём токены). Origin GlitchTip — в CSP
+  `connect-src` (`apps/web/csp.ts`). Source maps — при деплое (фаза 6).
 
 ## Метрики
 
-Ядро экспортирует Prometheus-метрики `/metrics` (закрыт снаружи):
-- `rpc_duration_seconds{procedure,status}`, `rpc_errors_total{procedure,code}`;
-- `jobs_queue_size{name}`, `jobs_failed_total{name}`, `jobs_duration_seconds{name}`;
-- `db_pool_in_use`, `jobs_lag_seconds` (старейшая готовая задача pg-boss);
-- бизнес: `enrollments_created_total`, `submissions_pending` (счётчики без ПДн, без `schoolId` в метках —
-  высокая кардинальность).
+Свой экспортёр `kernel/metrics.ts` (`counter`, `gauge`, `histogram`, текст Prometheus; `prom-client` не выпускался с 2024-06) — на
+внутреннем порту `METRICS_PORT` (`serveMetrics`, один сервер на процесс; 0 — выключено), наружу не публикуется:
+- `rpc_duration_seconds{procedure,status}` (`ok` | `client_error` | `error`), `rpc_errors_total{procedure,code}` — в `errorsMw`;
+- `jobs_duration_seconds{job,status}`, `jobs_failed_total{job,retry}` — в `settle`;
+- при чтении (`kernel/metrics-collectors.ts`): `jobs_queue_size{job}`, `jobs_lag_seconds{job}` (старейшая готовая задача),
+  `db_pool_connections{state}`;
+- бизнес: `enrollments_created_total{outcome,source}` (`learning/enrollment.service.ts`). Метки — без `schoolId` и id записей
+  (кардинальность). Новая метрика — `counter(...)` в модуле, имя уникально (повтор — ошибка при старте).
 
 ## Health
 
 - `/health/live` — процесс жив (без зависимостей).
-- `/health/ready` — зависимости: сейчас `db`; S3 — с пункта 1.7. 503 + `{ status: 'fail', checks: { db: 'fail' } }`, если
+- `/health/ready` — зависимости: `db` и `s3` (`HeadBucket`, 5.4). 503 + `{ status: 'fail', checks: { db: 'fail', s3: 'ok' } }`, если
   хоть одна недоступна. Новая зависимость — проверка в `readiness()` (`apps/api/src/app.ts`) + тест.
 - Запросы к `/health/*` не пишутся в лог запросов (шум от оркестратора).
 
-## Алерты (фаза 5)
+## Алерты
+
+Правила Prometheus — `docker/monitoring/alerts.yml` (5.4); подключаются на стенде, доставка — Alertmanager → Telegram (5.3).
 
 | Алерт               | Порог                                                      |
 | ------------------- | ---------------------------------------------------------- |

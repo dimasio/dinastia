@@ -11,6 +11,7 @@ import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { toPage } from '#/kernel/db/listing.ts'
 import { fail } from '#/kernel/errors.ts'
 import { members } from '#/kernel/members/schema.ts'
+import { counter } from '#/kernel/metrics.ts'
 import { courseCards, publishedOutline } from '../courses/service.ts'
 import { flatLessons } from './access.ts'
 import { enrolledEmail } from './emails/enrolled.tsx'
@@ -25,6 +26,9 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`)
 
 /** Область списка учеников: куратор — только ученики своих потоков (`groupScope`), остальные — вся школа (RLS). */
+
+/** Метрика (5.4): зачисления по исходу и источнику — без школы в метках. */
+const enrollmentsCounter = counter('enrollments_created_total', 'Зачисления: новые и возвращённые')
 export function learningScope(ctx: SchoolCtx): SQL | undefined {
 	return groupScope(ctx)
 }
@@ -88,6 +92,7 @@ export async function enroll(
 			})
 			.where(eq(enrollments.id, existing.id))
 			.returning()
+		enrollmentsCounter.inc({ outcome: 'restored' })
 		return { enrollment: row as Enrollment, outcome: 'restored' }
 	}
 	const [row] = await ctx.db
@@ -102,6 +107,7 @@ export async function enroll(
 			groupId: group?.id ?? null,
 		})
 		.returning()
+	enrollmentsCounter.inc({ outcome: 'enrolled', source: input.source ?? 'manual' })
 	return { enrollment: row as Enrollment, outcome: 'enrolled' }
 }
 

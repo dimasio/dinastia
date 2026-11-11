@@ -39,6 +39,7 @@
 		"@orpc/server": "catalog:",
 		"@orpc/zod": "catalog:",
 		"@react-email/render": "catalog:",
+		"@sentry/node": "catalog:",
 		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",
 		"hono": "catalog:",

@@ -14,10 +14,12 @@ import { config } from './config.ts'
 import type { SchoolCtx } from './context.ts'
 import { db, type Tx } from './db/client.ts'
 import { withTenant } from './db/tenant.ts'
+import { reportError } from './error-report.ts'
 import { AppError } from './errors.ts'
 import { type HostTarget, resolveHost } from './host.ts'
 import type { Logger } from './log.ts'
 import { findActiveMember } from './members/members.ts'
+import { rpcDuration, rpcErrors } from './metrics.ts'
 import { tenantCtx } from './tenant-ctx.ts'
 
 /** Контекст, который HTTP-слой передаёт в каждую процедуру. */
@@ -34,13 +36,24 @@ export interface RequestCtx {
 
 /** Первым в каждой цепочке: бизнес-ошибки сервисов (AppError) и ошибки схем в сервисах — в ответ API, а не 500. */
 const errorsMw = os.$context<RequestCtx>().middleware(async ({ context, next, path }) => {
+	const started = performance.now()
+	const procedure = path.join('.')
+	let status = 'ok'
 	try {
 		return await next()
 	} catch (error) {
 		const mapped = toORPCError(error)
 		// Ожидаемые ошибки (бизнес, валидация, права) — не шум; всё остальное — ошибка сервера: в лог с requestId.
-		if (!(mapped instanceof ORPCError)) context.log.error({ err: error, procedure: path.join('.') }, 'procedure failed')
+		if (!(mapped instanceof ORPCError)) {
+			context.log.error({ err: error, procedure }, 'procedure failed')
+			reportError(error, { procedure, schoolId: context.tags.schoolId, requestId: context.requestId })
+			status = 'error'
+		} else status = mapped.status >= 500 ? 'error' : 'client_error'
+		rpcErrors.inc({ procedure, code: mapped instanceof ORPCError ? String(mapped.status) : '500' })
 		throw mapped
+	} finally {
+		// метрики (5.4): длительность по процедуре и исходу
+		rpcDuration.observe({ procedure, status }, (performance.now() - started) / 1000)
 	}
 })
 

@@ -1,0 +1,48 @@
+# Правила оповещений Prometheus (5.4, скилл observability): пороги — из скилла. Подключаются на стенде (5.3), доставка —
+# Alertmanager → Telegram. Метрики отдают API и воркер на внутреннем порту METRICS_PORT (/metrics).
+groups:
+  - name: dinastia
+    rules:
+      - alert: ApiErrorRateHigh
+        expr: |
+          sum(rate(rpc_duration_seconds_count{status="error"}[5m]))
+            / clamp_min(sum(rate(rpc_duration_seconds_count[5m])), 1e-9) > 0.01
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Ошибки сервера API больше 1 % за 5 минут"
+
+      - alert: ApiSlowProcedure
+        expr: |
+          histogram_quantile(0.95, sum by (le, procedure) (rate(rpc_duration_seconds_bucket[10m]))) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "p95 процедуры {{ $labels.procedure }} дольше 1 с"
+
+      - alert: JobsFailing
+        expr: sum(increase(jobs_failed_total[15m])) > 10
+        labels: { severity: warning }
+        annotations:
+          summary: "Больше 10 сбоев фоновых задач за 15 минут"
+
+      - alert: JobsCriticalFailed
+        expr: sum by (job) (increase(jobs_failed_total{job=~"certificates\\..*|mail\\..*"}[15m])) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "Сбой задачи {{ $labels.job }} (сертификаты или письма)"
+
+      - alert: JobsLagging
+        expr: max(jobs_lag_seconds) > 120
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Очередь задач отстаёт больше чем на 2 минуты"
+
+      - alert: DbPoolSaturated
+        expr: sum(db_pool_connections{state="waiting"}) > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Запросы ждут свободное подключение к БД"
+      # диск и подключения сервера БД — метрики managed PostgreSQL облака (5.3), порог 80 %

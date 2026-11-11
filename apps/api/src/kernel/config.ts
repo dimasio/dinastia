@@ -30,6 +30,13 @@ const Env = z
 		 */
 		AUTH_SIGN_IN_LIMIT: z.coerce.number().int().min(1).max(1000).default(5),
 
+		/** Сбор ошибок — GlitchTip (Sentry-совместимый, свой экземпляр в РФ, 5.4); пусто — выключено (локально, тесты). */
+		SENTRY_DSN: z.url().optional(),
+		/** Версия сборки — в ошибках и метриках; задаёт конвейер (фаза 6). */
+		APP_RELEASE: z.string().default('dev'),
+		/** Порт метрик Prometheus (`/metrics`) — только внутренняя сеть; 0 — не поднимать (5.4). */
+		METRICS_PORT: z.coerce.number().int().min(0).default(0),
+
 		/** S3-совместимое хранилище (D-011; локально SeaweedFS, D-037). Endpoint должен открываться и из браузера. */
 		S3_ENDPOINT: z.url(),
 		S3_REGION: z.string().default('ru-central1'),

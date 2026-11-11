@@ -4,9 +4,11 @@
 import type { JobResult, PgBoss } from 'pg-boss'
 import { ZodError } from 'zod'
 import { withTenant } from './db/tenant.ts'
+import { reportError } from './error-report.ts'
 import { AppError } from './errors.ts'
 import { type AnyJob, ensureQueue, type JobPayload } from './jobs.ts'
 import { log as rootLog } from './log.ts'
+import { jobDuration, jobFailures } from './metrics.ts'
 import { allJobs } from './registry.ts'
 import { activeSchool, forEachSchool, tenantCtx } from './tenant-ctx.ts'
 
@@ -45,15 +47,22 @@ export async function runJob(def: AnyJob, payload: JobPayload, meta: { jobId: st
 
 /** Исход задачи для pg-boss: completed / failed (повтор) / deadletter (без повтора). */
 export async function settle(def: AnyJob, payload: JobPayload, meta: { jobId: string; now?: () => Date }) {
+	const started = performance.now()
+	const took = (status: string) => jobDuration.observe({ job: def.name, status }, (performance.now() - started) / 1000)
 	try {
 		await runJob(def, payload, meta)
+		took('completed')
 		return { status: 'completed' as JobOutcome }
 	} catch (error) {
 		const terminal = permanent(error)
+		took(terminal ? 'deadletter' : 'failed')
+		jobFailures.inc({ job: def.name, retry: terminal ? 'no' : 'yes' })
 		rootLog[terminal ? 'warn' : 'error'](
 			{ err: error, job: def.name, jobId: meta.jobId, schoolId: payload.schoolId },
 			terminal ? 'job failed permanently' : 'job failed, will retry',
 		)
+		// бизнес-ошибка и битые данные — ожидаемы; неожиданное — в сбор ошибок (5.4)
+		if (!terminal) reportError(error, { job: def.name, schoolId: payload.schoolId })
 		const output = { error: error instanceof AppError ? error.code : error instanceof Error ? error.message : 'error' }
 		return { status: (terminal ? 'deadletter' : 'failed') as JobOutcome, output }
 	}

@@ -5,8 +5,11 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { I18nextProvider } from 'react-i18next'
+import { initErrorReporting } from './app/error-report.ts'
 import { i18n } from './app/i18n.ts'
 import { routeTree } from './routeTree.gen.ts'
+
+initErrorReporting()
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } })
 const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent', scrollRestoration: true })

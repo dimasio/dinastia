@@ -53,7 +53,7 @@ describe('health', () => {
 	it('/health/ready — 200, когда БД доступна', async () => {
 		const res = await app.request('/health/ready')
 		expect(res.status).toBe(200)
-		expect(await res.json()).toEqual({ status: 'ok', checks: { db: 'ok' } })
+		expect(await res.json()).toEqual({ status: 'ok', checks: { db: 'ok', s3: 'ok' } })
 	})
 
 	it('недоступная зависимость — не готов', async () => {

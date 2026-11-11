@@ -14,6 +14,7 @@ import { config } from './kernel/config.ts'
 import { db } from './kernel/db/client.ts'
 import { type Logger, log } from './kernel/log.ts'
 import type { RequestCtx } from './kernel/orpc.ts'
+import { checkBucket } from './kernel/storage/s3.ts'
 import { MAX_WEBHOOK_BODY, receiveWebhook } from './kernel/webhooks/receive.ts'
 import { router } from './router.ts'
 
@@ -45,9 +46,9 @@ function requestCtx(c: Context<Env>): RequestCtx {
 	}
 }
 
-/** Готовность к трафику: зависимости, без которых запросы не обслужить. S3 — с пункта 1.7. */
+/** Готовность к трафику: зависимости, без которых запросы не обслужить — БД и хранилище файлов (5.4). */
 export async function readiness(
-	checks: Record<string, () => Promise<unknown>> = { db: () => db.execute(sql`select 1`) },
+	checks: Record<string, () => Promise<unknown>> = { db: () => db.execute(sql`select 1`), s3: checkBucket },
 ) {
 	const results = await Promise.all(
 		Object.entries(checks).map(async ([name, check]) => {
