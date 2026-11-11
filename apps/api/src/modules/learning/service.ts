@@ -7,6 +7,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { listBlocks, listPublicBlocks } from '#/kernel/blocks/blocks.ts'
 import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
+import { lessons } from '../courses/schema.ts'
 import { courseCards, type PublishedOutline, publishedOutline } from '../courses/service.ts'
 import { computeAccess, flatLessons, type LessonAccess, type ProgressFact } from './access.ts'
 import { enroll } from './enrollment.service.ts'
@@ -108,21 +109,26 @@ export async function getMyCourse(ctx: SchoolCtx, courseId: string): Promise<Cou
 
 /** Курс урока для ученика: оглавление, зачисление, доступ к уроку; закрытый — LESSON_LOCKED. */
 export async function openLessonContext(ctx: SchoolCtx, lessonId: string) {
-	const mine = await myEnrollments(ctx)
-	for (const enrollment of mine) {
-		const outline = await publishedOutline(ctx, enrollment.courseId)
-		const lesson = outline && flatLessons(outline).find((l) => l.id === lessonId)
-		if (!outline || !lesson) continue
-		if (enrollment.status === 'revoked') return fail.forbidden('ENROLLMENT_REVOKED')
-		if (isExpired(enrollment, ctx.now())) return fail.forbidden('ENROLLMENT_EXPIRED')
-		const facts = await factsOf(ctx, enrollment.id)
-		const access = computeAccess(outline, await accessBase(ctx, enrollment), facts, ctx.now())
-		const mineAccess = access.find((a) => a.lessonId === lessonId) as LessonAccess
-		if (mineAccess.status === 'locked')
-			return fail.forbidden('LESSON_LOCKED', { lockedBy: mineAccess.lockedBy as LockedBy })
-		return { outline, enrollment, lesson, access, facts, status: mineAccess.status }
-	}
-	return fail.notFound('LESSON_NOT_FOUND')
+	// сначала курс урока, потом зачисление на него: перебор всех зачислений с оглавлением каждого курса был N+1 — у ученика
+	// с сотнями курсов урок открывался секундами
+	const [row] = await ctx.db
+		.select({ courseId: lessons.courseId })
+		.from(lessons)
+		.where(eq(lessons.id, lessonId))
+		.limit(1)
+	if (!row) return fail.notFound('LESSON_NOT_FOUND')
+	const [enrollment] = await myEnrollments(ctx).then((rows) => rows.filter((r) => r.courseId === row.courseId))
+	const outline = enrollment ? await publishedOutline(ctx, enrollment.courseId) : null
+	const lesson = outline && flatLessons(outline).find((l) => l.id === lessonId)
+	if (!enrollment || !outline || !lesson) return fail.notFound('LESSON_NOT_FOUND')
+	if (enrollment.status === 'revoked') return fail.forbidden('ENROLLMENT_REVOKED')
+	if (isExpired(enrollment, ctx.now())) return fail.forbidden('ENROLLMENT_EXPIRED')
+	const facts = await factsOf(ctx, enrollment.id)
+	const access = computeAccess(outline, await accessBase(ctx, enrollment), facts, ctx.now())
+	const mineAccess = access.find((a) => a.lessonId === lessonId) as LessonAccess
+	if (mineAccess.status === 'locked')
+		return fail.forbidden('LESSON_LOCKED', { lockedBy: mineAccess.lockedBy as LockedBy })
+	return { outline, enrollment, lesson, access, facts, status: mineAccess.status }
 }
 
 export async function getMyLesson(ctx: SchoolCtx, lessonId: string): Promise<PlayerLesson> {

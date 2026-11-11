@@ -77,5 +77,15 @@ describe('нет N+1', () => {
 		expect(mine.many).toBe(mine.few)
 		const courses = await queriesAt(grow, () => t.as('teacher').courses.list({ pageSize: 50 }))
 		expect(courses.many).toBe(courses.few)
+
+		// урок открывается за одно и то же число запросов, в каком бы по счёту курсе ученика он ни был (было: перебор всех
+		// зачислений с оглавлением каждого — секунды у ученика с сотнями курсов)
+		const lessonOf = async (courseId: string) =>
+			(await student.learn.courses.get({ courseId })).sections[0]?.lessons[0]?.id as string
+		const [first, last] = [await lessonOf(ids[0] as string), await lessonOf(ids.at(-1) as string)]
+		await student.learn.lessons.get({ lessonId: first })
+		const atFirst = await countQueries(() => student.learn.lessons.get({ lessonId: first }))
+		const atLast = await countQueries(() => student.learn.lessons.get({ lessonId: last }))
+		expect(atLast).toBe(atFirst)
 	}, 180_000)
 })
