@@ -159,8 +159,14 @@ export async function getMyLesson(ctx: SchoolCtx, lessonId: string): Promise<Pla
 	}
 }
 
-/** Единственное место расчёта `progress_pct` и завершения курса (идемпотентно). */
-async function recalcProgress(ctx: BaseCtx, enrollment: Enrollment, outline: PublishedOutline) {
+/**
+ * Единственное место расчёта `progress_pct` и завершения курса (идемпотентно). Сначала блокировка строки зачисления, потом
+ * подсчёт: иначе задача пересчёта курса, прочитавшая отметки до прохождения урока, записала бы устаревший процент поверх
+ * свежего (потерянное обновление; в READ COMMITTED запрос после блокировки видит уже зафиксированные отметки).
+ */
+async function recalcProgress(ctx: BaseCtx, stale: Enrollment, outline: PublishedOutline) {
+	const [enrollment] = await ctx.db.select().from(enrollments).where(eq(enrollments.id, stale.id)).for('update')
+	if (!enrollment) return 0
 	const facts = await factsOf(ctx, enrollment.id)
 	const ids = flatLessons(outline).map((l) => l.id)
 	const done = ids.filter((id) => facts.get(id)?.completedAt).length
