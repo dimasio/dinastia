@@ -76,12 +76,24 @@ const sessionMw = os.$context<RequestCtx>().middleware(async ({ context, next })
 	return next({ context: { user, log: context.log.child({ userId: user.id }) } })
 })
 
-const schoolMw = os.$context<RequestCtx & { host: HostTarget }>().middleware(async ({ context, next }) => {
+const schoolMw = os.$context<RequestCtx & { host: HostTarget; user?: User }>().middleware(async ({ context, next }) => {
 	if (context.host.kind !== 'school') throw notFound('SCHOOL_NOT_FOUND')
 	const [row] = await db.select().from(schools).where(eq(schools.slug, context.host.slug)).limit(1)
 	// удаляемая школа закрыта сразу (5.5): отдельный код — экран «школа удаляется», а не «не найдено»
 	if (row?.status === 'deleted' && row.deletionRequestedAt) throw notFound('SCHOOL_DELETING')
-	if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
+	// приостановленная оператором (5.6в) — только владельцу (с баннером); остальным и гостю — «приостановлена» с названием для
+	// страницы входа: владелец должен суметь войти
+	if (row?.status === 'suspended') {
+		const member = context.user
+			? await withTenant(row.id, (tx) => findActiveMember(tx, context.user?.id as string))
+			: null
+		if (member?.role !== 'owner')
+			throw new ORPCError('FORBIDDEN', {
+				message: 'SCHOOL_SUSPENDED',
+				data: { code: 'SCHOOL_SUSPENDED', schoolName: row.name },
+			})
+	} else if (row?.status !== 'active') throw notFound('SCHOOL_NOT_FOUND')
+	if (!row) throw notFound('SCHOOL_NOT_FOUND')
 	const school: School = { id: row.id, slug: row.slug, name: row.name }
 	context.tags.schoolId = school.id
 	return next({ context: { school, log: context.log.child({ schoolId: school.id }) } })

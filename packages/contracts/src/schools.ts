@@ -62,6 +62,8 @@ export type SchoolPublic = z.infer<typeof SchoolPublic>
 export const MySchool = SchoolPublic.extend({
 	role: MemberRole,
 	url: z.url(),
+	/** Приостановлена оператором (5.6в) — видит только владелец. */
+	suspended: z.boolean(),
 	/** Школа удаляется (видит только владелец): дата удаления; до неё можно отменить (5.5). */
 	deleteAt: DateTime.nullable(),
 })
@@ -94,6 +96,8 @@ export const Me = z.object({
 	school: SchoolPublic,
 	/** Разрешения роли — чтобы UI прятал недоступное; запрещает всегда сервер (скилл permissions). */
 	permissions: z.array(z.string()),
+	/** Школа приостановлена оператором (5.6в) — видит только владелец (остальных не пускает): баннер с причиной. */
+	suspension: z.object({ reason: z.string().nullable(), at: DateTime }).nullable(),
 })
 export type Me = z.infer<typeof Me>
 

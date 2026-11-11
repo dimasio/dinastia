@@ -53,6 +53,8 @@ export const OpsSchoolListInput = pageInput({
 export const OpsSchoolCard = OpsSchoolRow.extend({
 	url: z.url(),
 	deletionRequestedAt: DateTime.nullable(),
+	suspendedReason: z.string().nullable(),
+	suspendedAt: DateTime.nullable(),
 	/** Метрики посчитаны сейчас (не из почасовой задачи). */
 	statsAt: DateTime,
 	staff: z.array(z.object({ id: Id, name: z.string(), email: z.string(), role: MemberRole, status: z.string() })),
@@ -92,6 +94,15 @@ export const opsContract = {
 		/** Карточка школы: метрики считаются сейчас, сотрудники, действия консоли по школе. */
 		get: oc
 			.route({ method: 'GET', path: '/ops/schools/{id}' })
+			.input(z.object({ id: Id }))
+			.output(OpsSchoolCard),
+		/** Приостановить: ученики и сотрудники не входят, владелец — с баннером; причина видна владельцу и в письме. */
+		suspend: oc
+			.route({ method: 'POST', path: '/ops/schools/{id}/suspend' })
+			.input(z.object({ id: Id, reason: z.string().trim().min(3).max(500) }))
+			.output(OpsSchoolCard),
+		resume: oc
+			.route({ method: 'POST', path: '/ops/schools/{id}/resume' })
 			.input(z.object({ id: Id }))
 			.output(OpsSchoolCard),
 		/** Создать школу и пригласить владельца письмом (регистрация — только здесь, 5.6). */

@@ -8,7 +8,7 @@ import { UserMenu } from './user-menu.tsx'
 
 /** Кабинет школы: сайдбар (на мобиле — выдвижная панель) + верхняя панель. Пункты меню — из фич (features/<m>/nav.ts). */
 export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
-	const { t } = useTranslation('nav')
+	const { t } = useTranslation(['nav', 'schools'])
 	const nav = <SideNav area="admin" permissions={me.permissions} label={t('admin.title')} />
 	return (
 		<div className="flex min-h-svh">
@@ -42,6 +42,15 @@ export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 						/>
 					</div>
 				</header>
+				{me.suspension ? (
+					<div
+						role="alert"
+						className="border-b bg-destructive/10 px-4 py-3 text-sm md:px-8"
+						data-testid="school-suspended-banner"
+					>
+						{t('suspended', { ns: 'schools', reason: me.suspension.reason ?? '—' })}
+					</div>
+				) : null}
 				<main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-8">{children}</main>
 			</div>
 		</div>

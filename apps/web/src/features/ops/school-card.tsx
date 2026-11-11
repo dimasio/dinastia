@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { orpc } from '#/app/orpc.ts'
 import { ActionLabel } from './resources.tsx'
+import { SuspensionActions } from './suspension-actions.tsx'
 
 export function SchoolCard({ id }: { id: string }) {
 	const { t, i18n } = useTranslation(['ops', 'common'])
@@ -36,6 +37,14 @@ export function SchoolCard({ id }: { id: string }) {
 				<Badge variant={s.status === 'active' ? 'outline' : 'destructive'} data-testid="ops-school-status">
 					{t(`schools.values.status.${s.status}`)}
 				</Badge>
+				{s.suspendedReason ? (
+					<span className="text-muted-foreground text-sm" data-testid="ops-suspended-reason">
+						{t('card.suspendedReason', { reason: s.suspendedReason })}
+					</span>
+				) : null}
+				<span className="ml-auto">
+					<SuspensionActions school={s} />
+				</span>
 				{s.deletionRequestedAt ? (
 					<span className="text-muted-foreground text-sm">
 						{t('card.deletionRequested', { date: dt.format(s.deletionRequestedAt) })}

@@ -1,3 +1,5 @@
+import { schools } from '@dinastia/db'
+import { eq } from 'drizzle-orm'
 import { appOrigin } from '#/kernel/config.ts'
 import type { SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
@@ -76,7 +78,12 @@ export const schoolsRouter = {
 }
 
 async function meOf(ctx: SchoolCtx) {
+	const [school] = await ctx.db
+		.select({ status: schools.status, reason: schools.suspendedReason, at: schools.suspendedAt })
+		.from(schools)
+		.where(eq(schools.id, ctx.school.id))
 	return {
+		suspension: school?.status === 'suspended' && school.at ? { reason: school.reason, at: school.at } : null,
 		user: ctx.user,
 		member: { ...ctx.member, avatarUrl: await avatarUrlOf(ctx, ctx.member.id) },
 		school: ctx.school,

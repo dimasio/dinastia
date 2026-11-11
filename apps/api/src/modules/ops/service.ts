@@ -106,6 +106,8 @@ export async function getSchool(id: string, now: Date) {
 		createdAt: school.createdAt,
 		url: appOrigin(school.slug),
 		deletionRequestedAt: school.deletionRequestedAt,
+		suspendedReason: school.suspendedReason,
+		suspendedAt: school.suspendedAt,
 		...stats,
 		statsAt: now,
 		staff,

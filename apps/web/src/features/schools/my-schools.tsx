@@ -28,6 +28,11 @@ export function MySchools() {
 						<div className="min-w-0">
 							<p className="truncate font-medium">{s.name}</p>
 							<p className="text-sm text-muted-foreground">{t(`roles.${s.role}`, { ns: 'common' })}</p>
+							{s.suspended ? (
+								<Badge variant="secondary" className="mt-1" data-testid={`schools-suspended-${s.slug}`}>
+									{t('schools.suspended')}
+								</Badge>
+							) : null}
 							{s.deleteAt ? (
 								<Badge
 									variant="destructive"

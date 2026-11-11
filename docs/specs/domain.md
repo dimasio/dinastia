@@ -20,7 +20,7 @@ status: draft
 
 | Таблица                                                         | Колонки                                                                                                    |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `schools`                                                       | `slug`, `name`, `status` (`active`, `suspended`, `deleted`), `deletion_requested_at`, `timezone`, `locale` |
+| `schools`                                                       | `slug`, `name`, `status` (`active`, `suspended`, `deleted`), `deletion_requested_at`, `suspended_reason`, `suspended_at` (5.6в), `created_by_operator_id`, `timezone`, `locale` |
 | `school_branding`                                               | `school_id` PK, `logo_file_id`, `favicon_file_id`, `primary_color`, `support_email`                        |
 | `school_domains`                                                | `school_id`, `host`, `kind` (`old_slug`, `custom`), `redirect_until`                                       |
 | `members`                                                       | `user_id`, `role`, `status` (`active`, `blocked`, `deleted` — данные ученика удалены, 5.5), `invited_by`, `joined_at`, `avatar_file_id` |

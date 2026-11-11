@@ -3,6 +3,7 @@
 import { ORPCError } from '@orpc/client'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { auditLog } from '#/kernel/audit/schema.ts'
 import { consents, users } from '#/kernel/auth/schema.ts'
 import { db, pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
@@ -13,7 +14,7 @@ import { findOperatorProceduresWithout2fa } from '#/kernel/router-guard.ts'
 import { tenantCtx } from '#/kernel/tenant-ctx.ts'
 import { router } from '#/router.ts'
 import { call, signUp } from '#/test/http.ts'
-import { drainJobs, inviteToken, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
+import { drainJobs, inviteToken, lastMailTo, startTestWorker, stopTestWorker } from '#/test/jobs.ts'
 import { cleanupTestSchools, clientFor, withTestSchool } from '#/test/school.ts'
 import { totp } from '#/test/totp.ts'
 import { TEST_PASSWORD, uniqueSlug } from '#/test/users.ts'
@@ -160,5 +161,52 @@ describe('школы, люди, журнал (5.6б)', () => {
 		const log = await root.ops.audit.list({})
 		expect(log.items.filter((r) => r.action === 'ops.person.searched').length).toBeGreaterThanOrEqual(2)
 		expect(JSON.stringify(log)).not.toContain(t.people.teacher.email)
+	})
+})
+
+describe('приостановка школы (5.6в)', () => {
+	it('приостановлена: владелец входит с причиной, остальные и гость — SCHOOL_SUSPENDED; письмо; журнал школы; возобновление', async () => {
+		const ops = await operator()
+		const { cookie } = await enable2fa(ops.cookie)
+		const root = clientFor(cookie)
+		const t = await withTestSchool('Школа на паузе')
+		expect(await fails(root.ops.schools.suspend({ id: t.school.id, reason: '' }))).toMatchObject({ status: 400 })
+
+		const card = await root.ops.schools.suspend({ id: t.school.id, reason: 'Не оплачен тариф' })
+		expect(card).toMatchObject({ status: 'suspended', suspendedReason: 'Не оплачен тариф' })
+		expect(await fails(root.ops.schools.suspend({ id: t.school.id, reason: 'ещё раз' }))).toMatchObject({
+			code: 'SCHOOL_NOT_ACTIVE',
+		})
+
+		for (const role of ['admin', 'teacher', 'student'] as const)
+			expect(await fails(t.as(role).schools.me())).toMatchObject({ status: 403, code: 'SCHOOL_SUSPENDED' })
+		const guest = await t
+			.as('guest')
+			.schools.current()
+			.catch((e: ORPCError<string, { schoolName?: string }>) => e.data)
+		expect(guest).toMatchObject({ code: 'SCHOOL_SUSPENDED', schoolName: 'Школа на паузе' })
+		expect(await t.as('owner').schools.me()).toMatchObject({ suspension: { reason: 'Не оплачен тариф' } })
+
+		const mail = await lastMailTo(t.people.owner.email)
+		expect(mail.subject).toBe('Школа «Школа на паузе» приостановлена')
+		expect(mail.text).toContain('Причина: Не оплачен тариф')
+
+		// «Мои школы»: владелец видит приостановленную, сотрудник — нет
+		expect((await clientFor(t.people.owner.cookie).schools.mine()).find((s) => s.id === t.school.id)).toMatchObject({
+			suspended: true,
+		})
+		expect((await clientFor(t.people.teacher.cookie).schools.mine()).find((s) => s.id === t.school.id)).toBeUndefined()
+
+		const [entry] = await withTenant(t.school.id, (tx) =>
+			tx.select().from(auditLog).where(eq(auditLog.action, 'schools.school.suspended')),
+		)
+		expect(entry).toMatchObject({ actorMemberId: null, diff: { operatorId: ops.id, reason: 'Не оплачен тариф' } })
+
+		expect(await root.ops.schools.resume({ id: t.school.id })).toMatchObject({
+			status: 'active',
+			suspendedReason: null,
+		})
+		expect(await t.as('student').schools.me()).toMatchObject({ suspension: null })
+		expect((await lastMailTo(t.people.owner.email)).subject).toBe('Школа «Школа на паузе» снова работает')
 	})
 })

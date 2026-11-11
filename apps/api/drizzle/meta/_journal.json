@@ -225,6 +225,13 @@
       "when": 1794430408788,
       "tag": "0031_school_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794431669071,
+      "tag": "0032_school_suspension",
+      "breakpoints": true
     }
   ]
 }

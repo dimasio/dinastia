@@ -91,6 +91,7 @@ export async function listMySchools(userId: string) {
 				name: schools.name,
 				role: members.role,
 				deletionRequestedAt: schools.deletionRequestedAt,
+				status: schools.status,
 			})
 			.from(members)
 			.innerJoin(schools, eq(schools.id, members.schoolId))
@@ -100,14 +101,16 @@ export async function listMySchools(userId: string) {
 					eq(members.status, 'active'),
 					or(
 						eq(schools.status, 'active'),
+						and(eq(schools.status, 'suspended'), eq(members.role, 'owner')),
 						and(eq(schools.status, 'deleted'), eq(members.role, 'owner'), isNotNull(schools.deletionRequestedAt)),
 					),
 				),
 			)
 			.orderBy(schools.name),
 	)
-	return rows.map(({ deletionRequestedAt, ...s }) => ({
+	return rows.map(({ deletionRequestedAt, status, ...s }) => ({
 		...s,
+		suspended: status === 'suspended',
 		deleteAt: deletionRequestedAt ? deleteAtOf(deletionRequestedAt) : null,
 	}))
 }

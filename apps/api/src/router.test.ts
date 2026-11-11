@@ -169,6 +169,8 @@ describe('OpenAPI', () => {
 				'/ops/people/find',
 				'/ops/schools',
 				'/ops/schools/{id}',
+				'/ops/schools/{id}/resume',
+				'/ops/schools/{id}/suspend',
 				'/school/deletion',
 				'/school/legal',
 				'/school/settings',

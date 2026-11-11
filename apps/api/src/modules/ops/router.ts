@@ -10,6 +10,7 @@ import { impl, mw } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { createSchoolByOperator } from '../schools/service.ts'
 import { findPerson, getSchool, listAudit, listSchools } from './service.ts'
+import { resumeSchool, suspendSchool } from './suspension.ts'
 
 export const opsRouter = {
 	me: impl.ops.me
@@ -39,6 +40,24 @@ export const opsRouter = {
 			.use(mw.operator)
 			.use(mw.operator2fa)
 			.handler(({ input, context }) => getSchool(input.id, context.now())),
+		suspend: impl.ops.schools.suspend
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(async ({ input, context }) => {
+				await suspendSchool({ id: context.operator.id, ip: context.ip }, input.id, input.reason, context.now())
+				return getSchool(input.id, context.now())
+			}),
+		resume: impl.ops.schools.resume
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.operator)
+			.use(mw.operator2fa)
+			.handler(async ({ input, context }) => {
+				await resumeSchool({ id: context.operator.id, ip: context.ip }, input.id, context.now())
+				return getSchool(input.id, context.now())
+			}),
 		create: impl.ops.schools.create
 			.use(mw.host)
 			.use(mw.session)
