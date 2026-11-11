@@ -7,5 +7,6 @@
 | [decisions.md](decisions.md)           | current | журнал решений `D-NNN`                                           |
 | [legacy-mapping.md](legacy-mapping.md) | current | что и как берём из GaskarFM                                      |
 | [glossary.md](glossary.md)             | current | термины UI и кода                                                |
+| [ops.md](ops.md)                       | draft   | консоль оператора SaaS `/ops` (5.6)                              |
 
 Новая спека — файл здесь со шапкой `status` (`draft | current | outdated`) и строка в этой таблице.
