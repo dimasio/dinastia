@@ -75,7 +75,8 @@ export const auth = betterAuth({
 		enabled: true,
 		storage: 'database',
 		window: 60,
-		max: 100,
+		// e2e: все браузеры — с одного 127.0.0.1, и общий лимит 100/мин на адрес упирается при параллельных сценариях (5.6)
+		max: config.NODE_ENV === 'production' ? 100 : Math.max(100, config.AUTH_SIGN_IN_LIMIT),
 		customRules: {
 			'/sign-in/email': { window: 60, max: config.NODE_ENV === 'production' ? 5 : config.AUTH_SIGN_IN_LIMIT },
 			'/sign-up/email': { window: 60, max: 5 },
@@ -83,6 +84,11 @@ export const auth = betterAuth({
 			'/sign-in/magic-link': {
 				window: 60,
 				max: config.NODE_ENV === 'production' ? 3 : Math.max(3, config.AUTH_SIGN_IN_LIMIT),
+			},
+			// переход по ссылке из письма: у плагина свой лимит 5/мин на адрес — в e2e параллельные входы с 127.0.0.1 упирались (5.6)
+			'/magic-link/verify': {
+				window: 60,
+				max: config.NODE_ENV === 'production' ? 5 : Math.max(5, config.AUTH_SIGN_IN_LIMIT),
 			},
 		},
 	},
