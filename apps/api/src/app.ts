@@ -6,6 +6,8 @@ import { RPCHandler } from '@orpc/server/fetch'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
 import { sql } from 'drizzle-orm'
 import { type Context, Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
+import { secureHeaders } from 'hono/secure-headers'
 import { auth } from './kernel/auth/auth.ts'
 import { CLIENT_IP_HEADER, resolveClientIp } from './kernel/client-ip.ts'
 import { config } from './kernel/config.ts'
@@ -14,6 +16,9 @@ import { type Logger, log } from './kernel/log.ts'
 import type { RequestCtx } from './kernel/orpc.ts'
 import { MAX_WEBHOOK_BODY, receiveWebhook } from './kernel/webhooks/receive.ts'
 import { router } from './router.ts'
+
+/** Предел тела запроса к API, байт. */
+export const MAX_API_BODY = 2 * 1024 * 1024
 
 const rpc = new RPCHandler(router)
 const rest = new OpenAPIHandler(router)
@@ -77,6 +82,21 @@ export function createApp() {
 		const level = c.res.status >= 500 ? 'error' : c.res.status >= 400 ? 'warn' : 'info'
 		reqLog[level]({ ...c.var.tags, method: c.req.method, path: c.req.path, status: c.res.status, ms }, 'request')
 	})
+
+	// заголовки безопасности (5.1, скилл security-baseline): API отдаёт JSON и редиректы — встраивать и исполнять нечего;
+	// fetch с сайта школы — тот же сайт (поддомены одного домена). HSTS — только по https.
+	app.use(
+		secureHeaders({
+			contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+			crossOriginResourcePolicy: 'same-site',
+			referrerPolicy: 'strict-origin-when-cross-origin',
+			strictTransportSecurity: config.APP_PROTOCOL === 'https' ? 'max-age=31536000; includeSubDomains' : false,
+		}),
+	)
+
+	// предел тела запроса (5.1): файлы идут в S3 напрямую, в API — JSON (rich text до 512 КБ); данные блоков и ответы проверяет
+	// сервис — огромное тело не должно дойти до разбора. Вебхуки — свой предел (MAX_WEBHOOK_BODY).
+	app.use('/api/*', bodyLimit({ maxSize: MAX_API_BODY, onError: (c) => c.json({ code: 'BODY_TOO_LARGE' }, 413) }))
 
 	app.get('/health/live', (c) => c.json({ status: 'ok' }))
 	app.get('/health/ready', async (c) => {

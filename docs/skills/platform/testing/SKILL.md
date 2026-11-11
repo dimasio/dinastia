@@ -84,7 +84,8 @@ it('приглашать сотрудников могут owner и admin', asyn
 Фикстуры — `tests/e2e/fixtures.ts`: `import { expect, schoolUrl, test } from './fixtures.ts'`; `loginAs('teacher')`
 (демо-роли `DEMO` из `pnpm db:seed`) или `loginAs({ email, password }, slug)` — вход через API из браузера, без формы.
 Вход по паролю ограничен по IP (5/мин), а весь набор входит с 127.0.0.1 — Playwright поднимает API с
-`AUTH_SIGN_IN_LIMIT=1000` (D-044). Если API уже запущен через `pnpm dev`, его переиспользуют с лимитом 5 — сценарии
+`AUTH_SIGN_IN_LIMIT=1000` (D-044). Каждый сценарий падает при нарушении CSP (фикстура `cspGuard` в `tests/e2e/fixtures.ts`, D-060) — для страниц контекста
+сценария (`page`); новые контексты `browser.newContext()` не проверяются. Если API уже запущен через `pnpm dev`, его переиспользуют с лимитом 5 — сценарии
 падают с 429: перезапустите API или задайте `AUTH_SIGN_IN_LIMIT` в `.env`.
 
 Конфиг — `playwright.config.ts` (корень), сценарии — `tests/e2e/*.spec.ts`, демо фазы — `tests/e2e/phase-<N>.spec.ts`

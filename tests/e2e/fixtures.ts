@@ -34,7 +34,20 @@ async function signIn(page: Page, email: string, slug: string, password = 'demo1
 
 export const test = base.extend<{
 	loginAs: (who: keyof typeof DEMO | { email: string; password?: string }, slug?: string) => Promise<void>
+	cspGuard: undefined
 }>({
+	// нарушение политики безопасности контента (5.1) — ошибка сценария: страница работает под той же CSP, что в production
+	cspGuard: [
+		async ({ context }, use) => {
+			const violations: string[] = []
+			context.on('console', (m) => {
+				if (/Content Security Policy/i.test(m.text())) violations.push(m.text())
+			})
+			await use(undefined)
+			expect(violations, 'нарушения CSP').toEqual([])
+		},
+		{ auto: true },
+	],
 	loginAs: async ({ page }, use) => {
 		await use(async (who, slug = 'demo') => {
 			if (typeof who === 'string') await signIn(page, DEMO[who], slug)

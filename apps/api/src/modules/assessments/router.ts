@@ -1,6 +1,7 @@
 // Реализация контракта assessments (скилл api-endpoints): процедуры сотрудников — mw.host → session → school → tenantTx →
 // member → can(…); логика — question.service.ts.
 import { impl, mw, schoolCtx } from '#/kernel/orpc.ts'
+import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { can } from '#/permissions.ts'
 import { getAttemptForReview, gradeAttempt } from './grading.service.ts'
 import {
@@ -128,6 +129,7 @@ export const quizRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('assessments.attempt'))
+		.use(rateLimit({ name: 'quiz.start', max: 30, windowSeconds: 600, by: 'member' }))
 		.handler(({ input, context }) => startAttempt(schoolCtx(context), input)),
 	attempt: impl.quiz.attempt
 		.use(mw.host)
@@ -196,6 +198,7 @@ export const assignmentRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('assessments.submit'))
+		.use(rateLimit({ name: 'assignment.submit', max: 30, windowSeconds: 600, by: 'member' }))
 		.handler(({ input, context }) => submitAssignment(schoolCtx(context), input)),
 	reply: impl.assignment.reply
 		.use(mw.host)
@@ -204,6 +207,7 @@ export const assignmentRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('assessments.submit'))
+		.use(rateLimit({ name: 'assignment.reply', max: 60, windowSeconds: 600, by: 'member' }))
 		.handler(({ input, context }) => replyAsStudent(schoolCtx(context), input)),
 	review: impl.assignment.review
 		.use(mw.host)
@@ -256,5 +260,6 @@ export const reviewRouter = {
 		.use(mw.tenantTx)
 		.use(mw.member)
 		.use(can('assessments.review'))
+		.use(rateLimit({ name: 'review.comment', max: 120, windowSeconds: 600, by: 'member' }))
 		.handler(({ input, context }) => commentAsReviewer(schoolCtx(context), input)),
 }

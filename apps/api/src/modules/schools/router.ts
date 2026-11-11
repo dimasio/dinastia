@@ -86,6 +86,8 @@ export const invitationsRouter = {
 	get: impl.invitations.get
 		.use(mw.host)
 		.use(mw.school)
+		// токен не перебрать, но страницу открывает гость — лимит по IP (5.1)
+		.use(rateLimit({ name: 'invitations.get', max: 60, windowSeconds: 600, by: 'ip' }))
 		.use(mw.tenantTx)
 		.handler(async ({ input, context }) => ({
 			...(await getInvitation(context.db, input.token, context.now())),
@@ -96,6 +98,7 @@ export const invitationsRouter = {
 		.use(mw.host)
 		.use(mw.session)
 		.use(mw.school)
+		.use(rateLimit({ name: 'invitations.accept', max: 20, windowSeconds: 3600, by: 'user' }))
 		.use(mw.tenantTx)
 		.handler(async ({ input, context }) => {
 			const res = await acceptInvitation(context.db, input.token, context.user, context.now())

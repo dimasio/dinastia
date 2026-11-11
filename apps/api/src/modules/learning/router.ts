@@ -223,6 +223,8 @@ export const joinRouter = {
 	get: impl.join.get
 		.use(mw.host)
 		.use(mw.school)
+		// токен не перебрать, но страницу открывает гость — лимит по IP (5.1)
+		.use(rateLimit({ name: 'learning.join-get', max: 60, windowSeconds: 600, by: 'ip' }))
 		.use(mw.tenantTx)
 		.handler(({ input, context }) => getJoin(tenantCtx(context.db, context.school, context), input.token)),
 	accept: impl.join.accept

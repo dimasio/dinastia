@@ -60,7 +60,7 @@ catalog:
   radix-ui: 1.8.1
   react: 19.3.1
   react-dom: 19.3.1
-  react-email: 6.11.3
+  react-email: 6.11.11
   react-hook-form: 7.91.0
   react-i18next: 17.1.8
   sonner: 2.0.8

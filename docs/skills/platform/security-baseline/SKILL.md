@@ -43,8 +43,10 @@ description: Базовые правила безопасности Dinastia д�
    ```
    Фиксированное окно (≤ суток) в таблице `request_limits`, ключ — имя лимита + sha256 субъекта (IP открытым
    текстом не хранится); попытка считается и при ошибке процедуры; превышение — 429 `RATE_LIMITED` с `retryAfter`
-   (секунды). Сейчас: `schools.create` 5/ч на пользователя, `schools.invite` 30/ч и `files.upload` 60/10 мин на
-   участника. **Новая процедура** старта попытки теста, экспорта, отправки сообщения, публичной формы — с лимитом
+   (секунды). Сейчас (5.1): `schools.create` 5/ч и `invitations.accept`, `join.accept` 20/ч на пользователя;
+   `schools.invite` 30/ч, `files.upload` 60/10 мин, `exports.start` 20/10 мин, `quiz.start` и `assignment.submit` 30/10 мин,
+   `assignment.reply` 60/10 мин, `review.comment` 120/10 мин на участника; `invitations.get`, `join.get` 60/10 мин и
+   `certificates.verify` 30/10 мин с IP. **Новая процедура** старта попытки теста, экспорта, отправки сообщения, публичной формы — с лимитом
    сразу. Тест — `kernel/rate-limit/rate-limit.test.ts`. Лимит по IP считается
    **по IP клиента**, а IP вычисляет только ядро (`kernel/client-ip.ts`): адрес сокета или `X-Forwarded-For` ровно на
    `TRUST_PROXY_HOPS` доверенных звеньев с конца — левую часть цепочки присылает клиент, ей не верим (D-042).
@@ -57,8 +59,14 @@ description: Базовые правила безопасности Dinastia д�
     же транзакции (откат — записи нет); актор — участник запроса, в задаче — система (null); `diff` — что изменилось,
     без ПДн и секретов (`{ role: { from, to } }`). Таблица `audit_log`: у `app_user` нет UPDATE/DELETE (D-048).
     Пример — `modules/schools/members.service.ts` (смена роли, блокировка), тест — `kernel/audit/audit.test.ts`.
-11. **Ошибки** наружу — код и безопасное сообщение; стек — только в лог.
-12. **Зависимости** — скилл `dependencies`, `pnpm audit` в CI.
+11. **Публичные процедуры** (без `mw.member`) — список зафиксирован в `kernel/permissions.test.ts` (`findPublicProcedures`): новая
+    ломает тест — разобрать, что отдаёт, лимит, перебор (5.1). Модули не берут глобальный клиент БД (`db`, `pool`) — тест
+    `kernel/db/global-db.test.ts`, исключения с причиной.
+12. **Заголовки и пределы** (5.1): API — `secureHeaders` (CSP `default-src 'none'`, `frame-ancestors 'none'`, `nosniff`, HSTS по
+    https) и `bodyLimit` 2 МБ на `/api/*` (`app.ts`). Сайт — CSP из `apps/web/csp.ts` (один источник: dev-сервер Vite и веб-сервер в
+    production); новый внешний источник (встраивание, CDN) — правка политики; e2e падает при нарушении CSP (`cspGuard`).
+13. **Ошибки** наружу — код и безопасное сообщение; стек — только в лог.
+14. **Зависимости** — скилл `dependencies`, `pnpm audit` в CI.
 
 ## Инцидент
 

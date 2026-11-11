@@ -1,4 +1,4 @@
 {
 	"extends": "@dinastia/config/tsconfig.react.json",
-	"include": ["src", "vite.config.ts"]
+	"include": ["src", "vite.config.ts", "csp.ts"]
 }

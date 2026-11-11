@@ -156,12 +156,15 @@ describe('старт и снимок', () => {
 	it('ученику не уходят верные ответы и пояснения — ни в старте, ни при возобновлении', async () => {
 		const s = await setup({ types: ALL })
 		const view = await s.student.quiz.start(ref(s))
-		const json = JSON.stringify(view)
-		expect(json).not.toMatch(
-			/isCorrect|accepted|correctPosition|matchKey|numberAnswer|explanation|делятся только|Париж — столица|Сначала эскиз|Франция — Париж|Два плюс два/,
+		// поля-секреты — из реестра типов (`secretKeys`): новый тип вопроса проверяется сам (5.1)
+		const secret = new RegExp(
+			`"(${[...new Set(Object.values(questionTypes).flatMap((d) => d.secretKeys.map((k) => k.split('.').at(-1))))].join('|')})"`,
 		)
+		const json = JSON.stringify(view)
+		expect(json).not.toMatch(secret)
+		expect(json).not.toMatch(/делятся только|Париж — столица|Сначала эскиз|Франция — Париж|Два плюс два/)
 		const resumed = await s.student.quiz.attempt({ attemptId: view.attempt.id })
-		expect(JSON.stringify(resumed)).not.toMatch(/isCorrect|accepted|correctPosition|matchKey|numberAnswer|explanation/)
+		expect(JSON.stringify(resumed)).not.toMatch(secret)
 	})
 
 	it('лимит попыток: после лимита — ATTEMPTS_EXHAUSTED; нет лимита — без ограничения', async () => {

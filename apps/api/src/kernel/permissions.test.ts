@@ -3,7 +3,7 @@ import { impl, mw } from '#/kernel/orpc.ts'
 import { can, permissionMap, rolePermissions } from '#/permissions.ts'
 import { router } from '#/router.ts'
 import { definePermissions, hasPermission, mergePermissions } from './permissions.ts'
-import { findProceduresWithoutPermission } from './router-guard.ts'
+import { findProceduresWithoutPermission, findPublicProcedures } from './router-guard.ts'
 
 describe('матрица прав (domain.md §2)', () => {
 	it.each([
@@ -63,5 +63,21 @@ describe('страж: у каждой процедуры участника ес
 				}),
 		}
 		expect(findProceduresWithoutPermission(leaky)).toEqual(['bad'])
+	})
+})
+
+describe('публичные процедуры (5.1)', () => {
+	it('список зафиксирован: новая процедура без участия в школе — только после разбора (лимит, что отдаёт, перебор)', () => {
+		// session: true — нужен вход (любой пользователь), false — открыто гостю; у каждой — лимит или нечего перебирать
+		expect(findPublicProcedures(router)).toEqual([
+			{ path: 'schools.create', session: true }, // регистрация школы: лимит 5 в час на пользователя
+			{ path: 'schools.mine', session: true }, // свои школы пользователя
+			{ path: 'schools.current', session: false }, // название школы хоста — публично
+			{ path: 'invitations.get', session: false }, // по токену (хэш в БД), лимит по IP
+			{ path: 'invitations.accept', session: true }, // по токену, лимит на пользователя
+			{ path: 'join.get', session: false }, // по токену, лимит по IP
+			{ path: 'join.accept', session: true }, // по токену, лимит на пользователя
+			{ path: 'certificates.verify', session: false }, // имя скрыто без кода из QR, лимит по IP (4.7)
+		])
 	})
 })

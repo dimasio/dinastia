@@ -28,6 +28,24 @@ test('кабинет: продолжить, ближайший срок, раб�
 	test.setTimeout(120_000)
 	await loginAs('teacher')
 	await page.goto(schoolUrl('demo', '/admin/courses'))
+	// курсы прошлых прогонов у student4 — отозвать: «Ближайшие сроки» показывают не больше 10 уроков, и в локальной базе после
+	// десятка прогонов срок этого курса туда уже не попадал бы
+	await page.evaluate(async () => {
+		const rpc = async (path: string, input: unknown) => {
+			const r = await fetch(`/api/rpc/${path}`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ json: input }),
+			})
+			if (!r.ok) throw new Error(`${path}: ${r.status}`)
+			return (await r.json()).json
+		}
+		const old = await rpc('courses/list', { q: 'Кабинет ', pageSize: 100 })
+		for (const c of old.items) {
+			const { items } = await rpc('learning/enrollments/list', { courseId: c.id, q: 'student4', pageSize: 100 })
+			for (const e of items) if (e.status !== 'revoked') await rpc('learning/enrollments/revoke', { id: e.id })
+		}
+	})
 	const course = await api(page, 'POST', '/courses', { title: COURSE })
 	await api(page, 'PATCH', `/courses/${course.id}`, { defaultAccessMode: 'open' })
 	const section = await api(page, 'POST', `/courses/${course.id}/sections`, { title: 'Раздел' })
