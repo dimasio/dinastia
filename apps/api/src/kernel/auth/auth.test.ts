@@ -120,6 +120,26 @@ describe('magic link', () => {
 		expect(reuse.headers.get('set-cookie') ?? '').not.toMatch(/session_token=[^;]+;/)
 	})
 
+	it('аккаунт без подтверждённой почты (его создал администратор при зачислении) входит по ссылке', async () => {
+		// better-auth перед входом снимает доступы неподтверждённого аккаунта под «замком» в verifications с вычисляемым id —
+		// id должен подходить колонке uuid (generateId: 'uuid'), иначе переход по ссылке — 500
+		const email = uniqueEmail('unproven')
+		expect((await post('/sign-up/email', { email, password: TEST_PASSWORD, name: 'Новый слушатель' })).status).toBe(200)
+		const [before] = await db.select().from(users).where(eq(users.email, email))
+		expect(before?.emailVerified).toBe(false)
+
+		expect((await post('/sign-in/magic-link', { email, callbackURL: '/learn' })).status).toBe(200)
+		const link = memoryOutbox.find((m) => m.to === email)?.text.match(/https?:\/\/\S+/)?.[0]
+		const url = new URL(link ?? '')
+		const verify = await app.request(url.pathname + url.search, { headers: { host: url.host } })
+		expect(verify.status).toBe(302)
+		expect(verify.headers.get('location')).toMatch(/\/learn$/)
+		expect(verify.headers.get('set-cookie') ?? '').toMatch(/session_token=/)
+		const [after] = await db.select().from(users).where(eq(users.email, email))
+		expect(after?.emailVerified).toBe(true)
+		expect(after?.id).toBe(before?.id)
+	})
+
 	it('письмо в общем виде (4.8): на сайте школы — «Вход в «Школа»», на корне — Dinastia; срок ссылки в тексте', async () => {
 		const t = await withTestSchool('Школа входа')
 		const email = uniqueEmail('magic')

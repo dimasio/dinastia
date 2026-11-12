@@ -33,7 +33,10 @@ export const auth = betterAuth({
 		},
 	}),
 	advanced: {
-		database: { generateId: false }, // id генерирует БД: uuidv7()
+		// id генерирует БД: uuidv7() (у адаптера pg `supportsUUIDs` — свой id better-auth не ставит). 'uuid', а не false:
+		// вычисляемые id «одноразовых» записей verifications (вход по ссылке в неподтверждённый аккаунт) — в формате uuid,
+		// иначе колонка uuid отвергает их и переход по ссылке падает 500
+		database: { generateId: 'uuid' },
 		crossSubDomainCookies: { enabled: true, domain: config.APP_DOMAIN },
 		useSecureCookies: config.APP_PROTOCOL === 'https',
 		// Явно: иначе better-auth молча отключает проверку origin/CSRF при NODE_ENV=test, и тесты ничего не проверяют.
