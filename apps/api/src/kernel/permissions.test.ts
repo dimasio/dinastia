@@ -11,6 +11,7 @@ describe('матрица прав (domain.md §2)', () => {
 			'owner',
 			[
 				'schools.access',
+				'schools.branding.manage',
 				'schools.delete',
 				'schools.members.manage',
 				'schools.members.read',
@@ -22,6 +23,7 @@ describe('матрица прав (domain.md §2)', () => {
 			'admin',
 			[
 				'schools.access',
+				'schools.branding.manage',
 				'schools.members.manage',
 				'schools.members.read',
 				'schools.pd.manage',

@@ -20,6 +20,11 @@
 	},
 	"dependencies": {
 		"@dinastia/contracts": "workspace:*",
+		"@fontsource-variable/inter": "5.3.0",
+		"@fontsource-variable/montserrat": "5.3.0",
+		"@fontsource-variable/roboto": "5.3.0",
+		"@fontsource/pt-sans": "5.3.0",
+		"@fontsource/pt-serif": "5.3.0",
 		"@hookform/resolvers": "catalog:",
 		"@tanstack/react-table": "catalog:",
 		"@tiptap/core": "catalog:",

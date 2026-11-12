@@ -101,7 +101,7 @@ status: draft
 | `student` | ученик              | `learn` | свои курсы, прохождение, свои попытки и ДЗ             |
 
 Персональные данные (5.5): `schools.pd.manage` (owner, admin) — выгрузить и удалить данные ученика; экран «Ученики школы» видят
-owner, admin, teacher (`schools.members.read`); свои данные выгружает любой участник; удалить школу — только owner (`schools.delete`).
+owner, admin, teacher (`schools.members.read`); свои данные выгружает любой участник; удалить школу — только owner (`schools.delete`). Оформление школы (5.9): `schools.branding.manage` (owner, admin).
 
 Одна роль на членство. Разрешения по ролям — в `permissions.ts` модулей (скилл `permissions`). Названия ролей и
 термины школа не меняет (D-028).

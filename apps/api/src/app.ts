@@ -16,6 +16,7 @@ import { type Logger, log } from './kernel/log.ts'
 import type { RequestCtx } from './kernel/orpc.ts'
 import { checkBucket } from './kernel/storage/s3.ts'
 import { MAX_WEBHOOK_BODY, receiveWebhook } from './kernel/webhooks/receive.ts'
+import { brandingReply } from './modules/schools/branding.ts'
 import { router } from './router.ts'
 
 /** Предел тела запроса к API, байт. */
@@ -128,6 +129,21 @@ export function createApp() {
 			? c.json({ ok: true, duplicate: result.duplicate })
 			: c.json({ code: result.code }, result.status)
 	})
+
+	// Оформление школы (5.9, D-065): публично по адресу школы — тема подключается в <head> до скриптов, логотип — в письмах.
+	for (const [path, what] of [
+		['/api/branding.css', 'css'],
+		['/api/branding/logo', 'logo'],
+		['/api/branding/favicon', 'favicon'],
+	] as const)
+		app.get(path, async (c) => {
+			const reply = await brandingReply(
+				what,
+				{ host: c.req.header('host'), ifNoneMatch: c.req.header('if-none-match') },
+				config.APP_DOMAIN,
+			)
+			return new Response(reply.body ?? null, { status: reply.status, headers: reply.headers })
+		})
 
 	app.get('/api/openapi.json', async (c) =>
 		c.json(

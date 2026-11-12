@@ -239,6 +239,13 @@
       "when": 1794432283116,
       "tag": "0033_impersonation",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794451887324,
+      "tag": "0034_school_branding",
+      "breakpoints": true
     }
   ]
 }

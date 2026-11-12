@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { navItems } from '#/features/index.ts'
 import { visibleNav } from '../nav.ts'
 import { ImpersonationBanner } from './impersonation-banner.tsx'
+import { SchoolLogo } from './school-logo.tsx'
 import { UserMenu } from './user-menu.tsx'
 
 /** Кабинет ученика: верхняя панель и контент; от 360px. */
@@ -13,8 +14,8 @@ export function LearnShell({ me, children }: { me: Me; children: ReactNode }) {
 	return (
 		<div className="flex min-h-svh flex-col">
 			<header className="flex h-14 items-center gap-4 border-b px-4">
-				<span className="truncate font-semibold" data-testid="learn-school-name">
-					{me.school.name}
+				<span className="min-w-0" data-testid="learn-school-name">
+					<SchoolLogo school={me.school} />
 				</span>
 				<nav className="ml-auto flex items-center gap-4 text-sm" aria-label={t('learn.title')}>
 					{visibleNav(navItems, 'learn', me.permissions).flatMap(({ items }) =>

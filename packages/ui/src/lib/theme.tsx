@@ -1,5 +1,6 @@
-// Тема (светлая/тёмная/как в системе) — без next-themes. Класс `dark` на <html>, выбор — в localStorage.
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
+// Тема (светлая/тёмная/как в системе) — без next-themes. Класс `dark` на <html>, выбор — в localStorage; без выбора — тема
+// школы по умолчанию (оформление, 5.9).
+import { createContext, type ReactNode, useContext, useEffect, useLayoutEffect, useState } from 'react'
 
 export type Theme = 'light' | 'dark' | 'system'
 const KEY = 'dinastia.theme'
@@ -10,13 +11,21 @@ const ThemeContext = createContext<{ theme: Theme; resolved: 'light' | 'dark'; s
 	setTheme: () => {},
 })
 
+const isTheme = (v: unknown): v is Theme => v === 'light' || v === 'dark' || v === 'system'
+
+/** Тема школы по умолчанию (5.9): `--default-scheme` из /api/branding.css, подключённого в <head> до скриптов. */
+function schoolDefault(): Theme {
+	const v = getComputedStyle(document.documentElement).getPropertyValue('--default-scheme').trim()
+	return isTheme(v) ? v : 'system'
+}
+
+/** Свой выбор посетителя; не выбирал — тема школы по умолчанию. */
 function readStored(): Theme {
 	try {
 		const v = localStorage.getItem(KEY)
-		return v === 'light' || v === 'dark' ? v : 'system'
-	} catch {
-		return 'system'
-	}
+		if (isTheme(v)) return v
+	} catch {}
+	return schoolDefault()
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -31,7 +40,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 	}, [])
 
 	const resolved = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
-	useEffect(() => {
+	// до отрисовки: тёмная тема по умолчанию не мигает светлой
+	useLayoutEffect(() => {
 		document.documentElement.classList.toggle('dark', resolved === 'dark')
 	}, [resolved])
 

@@ -59,6 +59,10 @@ export type StaffInvite = z.infer<typeof StaffInvite>
 export const SchoolPublic = z.object({ id: Id, slug: z.string(), name: z.string() })
 export type SchoolPublic = z.infer<typeof SchoolPublic>
 
+/** Школа по адресу сайта: + логотип оформления (5.9) — путь на сайте школы, null — нет логотипа. */
+export const CurrentSchool = SchoolPublic.extend({ logoUrl: z.string().nullable() })
+export type CurrentSchool = z.infer<typeof CurrentSchool>
+
 export const MySchool = SchoolPublic.extend({
 	role: MemberRole,
 	url: z.url(),
@@ -93,7 +97,7 @@ export const Me = z.object({
 	user: z.object({ id: Id, email: z.string(), name: z.string() }),
 	/** avatarUrl — подписанная ссылка (живёт час), null — аватара нет. */
 	member: z.object({ id: Id, role: MemberRole, avatarUrl: z.url().nullable() }),
-	school: SchoolPublic,
+	school: CurrentSchool,
 	/** Разрешения роли — чтобы UI прятал недоступное; запрещает всегда сервер (скилл permissions). */
 	permissions: z.array(z.string()),
 	/** Школа приостановлена оператором (5.6в) — видит только владелец (остальных не пускает): баннер с причиной. */
@@ -117,7 +121,7 @@ export const schoolsContract = {
 	/** Мои школы (корневой домен: выбор школы). */
 	mine: oc.route({ method: 'GET', path: '/me/schools' }).output(z.array(MySchool)),
 	/** Школа текущего хоста — публично (страница входа, брендинг). */
-	current: oc.route({ method: 'GET', path: '/school' }).output(SchoolPublic),
+	current: oc.route({ method: 'GET', path: '/school' }).output(CurrentSchool),
 	/** Реквизиты школы как оператора ПДн — публично (страница политики школы, профиль ученика). */
 	legal: oc.route({ method: 'GET', path: '/school/legal' }).output(SchoolLegal),
 	/** Кто я в школе текущего хоста. */

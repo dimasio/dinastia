@@ -19,7 +19,8 @@ description: Школа как тенант в Dinastia — модуль schools
 | сотрудники: список, смена роли, блокировка | `apps/api/src/modules/schools/members.service.ts` (`listStaff`, `changeStaffRole`, `setStaffStatus`) |
 | API | `packages/contracts/src/schools.ts` (`schoolsContract`, `invitationsContract`, `membersContract`), `apps/api/src/modules/schools/router.ts` |
 | схемы slug, ролей, приглашения | `packages/contracts/src/schools.ts` (`SchoolSlug`, `RESERVED_SLUGS`, `StaffInvite`) |
-| настройки школы: реквизиты оператора ПДн (5.5); брендинг — 5.9 | `apps/api/src/modules/schools/settings.ts` (`schoolsSettings`, скилл `settings`), согласие — `legal.ts` (`schoolLegal`, `recordPdConsent`) |
+| оформление школы (5.9, спека `branding.md`): `school_branding`, CSS темы `/api/branding.css`, логотип и фавикон | `apps/api/src/modules/schools/branding.ts` (`readBranding`, `brandingReply`), расчёт токенов — `packages/contracts/src/branding.ts`, логотип в шапке — `apps/web/src/app/layout/school-logo.tsx` |
+| настройки школы: реквизиты оператора ПДн (5.5) | `apps/api/src/modules/schools/settings.ts` (`schoolsSettings`, скилл `settings`), согласие — `legal.ts` (`schoolLegal`, `recordPdConsent`) |
 | удаление школы (5.5) | ядро `apps/api/src/kernel/school-deletion/` (`requestSchoolDeletion`, `cancelSchoolDeletion`, `purgeDeletedSchools`, письмо `school-deletion.notice`) |
 | резолв школы по хосту | ядро `apps/api/src/kernel/host.ts` (`resolveHost`) |
 | экраны: сотрудники (ресурс `/admin/staff`), профиль (`/admin/profile`, `/learn/profile`, «Мои данные»), выбор школы (с «Отменить удаление»); настройки `/admin/settings` (+ «Удаление школы») | `apps/web/src/features/schools/` (`resources/staff.ts`, `profile-page.tsx`, `nav.ts`), `routes/admin/staff/`, `routes/*/profile.tsx`, `routes/register.tsx` |

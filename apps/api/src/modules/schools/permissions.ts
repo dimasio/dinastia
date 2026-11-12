@@ -6,6 +6,7 @@ export const permissions = definePermissions('schools', {
 	'members.read': ['admin', 'teacher'],
 	'members.manage': ['admin'], // приглашать сотрудников, менять роли, блокировать
 	'settings.manage': ['admin'],
+	'branding.manage': ['admin'], // оформление школы: логотип, цвета, шрифт (5.9)
 	'pd.manage': ['admin'], // выгрузить и удалить данные ученика по его запросу (5.5)
 	delete: [], // только owner
 })

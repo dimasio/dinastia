@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { errorCode } from '#/app/errors.ts'
 import { currentHost } from '#/app/host.ts'
 import { Centered } from '#/app/layout/centered.tsx'
+import { SchoolLogo } from '#/app/layout/school-logo.tsx'
 import { currentSchoolQuery } from '#/app/queries.ts'
 import { searchString } from '#/app/search.ts'
 import { SignInForm } from '#/features/auth/sign-in-form.tsx'
@@ -41,6 +42,7 @@ function Login() {
 		<Centered>
 			<Card className="w-full max-w-md">
 				<CardHeader>
+					{school?.logoUrl ? <SchoolLogo school={school} className="mb-2 h-10" /> : null}
 					<CardTitle data-testid="login-title">
 						{suspendedName !== null
 							? t('signIn.suspendedTitle', { school: suspendedName })

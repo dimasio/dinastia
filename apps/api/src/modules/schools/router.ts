@@ -10,6 +10,7 @@ import { type Impersonation, impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { cancelSchoolDeletion, requestSchoolDeletion } from '#/kernel/school-deletion/school-deletion.ts'
 import { can, rolePermissions } from '#/permissions.ts'
+import { logoPath, readBranding } from './branding.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { recordPdConsent, schoolLegal } from './legal.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
@@ -27,7 +28,8 @@ export const schoolsRouter = {
 	current: impl.schools.current
 		.use(mw.host)
 		.use(mw.school)
-		.handler(({ context }) => context.school),
+		.use(mw.tenantTx)
+		.handler(async ({ context }) => ({ ...context.school, logoUrl: logoPath(await readBranding(context.db)) })),
 
 	requestDeletion: impl.schools.requestDeletion
 		.use(mw.host)
@@ -113,7 +115,7 @@ async function meOf(ctx: SchoolCtx, impersonation?: Impersonation | null) {
 		suspension: school?.status === 'suspended' && school.at ? { reason: school.reason, at: school.at } : null,
 		user: ctx.user,
 		member: { ...ctx.member, avatarUrl: await avatarUrlOf(ctx, ctx.member.id) },
-		school: ctx.school,
+		school: { ...ctx.school, logoUrl: logoPath(await readBranding(ctx.db)) },
 		permissions: rolePermissions(ctx.member.role),
 	}
 }

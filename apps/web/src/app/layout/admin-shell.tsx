@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ImpersonationBanner } from './impersonation-banner.tsx'
+import { SchoolLogo } from './school-logo.tsx'
 import { SideNav } from './side-nav.tsx'
 import { UserMenu } from './user-menu.tsx'
 
@@ -14,8 +15,8 @@ export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 	return (
 		<div className="flex min-h-svh">
 			<aside className="hidden w-60 shrink-0 border-r bg-sidebar text-sidebar-foreground md:block">
-				<div className="flex h-14 items-center px-5 font-semibold" data-testid="admin-school-name">
-					{me.school.name}
+				<div className="flex h-14 items-center px-5" data-testid="admin-school-name">
+					<SchoolLogo school={me.school} />
 				</div>
 				{nav}
 			</aside>
@@ -32,7 +33,7 @@ export function AdminShell({ me, children }: { me: Me; children: ReactNode }) {
 							{nav}
 						</SheetContent>
 					</Sheet>
-					<span className="font-semibold md:hidden">{me.school.name}</span>
+					<SchoolLogo school={me.school} className="md:hidden" />
 					<div className="ml-auto">
 						<UserMenu
 							name={me.user.name}

@@ -51,7 +51,7 @@ describe('школа хоста и «кто я»', () => {
 	it('публичные сведения о школе по хосту; неизвестный поддомен — 404', async () => {
 		const { school } = await newSchool()
 		const res = await call('GET', '/api/v1/school', { slug: school.slug })
-		expect(await res.json()).toEqual({ id: school.id, slug: school.slug, name: 'Школа API' })
+		expect(await res.json()).toEqual({ id: school.id, slug: school.slug, name: 'Школа API', logoUrl: null })
 		expect((await call('GET', '/api/v1/school', { slug: 'no-such-school' })).status).toBe(404)
 	})
 

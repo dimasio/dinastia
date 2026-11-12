@@ -1,4 +1,5 @@
-/* Дизайн-система Dinastia (скилл ui-kit): только токены; цвет школы — через --primary (брендинг, фаза 1+). */
+/* Дизайн-система Dinastia (скилл ui-kit): только токены; оформление школы (5.9) переопределяет их из /api/branding.css. */
+@import "./fonts.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./rich-text.css";

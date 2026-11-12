@@ -16,6 +16,7 @@ import { publishCourse, publishLesson } from './modules/courses/publish.service.
 import { courses, lessons } from './modules/courses/schema.ts'
 import { createCourse, createLesson, createSection } from './modules/courses/service.ts'
 import { enrollMember } from './modules/learning/service.ts'
+import { schoolBranding } from './modules/schools/schema.ts'
 import { createSchool, findSchoolBySlug } from './modules/schools/service.ts'
 
 const PASSWORD = 'demo12345'
@@ -58,6 +59,14 @@ const staff: [string, string, MemberRole][] = [
 	['student5@demo.local', 'Ученик Пятый', 'student'],
 ]
 for (const [email, name, role] of staff) await ensureMember(demo.id, await ensureUser(email, name), role)
+
+// Оформление демо-школы (5.9): цвет и шрифт — видно, что школа в своём стиле; логотип загружают на экране «Оформление».
+await withTenant(demo.id, (tx) =>
+	tx
+		.insert(schoolBranding)
+		.values({ schoolId: demo.id, primaryColor: '#4f46e5', font: 'inter' })
+		.onConflictDoNothing({ target: schoolBranding.schoolId }),
+)
 
 // Демо-курс преподавателя: 2 раздела, 3 урока, в первом — выноска.
 const teacherId = await ensureUser('teacher@demo.local', 'Татьяна Преподаватель')
