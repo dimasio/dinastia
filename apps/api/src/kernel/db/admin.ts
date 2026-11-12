@@ -51,3 +51,17 @@ export async function resetDatabase(ownerUrl: string) {
 		await client.end()
 	}
 }
+
+/** Сколько других подключений к этой базе (кроме своего): запущенный `pnpm dev`, воркеры задач, Drizzle Studio. */
+export async function otherConnections(ownerUrl: string) {
+	const client = new pg.Client({ connectionString: ownerUrl })
+	await client.connect()
+	try {
+		const { rows } = await client.query<{ n: number }>(
+			'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()',
+		)
+		return rows[0]?.n ?? 0
+	} finally {
+		await client.end()
+	}
+}

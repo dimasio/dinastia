@@ -74,6 +74,7 @@ pnpm dev                    # api + воркер задач (один проце
 | `pnpm dev` | api (tsx watch) + web (vite) |
 | `pnpm e2e` | e2e-сценарии Playwright в своём контуре (нужен `env:up`; база e2e засевается сама) |
 | `pnpm db:migrate` / `db:reset` / `db:seed` / `db:studio` / `db:generate --name <что>` | миграции (под `app_owner`), сброс локальной БД, данные центра, Drizzle Studio, новая миграция |
+| `pnpm db:reset` при запущенном `pnpm dev` | отказ: к базе подключены другие (сброс удалил бы очереди задач — дальше 500 «Queue … does not exist»). Остановить `pnpm dev`/Studio; или `pnpm db:reset --force` и перезапустить `pnpm dev` |
 | `pnpm jobs:list` / `jobs:run <имя>` | очереди задач / выполнить задачу сейчас (скилл `background-jobs`) |
 
 ## Проверить, что всё работает
@@ -130,7 +131,8 @@ http://airgorizont.education.localhost:5173. Демо-школ в dev нет. Ц
 | роли/базы не те после правки `init.sh` | `pnpm env:reset` |
 | magic link не приходит | Mailpit http://localhost:8025 |
 | `node: command not found` / не та версия | `nvm use` |
-| схема разошлась после смены ветки | `pnpm db:reset && pnpm db:seed` |
+| схема разошлась после смены ветки | `pnpm db:reset && pnpm db:seed` при остановленном `pnpm dev` |
+| 500 «Queue … does not exist» (сдача теста, письма) | базу сбросили под запущенным сервером — перезапустить `pnpm dev`; войти заново (сессии тоже сброшены) |
 | все получают 429 на входе после 5 ошибок у одного | `TRUST_PROXY_HOPS` в `.env` не совпадает со схемой (через Vite — 1, напрямую к :3000 — 0) |
 | вход отвечает 403 `Invalid origin` | запрос не с `*.education.localhost` (или без заголовка `Origin` у curl) |
 | после входа снова форма входа | в `.env` старый `APP_DOMAIN` (`dinastia.localhost` или `localhost`) — нужен `education.localhost`, перезапустить `pnpm dev` |
