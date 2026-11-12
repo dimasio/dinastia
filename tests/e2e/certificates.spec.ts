@@ -81,7 +81,7 @@ test('сертификат: шаблон и предпросмотр, PDF уче
 	await page.reload()
 	const row = page.getByTestId('resource-issued-row').filter({ hasText: 'Ученик Пятый' })
 	await expect(row).toContainText('Готов')
-	const number = (await row.locator('td').first().innerText()).trim()
+	const number = ((await row.locator('td').first().textContent()) ?? '').trim()
 	expect(number).toMatch(/^DEMO-\d{4}-\d{6}$/)
 	// письмо ученику: номер и ссылка на страницу курса
 	const link = await waitForLink(

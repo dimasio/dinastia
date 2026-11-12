@@ -148,7 +148,7 @@ test('демо фазы 4: приглашение → поток с курато
 		await page.getByTestId('course-tab-certificate').click()
 		const row = page.getByTestId('resource-issued-row').first()
 		await expect(row).toContainText('Готов')
-		return (await row.locator('td').first().innerText()).trim()
+		return ((await row.locator('td').first().textContent()) ?? '').trim()
 	})
 
 	await test.step('проверка сертификата по номеру без входа', async () => {
