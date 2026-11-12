@@ -17,6 +17,9 @@ export const CertificateData = z.object({
 	/** `data:` URI в PDF, подписанная ссылка — в предпросмотре. */
 	signatureSrc: z.string().nullable(),
 	backgroundSrc: z.string().nullable(),
+	/** Оформление школы (5.9): логотип (`data:` в PDF, ссылка в предпросмотре) и цвет рамки и заголовка. */
+	logoSrc: z.string().nullable().default(null),
+	brandColor: z.string().nullable().default(null),
 	number: z.string().nullable(),
 	date: z.string().nullable(),
 	/** SVG QR-кода ссылки проверки. */
@@ -45,7 +48,14 @@ function Certificate({ d }: { d: CertificateData }) {
 			}}
 		>
 			{!d.backgroundSrc && (
-				<div style={{ position: 'absolute', inset: '10mm', border: '1.2mm double #9ca3af', borderRadius: '2mm' }} />
+				<div
+					style={{
+						position: 'absolute',
+						inset: '10mm',
+						border: `1.2mm double ${d.brandColor ?? '#9ca3af'}`,
+						borderRadius: '2mm',
+					}}
+				/>
 			)}
 			<div
 				style={{
@@ -57,6 +67,13 @@ function Certificate({ d }: { d: CertificateData }) {
 					textAlign: 'center',
 				}}
 			>
+				{d.logoSrc && (
+					<img
+						src={d.logoSrc}
+						alt=""
+						style={{ display: 'block', maxHeight: '16mm', maxWidth: '70mm', marginBottom: '4mm' }}
+					/>
+				)}
 				<div style={{ fontSize: '11pt', letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTED }}>
 					{d.schoolName}
 				</div>
@@ -66,6 +83,7 @@ function Certificate({ d }: { d: CertificateData }) {
 						fontSize: landscape ? '40pt' : '36pt',
 						fontWeight: 700,
 						margin: '10mm 0 8mm',
+						...(d.brandColor ? { color: d.brandColor } : {}),
 					}}
 				>
 					{d.heading}
@@ -149,6 +167,8 @@ export const certificateDocument = defineDocument({
 		signerTitle: 'Директор',
 		signatureSrc: null,
 		backgroundSrc: null,
+		logoSrc: null,
+		brandColor: '#4f46e5',
 		number: 'PRIMER-2026-000001',
 		date: '11 ноября 2026 г.',
 		qrSvg: null,

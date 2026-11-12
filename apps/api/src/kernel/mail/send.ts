@@ -2,8 +2,9 @@
 // письма нет; задача рендерит шаблон и отправляет. Данные письма лежат в очереди открытым текстом — без секретов:
 // письмо с токеном рендерит и отправляет сама задача модуля через deliverEmail (образец — приглашение).
 import { z } from 'zod'
+import { withTenant } from '../db/tenant.ts'
 import { defineJob, type Jobs } from '../jobs.ts'
-import { emailByKey } from '../registry.ts'
+import { emailBrandProvider, emailByKey } from '../registry.ts'
 import { type EmailDef, type EmailSchool, renderEmail } from './define.tsx'
 import { sendMail } from './transport.ts'
 
@@ -14,8 +15,16 @@ export interface MailApi {
 
 /** Отрендерить и отправить сейчас — только внутри задачи (идемпотентность — на её стороне). */
 export async function deliverEmail<D>(school: EmailSchool, email: EmailDef<D>, msg: { to: string; data: D }) {
-	const { subject, html, text } = await renderEmail(email, msg.data, school)
+	const { subject, html, text } = await renderEmail(email, msg.data, await withBrand(school))
 	await sendMail({ to: msg.to, subject, html, text, fromName: school.name })
+}
+
+/** Школа с оформлением (5.9): письмо платформы (без id) и уже с оформлением — как есть. */
+async function withBrand(school: EmailSchool): Promise<EmailSchool> {
+	const provider = emailBrandProvider()
+	const { id } = school
+	if (!id || school.brand || !provider) return school
+	return { ...school, brand: await withTenant(id, (tx) => provider(tx, { id, slug: school.slug })) }
 }
 
 export const mailSendJob = defineJob({

@@ -11,7 +11,9 @@ description: Генерация документов в Dinastia — PDF из Re
 
 ## PDF
 
-Ядро — `apps/api/src/kernel/documents/` (D-059). Образец — сертификат `modules/certificates/document.tsx`:
+Ядро — `apps/api/src/kernel/documents/` (D-059). Оформление школы (5.9) на документе — логотип (`data:` URI в PDF) и цвет из
+`readBranding` (`modules/schools/branding.ts`), как `documentBrand` в `modules/certificates/service.ts`. Образец — сертификат
+`modules/certificates/document.tsx`:
 
 ```tsx
 export const certificateDocument = defineDocument({

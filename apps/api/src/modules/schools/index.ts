@@ -1,4 +1,5 @@
 import { defineModule } from '#/kernel/module.ts'
+import { emailBrand } from './branding.ts'
 import { invitationEmail } from './emails/invitation.tsx'
 import { avatarPurpose, faviconPurpose, logoPurpose } from './files.ts'
 import { sendInvitationJob } from './jobs.ts'
@@ -14,4 +15,5 @@ export default defineModule({
 	emails: [invitationEmail],
 	files: [avatarPurpose, logoPurpose, faviconPurpose],
 	settings: schoolsSettings,
+	emailBrand,
 })

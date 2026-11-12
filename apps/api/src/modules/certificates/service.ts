@@ -2,6 +2,7 @@
 // курса (номер из счётчика школы под блокировкой, снимок имени, курса и вида); PDF — задачей `certificates.render`; список курса,
 // аннулирование, скачивание; сертификаты ученика; публичная проверка по номеру (имя скрыто, полностью — с кодом из QR).
 import { randomBytes } from 'node:crypto'
+import { adjustForContrast, LIGHT_BACKGROUND } from '@dinastia/contracts/branding'
 import type {
 	CertificateCheck,
 	CertificateRow,
@@ -23,12 +24,13 @@ import { documentHtml, PDF_MIME, renderPdf } from '#/kernel/documents/pdf.ts'
 import { fail } from '#/kernel/errors.ts'
 import { defineJob } from '#/kernel/jobs.ts'
 import { members } from '#/kernel/members/schema.ts'
-import { storeFile } from '#/kernel/storage/files.ts'
+import { signFileKey, storeFile } from '#/kernel/storage/files.ts'
 import { getObject } from '#/kernel/storage/s3.ts'
 import { files } from '#/kernel/storage/schema.ts'
 import { courseCards, courseOrFail } from '../courses/service.ts'
 import { groupScope } from '../learning/policies.ts'
 import { enrollments } from '../learning/schema.ts'
+import { readBranding } from '../schools/branding.ts'
 import { type CertificateData, certificateDocument } from './document.tsx'
 import { certificateIssuedEmail } from './emails/issued.tsx'
 import { certificateIssued } from './events.ts'
@@ -183,6 +185,8 @@ interface LayoutInput {
 	link: string
 	signatureSrc: string | null
 	backgroundSrc: string | null
+	logoSrc: string | null
+	brandColor: string | null
 }
 
 function certificateData(l: LayoutInput): CertificateData {
@@ -197,6 +201,8 @@ function certificateData(l: LayoutInput): CertificateData {
 		signerTitle: l.fields.signerTitle,
 		signatureSrc: l.signatureSrc,
 		backgroundSrc: l.backgroundSrc,
+		logoSrc: l.logoSrc,
+		brandColor: l.brandColor,
 		number: l.fields.showNumber ? l.number : null,
 		date: l.fields.showDate ? date : null,
 		qrSvg: renderSVG(l.link, { ecc: 'M', border: 0 }),
@@ -220,6 +226,7 @@ export async function previewTemplate(ctx: SchoolCtx, input: CertificateTemplate
 		link: verifyUrl(ctx.school.slug, number, 'PREVIEW0'),
 		signatureSrc: await imageUrl(ctx, fields.signatureFileId),
 		backgroundSrc: await imageUrl(ctx, fields.backgroundFileId),
+		...(await documentBrand(ctx, 'link')),
 	})
 	return { html: documentHtml(certificateDocument, data) }
 }
@@ -301,6 +308,25 @@ async function dataUri(ctx: BaseCtx, fileId: string | null): Promise<string | nu
 	return object ? `data:${file.mime};base64,${Buffer.from(object.body).toString('base64')}` : null
 }
 
+/**
+ * Оформление школы на сертификате (5.9): логотип — ссылкой (предпросмотр) или `data:` (PDF без сети); цвет — основной,
+ * читаемый на белом листе.
+ */
+async function documentBrand(ctx: Pick<BaseCtx, 'db'>, logo: 'link' | 'data') {
+	const b = await readBranding(ctx.db)
+	const object = logo === 'data' && b.logoKey ? await getObject(b.logoKey) : null
+	return {
+		logoSrc: !b.logoKey
+			? null
+			: logo === 'link'
+				? await signFileKey(b.logoKey)
+				: object
+					? `data:${object.mime};base64,${Buffer.from(object.body).toString('base64')}`
+					: null,
+		brandColor: b.theme.primaryColor ? adjustForContrast(b.theme.primaryColor, LIGHT_BACKGROUND) : null,
+	}
+}
+
 const safeName = (s: string) =>
 	s
 		.replace(/[\\/:*?"<>|]+/g, ' ')
@@ -326,6 +352,7 @@ export async function renderCertificate(ctx: BaseCtx, certificateId: string) {
 				link: verifyUrl(ctx.school.slug, c.number, c.verifyCode),
 				signatureSrc: await dataUri(inner, fields.signatureFileId),
 				backgroundSrc: await dataUri(inner, fields.backgroundFileId),
+				...(await documentBrand(inner, 'data')),
 			})
 			const pdf = await renderPdf(certificateDocument, data)
 			const fileId = await storeFile(inner, {

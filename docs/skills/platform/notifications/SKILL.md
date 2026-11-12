@@ -1,6 +1,6 @@
 ---
 name: notifications
-description: Уведомления в Dinastia — письма через defineEmail в modules/<m>/emails/*.tsx (компоненты react-email 6, ключ <модуль>.<письмо>, zod-схема данных, тема и тексты из i18n namespace emails, EmailLayout с названием школы, examples), регистрация defineModule({ emails }), отправка ctx.mail.send задачей mail.send в транзакции запроса, письмо с секретом (токен) — deliverEmail внутри задачи модуля, транзакционные письма MVP (приглашение, зачисление, ДЗ проверено, дедлайн, сертификат), предпросмотр pnpm emails:preview, Mailpit локально; позже — предпочтения и отписка, каналы Telegram и push. Использовать для «отправь письмо», «уведоми ученика/куратора», «шаблон письма», «напоминание».
+description: Уведомления в Dinastia — письма через defineEmail в modules/<m>/emails/*.tsx (компоненты react-email 6, ключ <модуль>.<письмо>, zod-схема данных, тема и тексты из i18n namespace emails, EmailLayout с логотипом или названием школы и кнопкой цвета школы (оформление 5.9), examples), регистрация defineModule({ emails }), отправка ctx.mail.send задачей mail.send в транзакции запроса, письмо с секретом (токен) — deliverEmail внутри задачи модуля, транзакционные письма MVP (приглашение, зачисление, ДЗ проверено, дедлайн, сертификат), предпросмотр pnpm emails:preview, Mailpit локально; позже — предпочтения и отписка, каналы Telegram и push. Использовать для «отправь письмо», «уведоми ученика/куратора», «шаблон письма», «напоминание».
 ---
 
 # Уведомления
@@ -58,6 +58,10 @@ await ctx.mail.send(submissionReviewedEmail, { to: student.email, data: { lesson
 - Ссылки — абсолютные на домен школы: `` `${appOrigin(ctx.school.slug)}/learn/…` `` (`#/kernel/config.ts`).
 - Массовое — не в цикле из запроса, а задачей батчами (скилл `background-jobs`).
 
+
+Оформление школы (5.9): `EmailLayout` сам ставит логотип школы вместо названия, `EmailButton` — цвет школы. Модулю ничего делать
+не нужно: `deliverEmail` берёт оформление по `school.id` (у письма платформы `id` нет — нейтральный вид). Цвета в своих компонентах
+письма не задавайте — только `EmailButton`, `EmailNote`, `EmailQuote`.
 ## Предпросмотр и проверка
 
 - `pnpm emails:preview` — HTML и текст всех писем по `examples` в папку `.emails` внутри `apps/api` (создаёт команда, в git не хранится; открыть в браузере).

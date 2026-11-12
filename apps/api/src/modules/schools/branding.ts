@@ -1,19 +1,24 @@
 // Оформление школы (5.9, спека branding.md, D-065): чтение строки `school_branding` и публичная раздача темы по адресу
 // школы — CSS `/api/branding.css`, логотип и фавикон (редирект на подписанную ссылку). Без строки — тема Dinastia.
 import {
+	adjustForContrast,
 	type BrandingTheme,
 	type BrandingUpdate,
 	type BrandingView,
 	brandingCss,
 	checkBrandColor,
 	DEFAULT_BRANDING,
+	foregroundFor,
+	LIGHT_BACKGROUND,
 } from '@dinastia/contracts/branding'
 import { eq, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
+import { appOrigin } from '#/kernel/config.ts'
 import type { SchoolCtx, Tx } from '#/kernel/context.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
 import { fail } from '#/kernel/errors.ts'
 import { resolveHost } from '#/kernel/host.ts'
+import type { EmailBrandProvider } from '#/kernel/module.ts'
 import { signFileKey } from '#/kernel/storage/files.ts'
 import { files } from '#/kernel/storage/schema.ts'
 import { faviconPurpose, logoPurpose } from './files.ts'
@@ -142,4 +147,16 @@ export async function updateBranding(ctx: SchoolCtx, input: BrandingUpdate): Pro
 	}
 	await ctx.audit('schools.branding.updated', { entity: 'school', id: ctx.school.id, diff: { fields } })
 	return getBrandingView(ctx)
+}
+
+/** Оформление писем школы (5.9): логотип — ссылкой на сайт школы (стабильной, с версией), кнопка — основным цветом. */
+export const emailBrand: EmailBrandProvider = async (tx, school) => {
+	const b = await readBranding(tx)
+	const logo = logoPath(b)
+	const button = b.theme.primaryColor ? adjustForContrast(b.theme.primaryColor, LIGHT_BACKGROUND) : null
+	return {
+		logoUrl: logo ? `${appOrigin(school.slug)}${logo}` : null,
+		buttonColor: button,
+		buttonText: button ? foregroundFor(button) : null,
+	}
 }

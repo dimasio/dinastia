@@ -35,7 +35,7 @@ async function senderOf(url: string): Promise<EmailSchool> {
 	const host = resolveHost(new URL(url).host, config.APP_DOMAIN)
 	if (host.kind !== 'school') return PLATFORM
 	const [row] = await db.select().from(schools).where(eq(schools.slug, host.slug)).limit(1)
-	return row?.status === 'active' ? { name: row.name, slug: row.slug } : PLATFORM
+	return row?.status === 'active' ? { id: row.id, name: row.name, slug: row.slug } : PLATFORM
 }
 
 export async function sendMagicLinkEmail(to: string, url: string) {

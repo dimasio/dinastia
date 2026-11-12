@@ -15,7 +15,7 @@ description: Доменный модуль Dinastia — из чего состо
 ```
 packages/contracts/src/<m>.ts           zod-схемы сущностей + контракт oRPC        → api-endpoints
 apps/api/src/modules/<m>/
-  index.ts                              defineModule({ name, router, permissions, jobs?, subscribers?, emails?, files?, webhooks?, settings? })
+  index.ts                              defineModule({ name, router, permissions, jobs?, subscribers?, emails?, files?, exports?, webhooks?, settings?, personalData?, emailBrand? })
   schema.ts                             таблицы Drizzle                             → db-schema
   service.ts  (или <часть>.service.ts)  бизнес-логика, публичный API модуля         → data-access
   router.ts                             реализация контракта                        → api-endpoints
@@ -24,7 +24,7 @@ apps/api/src/modules/<m>/
   events.ts                             defineEvent модуля + подписчики on() на чужие → events-automations
   jobs.ts                               defineJob — фоновые задачи <m>.<действие>   → background-jobs
   emails/*.tsx                          defineEmail — письма <m>.<письмо>           → notifications
-  settings.ts                           настройки школы (позже)                     → settings
+  settings.ts                           настройки школы                             → settings
   *.test.ts                             тесты                                       → testing
 apps/web/src/features/<m>/
   nav.ts                                пункты меню областей (defineNav)            → web-screens

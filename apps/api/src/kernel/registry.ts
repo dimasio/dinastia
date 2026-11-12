@@ -3,6 +3,7 @@
 import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
 import type { AnyEmail } from './mail/define.tsx'
+import type { EmailBrandProvider } from './module.ts'
 import type { PersonalDataPart } from './personal-data/define.ts'
 import type { AnySettingsDef } from './settings/settings.ts'
 import type { FilePurpose } from './storage/files.ts'
@@ -101,3 +102,13 @@ export function registerPersonalData(list: { module: string; part: PersonalDataP
 
 export const allPersonalData = (): { module: string; part: PersonalDataPart }[] =>
 	[...personalData.entries()].map(([module, part]) => ({ module, part }))
+
+let emailBrand: EmailBrandProvider | null = null
+
+/** Оформление писем (5.9) — один поставщик на приложение (модуль schools). */
+export function registerEmailBrand(list: EmailBrandProvider[]) {
+	if (list.length > 1) throw new Error('оформление писем объявлено в двух модулях')
+	emailBrand = list[0] ?? null
+}
+
+export const emailBrandProvider = (): EmailBrandProvider | null => emailBrand

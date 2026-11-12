@@ -2,15 +2,27 @@
 // из i18n (namespace emails), макет с названием школы. Рендер — HTML и текстовая версия.
 import { createI18n } from '@dinastia/i18n'
 import { render, toPlainText } from '@react-email/render'
-import type { ComponentType, ReactNode } from 'react'
-import { Body, Button, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email'
+import { type ComponentType, createContext, type ReactNode, useContext } from 'react'
+import { Body, Button, Container, Head, Hr, Html, Img, Preview, Section, Text } from 'react-email'
 import type { z } from 'zod'
 
 export type T = (key: string, options?: Record<string, unknown>) => string
+/** Оформление школы в письме (5.9): логотип — абсолютная ссылка на сайт школы, цвет кнопки и текст на ней. */
+export interface EmailBrand {
+	logoUrl: string | null
+	buttonColor: string | null
+	buttonText: string | null
+}
+
 export interface EmailSchool {
 	name: string
 	slug: string
+	/** Есть у школы (не у письма платформы) — по нему `deliverEmail` найдёт оформление. */
+	id?: string
+	brand?: EmailBrand
 }
+
+const BrandContext = createContext<EmailBrand | null>(null)
 
 export interface EmailDef<D = unknown> {
 	/** `<модуль>.<письмо>` (kebab-case), неизменяемо. */
@@ -52,8 +64,14 @@ export function EmailLayout({
 			<Preview>{preview}</Preview>
 			<Body style={{ backgroundColor: '#f6f6f6', fontFamily: 'Arial, Helvetica, sans-serif', margin: 0 }}>
 				<Container style={{ backgroundColor: '#ffffff', margin: '24px auto', maxWidth: 560, padding: 32 }}>
-					<Text style={{ fontSize: 18, fontWeight: 700, margin: '0 0 24px' }}>{school.name}</Text>
-					<Section>{children}</Section>
+					{school.brand?.logoUrl ? (
+						<Img src={school.brand.logoUrl} alt={school.name} height={40} style={{ margin: '0 0 24px' }} />
+					) : (
+						<Text style={{ fontSize: 18, fontWeight: 700, margin: '0 0 24px' }}>{school.name}</Text>
+					)}
+					<BrandContext.Provider value={school.brand ?? null}>
+						<Section>{children}</Section>
+					</BrandContext.Provider>
 					<Hr style={{ borderColor: '#e5e5e5', margin: '32px 0 16px' }} />
 					<Text style={{ color: '#737373', fontSize: 12, margin: 0 }}>
 						{/* письмо платформы (вход с корневого домена) — без школы */}
@@ -65,12 +83,19 @@ export function EmailLayout({
 	)
 }
 
-/** Главное действие письма — одна кнопка во всех письмах (4.8). */
+/** Главное действие письма — одна кнопка во всех письмах (4.8); цвет — школы (5.9). */
 export function EmailButton({ href, children }: { href: string; children: ReactNode }) {
+	const brand = useContext(BrandContext)
 	return (
 		<Button
 			href={href}
-			style={{ backgroundColor: '#171717', borderRadius: 6, color: '#ffffff', margin: '8px 0', padding: '12px 20px' }}
+			style={{
+				backgroundColor: brand?.buttonColor ?? '#171717',
+				borderRadius: 6,
+				color: brand?.buttonText ?? '#ffffff',
+				margin: '8px 0',
+				padding: '12px 20px',
+			}}
 		>
 			{children}
 		</Button>

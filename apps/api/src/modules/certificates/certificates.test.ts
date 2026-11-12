@@ -232,4 +232,13 @@ describe('сертификаты', () => {
 			),
 		).toBe('CERTIFICATE_IMAGE_INVALID')
 	})
+
+	it('оформление школы (5.9): логотип и цвет школы в рамке и заголовке', async () => {
+		const s = await setup()
+		await s.t.as('owner').schools.branding.update({
+			theme: { primaryColor: '#0f766e', accentColor: null, font: 'system', radius: 'medium', defaultScheme: 'system' },
+		})
+		const { html } = await s.c.certificates.template.preview({ ...s.fields, courseId: s.course.id })
+		expect(html).toContain('#0f766e')
+	})
 })

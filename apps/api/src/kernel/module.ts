@@ -1,10 +1,12 @@
 // Модуль (скилл module): вертикальный срез — роутер (реализация своего контракта), разрешения, фоновые задачи,
 // подписчики событий; далее настройки. Реестр модулей — src/modules/index.ts; роутер, права и задачи приложения
 // собираются из него.
+
+import type { Tx } from './db/client.ts'
 import { type Subscriber, subscriberJob } from './events.ts'
 import type { AnyExport } from './exports/define.ts'
 import type { AnyJob, SchoolJob } from './jobs.ts'
-import type { AnyEmail } from './mail/define.tsx'
+import type { AnyEmail, EmailBrand } from './mail/define.tsx'
 import type { ModulePermissions } from './permissions.ts'
 import type { PersonalDataPart } from './personal-data/define.ts'
 import type { AnySettingsDef } from './settings/settings.ts'
@@ -38,7 +40,11 @@ export interface ModuleDef<
 	settings?: AnySettingsDef
 	/** Данные человека в модуле (`definePersonalData`): выгрузка по запросу и обезличивание участника (5.5). */
 	personalData?: PersonalDataPart
+	/** Оформление школы для писем (5.9): логотип и цвет кнопки; объявляет один модуль (schools). */
+	emailBrand?: EmailBrandProvider
 }
+
+export type EmailBrandProvider = (tx: Tx, school: { id: string; slug: string }) => Promise<EmailBrand>
 
 export function defineModule<const N extends string, R extends object, P extends ModulePermissions<string>>(
 	def: ModuleDef<N, R, P>,

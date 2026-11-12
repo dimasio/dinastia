@@ -5,9 +5,12 @@ import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '#/app.ts'
 import { auditLog } from '#/kernel/audit/schema.ts'
+import { magicLinkEmail } from '#/kernel/auth/magic-link-email.tsx'
 import { config } from '#/kernel/config.ts'
 import { db, pool } from '#/kernel/db/client.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
+import { deliverEmail } from '#/kernel/mail/send.ts'
+import { memoryOutbox } from '#/kernel/mail/transport.ts'
 import { files } from '#/kernel/storage/schema.ts'
 import { cleanupTestSchools, expectPermissionMatrix, withTestSchool } from '#/test/school.ts'
 import { createUser, uniqueSlug } from '#/test/users.ts'
@@ -170,5 +173,29 @@ describe('оформление школы: экран', () => {
 		expect((await owner.schools.branding.update({ faviconFileId: favicon })).faviconUrl).toContain(favicon)
 		expect((await owner.schools.branding.update({ logoFileId: null })).logoUrl).toBeNull()
 		expect((await owner.schools.me()).school.logoUrl).toBeNull()
+	})
+})
+
+describe('оформление школы: письма', () => {
+	it('логотип ссылкой на сайт школы и кнопка цветом школы; у платформы — как было', async () => {
+		const t = await withTestSchool()
+		const logo = await readyFile(t.school.id, 'schools.logo')
+		await t.as('owner').schools.branding.update({
+			logoFileId: logo,
+			theme: { primaryColor: '#0f766e', accentColor: null, font: 'system', radius: 'medium', defaultScheme: 'system' },
+		})
+		const to = `brand-${Date.now()}@test.local`
+		await deliverEmail(t.school, magicLinkEmail, { to, data: { url: 'http://example.test/x' } })
+		const mail = memoryOutbox.findLast((m) => m.to === to)
+		expect(mail?.html).toContain(`${t.school.slug}.${config.APP_DOMAIN}`)
+		expect(mail?.html).toMatch(/\/api\/branding\/logo\?v=\d+/)
+		expect(mail?.html).toContain('background-color:#0f766e')
+
+		const plain = `plain-${Date.now()}@test.local`
+		await deliverEmail({ name: 'Dinastia', slug: '' }, magicLinkEmail, {
+			to: plain,
+			data: { url: 'http://example.test/x' },
+		})
+		expect(memoryOutbox.findLast((m) => m.to === plain)?.html).toContain('background-color:#171717')
 	})
 })

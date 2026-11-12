@@ -6,6 +6,7 @@ import { mailSendJob } from '#/kernel/mail/send.ts'
 import { collectJobs } from '#/kernel/module.ts'
 import { requestLimitsCleanupJob } from '#/kernel/rate-limit/rate-limit.ts'
 import {
+	registerEmailBrand,
 	registerEmails,
 	registerExports,
 	registerFilePurposes,
@@ -52,6 +53,7 @@ registerFilePurposes(Object.values(modules).flatMap((m) => m.files ?? []))
 registerExports(Object.values(modules).flatMap((m) => m.exports ?? []))
 registerWebhookHandlers(Object.values(modules).flatMap((m) => m.webhooks ?? []))
 registerSettings(Object.values(modules).flatMap((m) => (m.settings ? [m.settings] : [])))
+registerEmailBrand(Object.values(modules).flatMap((m) => (m.emailBrand ? [m.emailBrand] : [])))
 registerPersonalData(
 	Object.values(modules).flatMap((m) => (m.personalData ? [{ module: m.name, part: m.personalData }] : [])),
 )
