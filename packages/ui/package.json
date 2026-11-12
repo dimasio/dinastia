@@ -38,7 +38,6 @@
 		"@tiptap/starter-kit": "catalog:",
 		"class-variance-authority": "catalog:",
 		"clsx": "catalog:",
-		"cn": "^0.5.0",
 		"lucide-react": "catalog:",
 		"radix-ui": "catalog:",
 		"react-hook-form": "catalog:",

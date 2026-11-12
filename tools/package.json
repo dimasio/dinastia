@@ -13,7 +13,8 @@
 		"env:check": "tsx src/env-check.ts",
 		"gen:probe": "tsx src/gen-probe.ts",
 		"test:repeat": "tsx src/test-repeat.ts",
-		"bundle:budget": "tsx src/bundle-budget.ts"
+		"bundle:budget": "tsx src/bundle-budget.ts",
+		"delivery:check": "tsx src/delivery-check.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"

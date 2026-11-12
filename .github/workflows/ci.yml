@@ -43,6 +43,10 @@ jobs:
       - name: Бюджет размера веба (начальная загрузка ≤ 200 КБ gzip)
         run: pnpm bundle:budget
 
+      # поставка (5.8): сборка API и веба без комментариев, карт исходников и dev-кода; собранный API стартует
+      - name: Поставка
+        run: pnpm delivery:check
+
       - name: Миграции на чистой БД и демо-данные
         run: |
           pnpm db:reset
@@ -58,7 +62,6 @@ jobs:
       # git worktree, затем typecheck, lint, тесты, check:registries, docs:check — как локально (tools/src/gen-probe.ts).
       - name: Генераторы выдают рабочий код
         run: pnpm gen:probe
-          pnpm --filter @dinastia/web test
 
       - name: Артефакты упавших e2e
         if: failure()

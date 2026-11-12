@@ -14,7 +14,6 @@ export const lessonsOpenedEmail = defineEmail({
 				<Text>{t('emails:lessonsOpened.body', vars)}</Text>
 				{data.lessons.map((title, i) => (
 					// названия могут повторяться — ключ по месту в списке
-					// biome-ignore lint/suspicious/noArrayIndexKey: список статичен
 					<Text key={i} style={{ margin: '4px 0', paddingLeft: 12 }}>
 						• {title}
 					</Text>

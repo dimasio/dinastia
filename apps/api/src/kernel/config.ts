@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { z } from 'zod'
+import { apiRoot } from './paths.ts'
 
 // Локально переменные берутся из корневого .env (скилл local-env); в CI и проде — из окружения.
-const envFile = fileURLToPath(new URL('../../../../.env', import.meta.url))
+const envFile = join(apiRoot, '../../.env')
 if (existsSync(envFile)) process.loadEnvFile(envFile)
 
 const Env = z

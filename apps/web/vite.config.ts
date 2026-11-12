@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { contentSecurityPolicy } from './csp.ts'
 
 if (existsSync('../../.env')) process.loadEnvFile('../../.env')
@@ -10,16 +10,26 @@ const appDomain = process.env.APP_DOMAIN ?? 'dinastia.localhost'
 const s3Origin = new URL(process.env.S3_ENDPOINT ?? 'http://localhost:8333').origin
 const sentryDsn = process.env.SENTRY_DSN_WEB ?? ''
 
+/**
+ * Поставка без dev-кода и комментариев (5.8): песочницы `features/dev/` в сборке — пустые заглушки (маршрут `/dev/*` и так
+ * отвечает 404), HTML-комментарии из `index.html` убираются; комментарии JS и CSS снимает минификация.
+ */
+const delivery = (): Plugin => ({
+	name: 'dinastia-delivery',
+	apply: 'build',
+	enforce: 'pre',
+	load: (id) => (id.includes('/src/features/dev/') ? 'export function Sandbox() { return null }' : undefined),
+	transformIndexHtml: (html) => html.replace(/\s*<!--[\s\S]*?-->/g, ''),
+})
+
 export default defineConfig({
-	plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss()],
+	plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss(), delivery()],
 	define: {
 		'import.meta.env.VITE_APP_DOMAIN': JSON.stringify(appDomain),
 		// сбор ошибок (5.4): адрес GlitchTip и версия — при сборке
 		'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(sentryDsn || undefined),
 		'import.meta.env.VITE_APP_RELEASE': JSON.stringify(process.env.APP_RELEASE ?? 'dev'),
 	},
-	// манифест — для проверки бюджета размера (`pnpm bundle:budget`, 5.2)
-	build: { manifest: true },
 	server: {
 		port: Number(process.env.WEB_PORT ?? 5173),
 		host: true,

@@ -9,7 +9,7 @@ import { PLATFORM } from '../auth/magic-link-email.tsx'
 import { users } from '../auth/schema.ts'
 import { appOrigin } from '../config.ts'
 import type { SchoolCtx } from '../context.ts'
-// biome-ignore lint/style/noRestrictedImports: удаление школы — вне тенанта: школа уже закрыта, строки уходят каскадом
+// глобальный клиент: удаление школы — вне тенанта: школа уже закрыта, строки уходят каскадом
 import { db } from '../db/client.ts'
 import { withTenant, withUser } from '../db/tenant.ts'
 import { fail } from '../errors.ts'

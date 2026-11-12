@@ -27,6 +27,22 @@
 Расход подключений к Postgres на один процесс: пул приложения — 10, pg-boss — 5 (воркер) и 2 (отправка задач из API).
 Итого примерно **17 на пару `api`+`worker`**. Это ограничивает число копий (см. «Масштабирование»).
 
+## Поставка
+
+На сервер уходит сборка, а не исходники (5.8, D-066):
+
+| Что | Откуда | Запуск |
+| --- | --- | --- |
+| `api` | `apps/api/dist/` + `apps/api/drizzle/` + зависимости `pnpm deploy --prod --filter @dinastia/api` | `node dist/main.js` |
+| `worker` | тот же набор | `node dist/worker.js` |
+| `migrate` | тот же набор | `node dist/db.js migrate` |
+| выдать права оператора | тот же набор | `node dist/ops-grant.js <email> [имя]` |
+| `web` | `apps/web/dist/` | статические файлы |
+
+Сборка — `pnpm --filter @dinastia/api build` и `pnpm --filter @dinastia/web build`; проверка — `pnpm delivery:check` (без
+комментариев, карт исходников и dev-кода; собранный API отвечает `/health/live`). Сиды, `enroll`, `create-school` и предпросмотр
+писем — только для разработки, в поставку не входят. Образы контейнеров — пункт 5.3.
+
 ## Характеристики
 
 ### Минимум — бюджетный тестовый стенд

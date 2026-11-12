@@ -1,7 +1,7 @@
 // Бюджет размера веба (5.2, скилл performance): начальная загрузка — JS из index.html (вход и modulepreload), gzip. Запуск после
 // сборки: `pnpm bundle:budget` (собирает веб и проверяет). Превышение — ошибка: найти, что попало в начальную загрузку (код
 // экранов тянется в маршрут через beforeLoad/validateSearch, пакеты без `sideEffects: false`).
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
@@ -16,8 +16,9 @@ const initial = [...new Set([...html.matchAll(/(?:src|href)="\/(assets\/[^"]+\.j
 const gz = (file: string) => gzipSync(readFileSync(join(dist, file)), { level: 9 }).length / 1024
 
 const initialKb = initial.reduce((sum, f) => sum + gz(f), 0)
-const lazy = [...readFileSync(join(dist, '.vite/manifest.json'), 'utf8').matchAll(/"file": "(assets\/[^"]+\.js)"/g)]
-	.map((m) => m[1] as string)
+const lazy = readdirSync(join(dist, 'assets'))
+	.filter((f) => f.endsWith('.js'))
+	.map((f) => `assets/${f}`)
 	.filter((f) => !initial.includes(f))
 const largest = lazy.map((f) => ({ f, kb: gz(f) })).sort((a, b) => b.kb - a.kb)[0]
 

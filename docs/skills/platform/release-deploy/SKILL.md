@@ -17,7 +17,8 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 1. `pnpm install --frozen-lockfile`
 2. `pnpm env:up` (Postgres 18, SeaweedFS, Mailpit)
 3. `pnpm exec playwright install --with-deps chromium` — до `check`: тесты API печатают PDF (`kernel/documents`, D-059)
-4. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`)
+4. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`), бюджет веба
+   `pnpm bundle:budget`, поставка `pnpm delivery:check`
 5. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + демо-данные для e2e
 6. `pnpm audit --prod --audit-level high`
 7. `pnpm e2e`
@@ -38,6 +39,14 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 
 `api` (HTTP), `worker` (pg-boss: задачи, подписчики, расписания), `web` (статические файлы за CDN/nginx).
 Один образ сервера с командой `serve | worker | migrate`. Конфиг — env (скилл `settings`).
+
+Поставка (5.8, D-066) — только сборка, не исходники: `pnpm --filter @dinastia/api build` → `apps/api/dist/*` (`node dist/main.js` —
+HTTP, `dist/worker.js` — воркер, `dist/db.js migrate` — миграции, `dist/ops-grant.js <email>` — права оператора) + `apps/api/drizzle/`
++ зависимости `pnpm deploy --prod`; веб — `apps/web/dist/*`. Комментарии остаются в исходниках, в поставке их нет; карт исходников
+нет; песочниц `/dev/*` и dev-команд (сиды, `enroll`, `create-school`, предпросмотр писем) нет. Проверка — `pnpm delivery:check`
+(CI): ищет комментарии, карты и dev-код в сборке и запускает собранный API до `/health/live`. Новый вход поставки — в
+`apps/api/build.ts` и в списке файлов `tools/src/delivery-check.ts`; путь к файлу рядом с кодом — от `apiRoot`
+(`kernel/paths.ts`), не от `import.meta.url`: в сборке файлы лежат иначе.
 В образе воркера — Chromium для PDF (`pnpm exec playwright install --with-deps chromium`, версия — по `playwright-core` из
 каталога; D-059); `api` браузер не нужен (PDF печатает только задача).
 

@@ -34,6 +34,7 @@ status: current
 | i18n            | i18next + react-i18next, ключи в `packages/i18n`                                    | D-014   |
 | Тесты           | Vitest (unit + интеграционные на реальном Postgres), Playwright (e2e)               | D-015   |
 | Линт/формат     | Biome                                                                               | D-003   |
+| Сборка поставки | API — esbuild (`apps/api/build.ts`), веб — Vite; без комментариев и карт исходников, `pnpm delivery:check` | D-066 |
 | Логи/ошибки     | pino; Sentry-совместимый сбор (GlitchTip в РФ)                                      | D-016   |
 
 ## 2. Раскладка репозитория

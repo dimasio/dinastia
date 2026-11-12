@@ -81,8 +81,12 @@ test('банк вопросов: создать, найти, править, т�
 	await test.step('правка вопроса и теги курса', async () => {
 		await page.getByRole('link', { name: 'Столица Франции?' }).click()
 		await page.getByTestId('question-points').fill('3')
+		// уведомление «Вопрос сохранён» могло остаться от создания: ждём ответа на правку, иначе «Назад» спросит про несохранённое
+		const saved = page.waitForResponse((r) => r.url().endsWith('/assessments/questions/update') && r.ok())
 		await page.getByTestId('question-save').click()
+		await saved
 		await expect(page.getByText('Вопрос сохранён').first()).toBeVisible()
+		await expect(page.getByTestId('question-save')).toBeDisabled()
 		await page.getByTestId('question-back').click()
 		await expect(page.getByTestId('resource-questions-row').filter({ hasText: 'Столица Франции?' })).toContainText('3')
 

@@ -84,6 +84,7 @@ const PNPM_BUILTIN = new Set([
 	'add',
 	'exec',
 	'dlx',
+	'deploy',
 	'run',
 	'why',
 	'audit',

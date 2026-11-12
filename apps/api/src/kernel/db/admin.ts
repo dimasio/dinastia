@@ -1,10 +1,11 @@
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import pg from 'pg'
 import { BOSS_SCHEMA, installBoss } from '../boss.ts'
+import { apiRoot } from '../paths.ts'
 
-export const migrationsFolder = fileURLToPath(new URL('../../../drizzle', import.meta.url))
+export const migrationsFolder = join(apiRoot, 'drizzle')
 
 /** Применить миграции под ролью владельца схемы (app_owner) и поставить/обновить схему очереди задач (pg-boss). */
 export async function migrateDatabase(ownerUrl: string) {

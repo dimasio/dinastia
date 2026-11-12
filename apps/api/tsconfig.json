@@ -5,5 +5,5 @@
 		"jsx": "react-jsx",
 		"lib": ["es2024", "dom"]
 	},
-	"include": ["src", "drizzle.config.ts", "vitest.config.ts"]
+	"include": ["src", "build.ts", "drizzle.config.ts", "vitest.config.ts"]
 }

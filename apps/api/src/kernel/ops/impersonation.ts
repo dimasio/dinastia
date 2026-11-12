@@ -40,7 +40,7 @@ export async function checkImpersonation(operatorId: string, input: { schoolId: 
 	if (op?.role !== 'operator') throw new AppError('notFound', 'NOT_FOUND')
 	if (!op.twoFactor) throw new AppError('forbidden', 'OPS_2FA_REQUIRED')
 	const [school] = await db.select().from(schools).where(eq(schools.id, input.schoolId))
-	if (!school || school.status !== 'active') throw new AppError('notFound', 'SCHOOL_NOT_FOUND')
+	if (school?.status !== 'active') throw new AppError('notFound', 'SCHOOL_NOT_FOUND')
 	if (!school.supportAccessUntil || school.supportAccessUntil <= now)
 		throw new AppError('forbidden', 'SUPPORT_ACCESS_CLOSED')
 	const [member] = await withTenant(school.id, (tx) =>
