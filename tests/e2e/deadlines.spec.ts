@@ -32,8 +32,15 @@ test('срок сдачи: дата в прошлом — «Срок прошё�
 	const lessons: { id: string }[] = []
 	for (const title of ['Просроченный', 'На неделю']) {
 		const lesson = await api(page, 'POST', `/sections/${section.id}/lessons`, { title })
-		const block = await api(page, 'POST', `/lessons/${lesson.id}/blocks`, { type: 'text' })
-		await api(page, 'PATCH', `/blocks/${block.id}`, { data: { body: doc(title) } })
+		if (title === 'Просроченный') {
+			// задание: урок не засчитывается при открытии — срок в уроке виден, пока работа не сдана (урок из одного текста
+			// засчитывается сразу, и «Срок прошёл» исчезает раньше, чем его успевает увидеть проверка)
+			const work = await api(page, 'POST', `/lessons/${lesson.id}/blocks`, { type: 'assignment' })
+			await api(page, 'PATCH', `/blocks/${work.id}`, { data: { ...work.data, prompt: doc(title) } })
+		} else {
+			const block = await api(page, 'POST', `/lessons/${lesson.id}/blocks`, { type: 'text' })
+			await api(page, 'PATCH', `/blocks/${block.id}`, { data: { body: doc(title) } })
+		}
 		await api(page, 'POST', `/lessons/${lesson.id}/publish`, {})
 		lessons.push(lesson)
 	}
