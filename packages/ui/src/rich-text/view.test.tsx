@@ -1,4 +1,5 @@
 import type { RichTextDoc } from '@dinastia/contracts/common'
+import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { RichTextView } from './view.tsx'
@@ -8,6 +9,25 @@ const doc = (...content: object[]) => ({ type: 'doc', content }) as RichTextDoc
 const p = (...content: object[]) => ({ type: 'paragraph', content })
 
 describe('RichTextView', () => {
+	it('соседние фрагменты с метками — разные ключи (иначе React ругается на повтор ключа)', () => {
+		const view = RichTextView({
+			doc: doc(
+				p(
+					{ type: 'text', text: 'Важно', marks: [{ type: 'bold' }] },
+					{ type: 'text', text: ' и ' },
+					{
+						type: 'text',
+						text: 'сайт',
+						marks: [{ type: 'link', attrs: { href: 'https://e.com' } }, { type: 'italic' }],
+					},
+				),
+			),
+		})
+		const [paragraph] = view.props.children as ReactElement<{ children: ReactNode[] }>[]
+		const keys = (paragraph?.props.children ?? []).filter(isValidElement).map((k) => k.key)
+		expect(keys).toEqual(['0', '2'])
+	})
+
 	it('разметка из JSON: метки, ссылки с rel, цвет — классом, картинка — через resolveFile', () => {
 		const html = renderToStaticMarkup(
 			<RichTextView

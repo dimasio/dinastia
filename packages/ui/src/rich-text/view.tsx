@@ -59,7 +59,8 @@ function render(n: RichTextNode, key: number, resolveFile: RichTextViewProps['re
 	const kids = () => (n.content ?? []).map((c, i) => render(c, i, resolveFile))
 	switch (n.type) {
 		case 'text':
-			return (n.marks ?? []).reduce<ReactNode>((acc, m, i) => withMark(acc, m, i), n.text ?? '')
+			// ключ — место узла среди соседей: внутренние метки — единственный ребёнок, внешняя стоит рядом с другими узлами
+			return (n.marks ?? []).reduce<ReactNode>((acc, m) => withMark(acc, m, key), n.text ?? '')
 		case 'paragraph':
 			return <p key={key}>{kids()}</p>
 		case 'heading': {
