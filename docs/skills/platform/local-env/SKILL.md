@@ -1,6 +1,6 @@
 ---
 name: local-env
-description: Локальное окружение Dinastia — требования (Node 24 через nvm и .nvmrc, pnpm через corepack, Docker), docker/compose.yml (PostgreSQL 18 с базами dinastia и dinastia_test и ролями app_owner/app_user, SeaweedFS как S3 с бакетом dinastia, Mailpit для почты), .env из .env.example, проверка готовности окружения pnpm env:check (версии, сервисы, миграции, демо-данные, порты — с командами исправления), команды pnpm env:up/down/reset/logs/ps, pnpm dev (api :3000, web :5173), адреса и доступы, проверка сервисов, типичные проблемы; демо-данные pnpm db:seed. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу/окружение», «демо-данные», «где письма», «где файлы».
+description: Локальное окружение Dinastia — требования (Node 24 через nvm и .nvmrc, pnpm через corepack, Docker), docker/compose.yml (PostgreSQL 18 с базами dinastia, dinastia_test, dinastia_e2e и ролями app_owner/app_user, SeaweedFS как S3 с бакетом dinastia, Mailpit для почты и отдельный Mailpit e2e), .env из .env.example, проверка готовности окружения pnpm env:check (версии, сервисы, миграции, данные центра, порты — с командами исправления), команды pnpm env:up/down/reset/logs/ps, pnpm dev (api :3000, web education.localhost:5173), адреса и доступы, данные pnpm db:seed (учебный центр АИР «Горизонт», курс по первой помощи, пользователи), отдельный контур e2e (база dinastia_e2e, Mailpit :8026, порты 3100/5174), проверка сервисов, типичные проблемы. Использовать для «разверни/запусти проект», «не стартует», «сбрось базу/окружение», «какие логины», «где письма», «где файлы».
 ---
 
 # Локальное окружение
@@ -20,8 +20,8 @@ description: Локальное окружение Dinastia — требован
 ## Начало сессии
 
 `pnpm env:check` — одна команда: Node и pnpm нужных версий (Node из `.nvmrc`; под другой версией
-`drizzle-kit` не понимает импорты `#/…`), `.env` полон, Docker и сервисы healthy, миграции применены, демо-данные
-есть, порты 3000/5173 свободны, Chrome для e2e. На каждую проблему печатает команду исправления; код 1 — есть
+`drizzle-kit` не понимает импорты `#/…`), `.env` полон, Docker и сервисы healthy, миграции применены, центр
+засеян, порты 3000/5173 свободны, Chrome для e2e. На каждую проблему печатает команду исправления; код 1 — есть
 блокеры. Запускать в начале работы и когда «что-то не стартует». В оболочке агента Node по умолчанию может быть не
 тот: `source ~/.nvm/nvm.sh && nvm use` в той же команде, что и `pnpm …`.
 
@@ -36,21 +36,22 @@ pnpm env:up                 # Postgres, SeaweedFS, Mailpit + создание б
 pnpm dev                    # api + воркер задач (один процесс, src/dev.ts) + web
 ```
 
-Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (демо-данные); `pnpm env:check` — всё ли готово.
+Затем: `pnpm db:migrate` (схема) и `pnpm db:seed` (учебный центр АИР «Горизонт»); `pnpm env:check` — всё ли готово.
 
 ## Сервисы
 
 | Что | Адрес | Доступ |
 |---|---|---|
 | API | http://localhost:3000, `/health/live` | — |
-| веб | корень — http://dinastia.localhost:5173, школа — http://demo.dinastia.localhost:5173 (D-041) | см. «Демо-данные» |
-| PostgreSQL 18 | `localhost:5432`, базы `dinastia`, `dinastia_test` | приложение — `app_user`/`app_user`; миграции — `app_owner`/`app_owner`; суперпользователь — `postgres`/`postgres` (только для отладки) |
+| веб | корень и консоль `/ops` — http://education.localhost:5173, центр — http://airgorizont.education.localhost:5173 (D-041, D-068) | см. «Данные» |
+| PostgreSQL 18 | `localhost:5432`, базы `dinastia` (dev), `dinastia_test` (тесты API), `dinastia_e2e` (e2e) | приложение — `app_user`/`app_user`; миграции — `app_owner`/`app_owner`; суперпользователь — `postgres`/`postgres` (только для отладки) |
 | S3 (SeaweedFS) | http://localhost:8333, бакет `dinastia`, path-style | ключ `dinastia` / `dinastia-secret`; UI файлов — http://localhost:8888 |
-| Mailpit (письма, magic link) | http://localhost:8025, SMTP `localhost:1025` | — |
+| Mailpit (письма, magic link) | http://localhost:8025, SMTP `localhost:1025`; e2e — http://localhost:8026, SMTP `:1026` | — |
 
 `*.localhost` резолвится браузерами в 127.0.0.1 сам; для curl — `http://127.0.0.1:3000/...` с
-`-H 'Host: demo.dinastia.localhost:5173'` и для POST — `-H 'Origin: http://demo.dinastia.localhost:5173'`.
-Сессия — cookie на `.dinastia.localhost`: один вход на корне и во всех школах.
+`-H 'Host: airgorizont.education.localhost:5173'` и для POST — `-H 'Origin: http://airgorizont.education.localhost:5173'`.
+Сессия — cookie на `.education.localhost`: один вход на корне и во всех центрах. Домен из одного слова (`localhost`)
+не подходит: cookie на `Domain=localhost` браузеры не принимают (D-068).
 
 ## Роли БД (D-006)
 
@@ -65,14 +66,14 @@ pnpm dev                    # api + воркер задач (один проце
 
 | Команда | Что |
 |---|---|
-| `pnpm env:check` | готово ли окружение (версии, `.env`, сервисы, миграции, демо-данные, порты) — с командами исправления |
+| `pnpm env:check` | готово ли окружение (версии, `.env`, сервисы, миграции, данные центра, порты) — с командами исправления |
 | `pnpm env:up` | поднять сервисы и дождаться healthy; создать бакет (идемпотентно) |
 | `pnpm env:down` | остановить (данные сохраняются) |
 | `pnpm env:reset` | **удалить данные** (тома) и поднять заново — только локально |
 | `pnpm env:logs` / `env:ps` | логи / состояние контейнеров |
 | `pnpm dev` | api (tsx watch) + web (vite) |
-| `pnpm e2e` | e2e-сценарии Playwright (нужны `env:up` и `db:seed`) |
-| `pnpm db:migrate` / `db:reset` / `db:seed` / `db:studio` / `db:generate --name <что>` | миграции (под `app_owner`), сброс локальной БД, демо-данные, Drizzle Studio, новая миграция |
+| `pnpm e2e` | e2e-сценарии Playwright в своём контуре (нужен `env:up`; база e2e засевается сама) |
+| `pnpm db:migrate` / `db:reset` / `db:seed` / `db:studio` / `db:generate --name <что>` | миграции (под `app_owner`), сброс локальной БД, данные центра, Drizzle Studio, новая миграция |
 | `pnpm jobs:list` / `jobs:run <имя>` | очереди задач / выполнить задачу сейчас (скилл `background-jobs`) |
 
 ## Проверить, что всё работает
@@ -85,31 +86,36 @@ docker exec -e PGPASSWORD=app_user dinastia-postgres-1 psql -h localhost -U app_
 curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' 'http://localhost:8333/dinastia?list-type=2' | head -c 200
 ```
 
-## Демо-данные
+## Данные: учебный центр АИР «Горизонт»
 
-`pnpm db:seed` (идемпотентен; `apps/api/src/seed.ts`, идёт через сервисы): пароль у всех — `demo12345`.
+`pnpm db:seed` (`apps/api/src/seed.ts` → `seed/airgorizont.ts`, через сервисы): учебный центр `airgorizont` —
+http://airgorizont.education.localhost:5173. Демо-школ в dev нет. Центр уже есть — сид ничего не делает; пересоздать:
+`pnpm db:reset && pnpm db:seed`. Писем сид не шлёт. Пароль у всех — `gorizont2026`.
 
-| Школа | Пользователи |
-|---|---|
-| `demo` | `owner@demo.local`, `admin@demo.local`, `teacher@demo.local`, `curator@demo.local`, `student1@demo.local` … `student5@demo.local` |
-| `other` (проверка изоляции) | `owner@other.local`; `teacher@demo.local` — здесь ученик (один человек — разные роли) |
-| — (консоль `/ops`, 5.6) | `ops@demo.local` — оператор; второй фактор включает при первом входе в `/ops` (приложение-аутентификатор) |
+| Роль | Почта | Кто |
+|---|---|---|
+| владелец | `korev@airgorizont.local` | Корев Денис Александрович |
+| администратор | `tikhomirov@airgorizont.local` | Тихомиров Дмитрий Сергеевич |
+| куратор | `ivanov@airgorizont.local` | Иванов Иван Иванович — куратор учебной группы |
+| слушатель | `tikhomirova@airgorizont.local` | Тихомирова Анастасия Ильинична — зачислена в группу, прогресса нет |
+| оператор `/ops` | `ops@airgorizont.local` | отдельная учётная запись; второй фактор включает при первом входе |
 
-С фазы 2 — демо-курс с уроками всех блоков, тестом и заданием, потоком и прогрессом. Новая сущность → дополни сид
-в той же задаче. Письма (magic link, приглашения) — в Mailpit.
+Курс «Оказание первой помощи пострадавшим при наружных кровотечениях, ранениях и травмах» (`seed/first-aid.ts`, по
+приказам Минздрава № 220н и № 1331н, постановлениям № 2464 и № 805): 7 разделов, 31 тема, последовательный доступ
+60 дней; банк из 42 вопросов всех 7 типов с тегами по разделам; тест после каждого раздела (в разделе 3 — развёрнутый ответ
+с проверкой куратором), практическое задание раздела 3 (срок 14 дней), итоговый тест (20 случайных вопросов, 80%) и
+итоговое задание (срок 21 день); удостоверение с подписью владельца; оформление — цвета airgorizont.ru. Ключ ответов —
+там же, им пользуется e2e `first-aid.spec`. Новая возможность продукта → дополни сид в той же задаче.
 
 Новая школа для разработки (публичной регистрации нет, 5.6): `pnpm --filter @dinastia/api exec tsx src/create-school.ts <slug>
 <название> <email владельца> <пароль>`; оператор — `pnpm ops:grant <email>` (печатает разовый пароль, если пользователя не было).
 
-**Школа для показа** — `pnpm db:seed:trud` (`apps/api/src/seed-trud.ts`): «Учебный центр «Безопасный труд»» по охране труда,
-`http://trud.dinastia.localhost:5173`. Сотрудники `owner@`, `admin@`, `teacher@`, `medic@`, `curator@trud.local`, 12 учеников
-`<фамилия>@trud.local` (`petrov`, `smirnova`, …), пароль `demo12345`. Курсы: программа А (последовательный, задание и итоговый
-тест), пожарная безопасность (17 уроков, тесты по разделам, задание, итоговый тест — 12 случайных вопросов по тегам),
-первая помощь (открытый, тест), СИЗ (задание), работы на высоте (черновик); история прохождения за последние недели —
-очередь проверки, ручная оценка теста, доработка, отозванный доступ, ссылки-приглашения, потоки (у куратора `curator@trud.local` —
-свои потоки в программе А и пожарной безопасности). Школа уже есть — сид ничего не делает.
-Чистая база для показа: `pnpm env:reset && pnpm db:migrate && pnpm db:seed && pnpm db:seed:trud` (e2e засоряют базу `dinastia` —
-после прогона повторить). Новая возможность продукта → дополни и этот сид.
+## Контур e2e
+
+`pnpm e2e` не трогает dev: своя база `dinastia_e2e`, свой Mailpit (http://localhost:8026, SMTP `:1026`), API `:3100`,
+веб http://dinastia.localhost:5174 (`tests/e2e/env.ts`). Перед прогоном Playwright пересоздаёт базу и засевает её
+`e2e:prepare` (`src/test/seed-e2e.ts`: школы `demo` и `other` для сценариев — пароль `demo12345`, плюс тот же АИР «Горизонт»).
+Можно гонять при запущенном `pnpm dev`. Почистить письма dev — `curl -X DELETE localhost:8025/api/v1/messages`.
 
 ## Типичные проблемы
 
@@ -126,7 +132,8 @@ curl -s --aws-sigv4 'aws:amz:ru-central1:s3' --user 'dinastia:dinastia-secret' '
 | `node: command not found` / не та версия | `nvm use` |
 | схема разошлась после смены ветки | `pnpm db:reset && pnpm db:seed` |
 | все получают 429 на входе после 5 ошибок у одного | `TRUST_PROXY_HOPS` в `.env` не совпадает со схемой (через Vite — 1, напрямую к :3000 — 0) |
-| вход отвечает 403 `Invalid origin` | запрос не с `*.dinastia.localhost` (или без заголовка `Origin` у curl) |
+| вход отвечает 403 `Invalid origin` | запрос не с `*.education.localhost` (или без заголовка `Origin` у curl) |
+| после входа снова форма входа | в `.env` старый `APP_DOMAIN` (`dinastia.localhost` или `localhost`) — нужен `education.localhost`, перезапустить `pnpm dev` |
 
 ## Остановись и спроси, если
 

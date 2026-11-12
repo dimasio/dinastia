@@ -205,7 +205,7 @@ HTTP → Hono → /api/rpc | /api/v1 (oRPC, один контракт) | /api/au
 | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                                                                | api + web + воркер задач в watch-режиме                                                            |
 | `pnpm check`                                                              | typecheck, lint, unit/интеграционные тесты, `check:registries`, `docs:check` — критерий готовности |
-| `pnpm db:generate` / `db:migrate` / `db:seed` / `db:reset`                | миграции и демо-данные                                                                             |
+| `pnpm db:generate` / `db:migrate` / `db:seed` / `db:reset`                | миграции и данные центра                                                                            |
 | `pnpm gen:module\|block\|question\|resource …`                            | генераторы                                                                                         |
 | `pnpm test [-- <фильтр>]`                                                 | Vitest                                                                                             |
 | `pnpm e2e [-- <сценарий>]`                                                | Playwright                                                                                         |

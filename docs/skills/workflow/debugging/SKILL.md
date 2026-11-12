@@ -36,7 +36,7 @@ description: Поиск и исправление ошибок в Dinastia — �
 ## Инструменты
 
 - Логи: `pnpm dev` пишет pino-pretty; фильтр `| grep <requestId>`.
-- Окружение: `pnpm env:check` — версии, сервисы, миграции, демо-данные (скилл `local-env`).
+- Окружение: `pnpm env:check` — версии, сервисы, миграции, данные центра (скилл `local-env`).
 - БД: `pnpm db:studio`; SQL под ролью приложения (с RLS) — `docker compose -f docker/compose.yml --env-file .env exec -T postgres psql -U app_user -d dinastia`, внутри
   `select set_config('app.school_id', '<id школы>', false);` — иначе политика скроет все строки школы.
 - **Плавающий тест**: `pnpm test:repeat -n 10` (тесты api) или `pnpm test:repeat -n 5 -- <команда>` — например

@@ -30,7 +30,7 @@ export const submissionReviewedEmail = defineEmail({
 			<Button href={data.url}>{t('emails:submissionReviewed.cta')}</Button>
 		</EmailLayout>
 	),
-	examples: [{ lessonTitle: 'Свет и тень', status: 'accepted', url: 'http://demo.dinastia.localhost:5173/learn' }],
+	examples: [{ lessonTitle: 'Свет и тень', status: 'accepted', url: 'http://airgorizont.education.localhost:5173/learn' }],
 })
 // modules/assessments/index.ts: defineModule({ …, emails: [submissionReviewedEmail] })
 ```

@@ -89,12 +89,14 @@ it('приглашать сотрудников могут owner и admin', asyn
 падают с 429: перезапустите API или задайте `AUTH_SIGN_IN_LIMIT` в `.env`.
 
 Конфиг — `playwright.config.ts` (корень), сценарии — `tests/e2e/*.spec.ts`, демо фазы — `tests/e2e/phase-<N>.spec.ts`
-(образец — `phase-0.spec.ts`). Playwright сам поднимает API и веб (`webServer`) или берёт уже запущенные; нужны
-`pnpm env:up` и `pnpm db:seed` (демо-пользователи).
+(образец — `phase-0.spec.ts`). Контур e2e — свой (`tests/e2e/env.ts`, D-068): база `dinastia_e2e`, Mailpit
+http://localhost:8026, API `:3100`, веб `dinastia.localhost:5174`. Playwright сам пересоздаёт базу и засевает её
+(`e2e:prepare` → `src/test/seed-e2e.ts`: школы `demo`, `other` и учебный центр `airgorizont`) и поднимает свои серверы —
+рядом с `pnpm dev`, не мешая ему. Нужен только `pnpm env:up`. Данные сценариев — в `seed-e2e.ts`, не в `db:seed`.
 
 ```ts
 test('ученик попадает в /learn', async ({ page }) => {
-	await page.goto('http://demo.dinastia.localhost:5173/')
+	await page.goto(schoolUrl('demo', '/'))
 	await expect(page).toHaveURL(/\/login$/)
 	await page.getByTestId('auth-signin-email').fill('student1@demo.local')
 	await page.getByTestId('auth-signin-password').fill('demo12345')
@@ -105,12 +107,13 @@ test('ученик попадает в /learn', async ({ page }) => {
 
 - Локаторы: `getByRole`/`getByLabel` с доступным именем → `getByTestId` → никогда CSS-классы и XPath.
 - `data-testid`: `<модуль>-<элемент>[-<id>]`.
-- Письма (magic link, приглашения) — `waitForLink(email, /regex/)` из `tests/e2e/mailpit.ts` (API Mailpit).
-- Уникальные данные на прогон (`Date.now().toString(36)` в email и slug): e2e идут по dev-БД.
-- Dev-БД **копит** данные прогонов: не искать сидовые записи на первой странице списка — демо-курс открывать
+- Письма — `waitForLink(email, /regex/)` (ссылка из письма) и `waitForMail(email, /тема/)` (тема, текст, HTML) из
+  `tests/e2e/mailpit.ts` (API Mailpit e2e). Образец сценария с письмами на каждом шаге — `first-aid.spec.ts`.
+- Уникальные данные на прогон (`Date.now().toString(36)` в email и slug): сценарии идут параллельно по одной базе.
+- База e2e **копит** данные сценариев прогона: не искать сидовые записи на первой странице списка — демо-курс открывать
   `openDemoCourse(page)` (`tests/e2e/fixtures.ts`, через поиск). Длинный сценарий — `test.setTimeout(90_000)`:
   в общем прогоне файлы идут в нескольких воркерах.
-- **Запросы к `*.dinastia.localhost` — только из браузера** (`page.goto`, `page.evaluate(fetch…)`): Node на macOS
+- **Запросы к `*.dinastia.localhost` (и `*.education.localhost` в dev) — только из браузера** (`page.goto`, `page.evaluate(fetch…)`): Node на macOS
   не резолвит поддомены `localhost`, поэтому `page.request` к школе падает `ENOTFOUND`.
 - macOS 13: Playwright не ставит свой Chromium — конфиг берёт установленный Google Chrome (`channel: 'chrome'`);
   в CI (Linux) — штатный Chromium (`npx playwright install --with-deps chromium`).

@@ -15,13 +15,13 @@ description: CI, релизы и деплой Dinastia — пайплайн CI (
 `.github/workflows/ci.yml` — то же окружение, что локально (`docker/compose.yml`, `.env` из `.env.example`):
 
 1. `pnpm install --frozen-lockfile`
-2. `pnpm env:up` (Postgres 18, SeaweedFS, Mailpit)
+2. `pnpm env:up` (Postgres 18, SeaweedFS, Mailpit и Mailpit e2e)
 3. `pnpm exec playwright install --with-deps chromium` — до `check`: тесты API печатают PDF (`kernel/documents`, D-059)
 4. `pnpm check` (lint, typecheck, unit + интеграционные на `dinastia_test`, страж прав, покрытие RLS, `docs:check`), бюджет веба
    `pnpm bundle:budget`, поставка `pnpm delivery:check`
-5. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + демо-данные для e2e
+5. `pnpm db:reset && pnpm db:seed` — все миграции на чистой БД + сид учебного центра (сид не сломан)
 6. `pnpm audit --prod --audit-level high`
-7. `pnpm e2e`
+7. `pnpm e2e` — свой контур: база `dinastia_e2e` пересоздаётся и засевается перед прогоном (D-068)
 8. при падении — артефакты Playwright (trace, скриншоты) и логи compose
 
 Красный CI — не мержить. Флейки — чинить (скилл `testing`). Локально та же последовательность — команды выше по

@@ -47,7 +47,7 @@ assessments.expire-attempts. Карточка: docs/tasks/phase-3-assessments/ch
 ## Как проверить
 
 1. `pnpm db:reset && pnpm db:seed`
-2. войти teacher@demo.local, …
+2. войти tikhomirov@airgorizont.local (http://airgorizont.education.localhost:5173), …
 ## Чек-лист
 
 - [ ] pnpm check

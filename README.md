@@ -39,17 +39,31 @@ pnpm install
 cp .env.example .env     # значения по умолчанию подходят для docker compose
 pnpm env:up              # PostgreSQL 18, SeaweedFS (S3), Mailpit
 pnpm db:migrate
-pnpm db:seed             # демо-данные; плюс pnpm db:seed:trud — учебный центр по охране труда
+pnpm db:seed             # учебный центр АИР «Горизонт» с курсом по первой помощи
 pnpm dev                 # API :3000 + воркер задач + сайт :5173
 pnpm env:check           # всё ли готово, с командами исправления
 ```
 
-| Что | Адрес | Вход |
+| Что | Адрес |
+| --- | --- |
+| главная, «Мои учебные центры» | http://education.localhost:5173 |
+| учебный центр АИР «Горизонт» | http://airgorizont.education.localhost:5173 |
+| консоль оператора | http://education.localhost:5173/ops |
+| письма (Mailpit) | http://localhost:8025 |
+
+Пароль у всех — `gorizont2026`.
+
+| Роль | Вход | Кто |
 | --- | --- | --- |
-| демо-центр | http://demo.dinastia.localhost:5173 | `owner@demo.local`, `teacher@demo.local`, `student1@demo.local` — пароль `demo12345` |
-| центр по охране труда | http://trud.dinastia.localhost:5173 | `owner@trud.local` и др. — пароль `demo12345` (список печатает `pnpm db:seed:trud`) |
-| консоль оператора | http://dinastia.localhost:5173/ops | `ops@demo.local` / `demo12345` + код из приложения-аутентификатора |
-| письма (Mailpit) | http://localhost:8025 | — |
+| владелец | `korev@airgorizont.local` | Корев Денис Александрович |
+| администратор | `tikhomirov@airgorizont.local` | Тихомиров Дмитрий Сергеевич |
+| куратор | `ivanov@airgorizont.local` | Иванов Иван Иванович |
+| слушатель | `tikhomirova@airgorizont.local` | Тихомирова Анастасия Ильинична |
+| оператор платформы | `ops@airgorizont.local` | + код из приложения-аутентификатора (настраивается при первом входе) |
+
+Курс «Оказание первой помощи пострадавшим при наружных кровотечениях, ранениях и травмах» составлен по приказу Минздрава
+№ 220н: 7 разделов, 31 тема, тест после каждого раздела, практическое задание с проверкой куратором, итоговый тест и задание,
+удостоверение. Слушатель зачислен в учебную группу «Первая помощь — ноябрь 2026» с куратором Ивановым.
 
 Подробнее — скилл `local-env` (`docs/skills/platform/local-env/SKILL.md`).
 
@@ -58,7 +72,7 @@ pnpm env:check           # всё ли готово, с командами ис�
 | Команда | Что |
 | --- | --- |
 | `pnpm check` | линтер, типы, unit и интеграционные тесты на Postgres, реестры, документация |
-| `pnpm e2e` | сценарии Playwright |
+| `pnpm e2e` | сценарии Playwright в своём контуре (база `dinastia_e2e`, Mailpit :8026) — dev-данные и почту не трогают |
 | `pnpm bundle:budget` | размер начальной загрузки сайта |
 | `pnpm delivery:check` | сборка поставки без комментариев и dev-кода; собранный API стартует |
 
