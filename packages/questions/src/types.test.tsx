@@ -21,9 +21,18 @@ import TextInputViewer from './text_input/viewer.tsx'
 const codes = (r: { error?: { issues: { message: string }[] } }) => r.error?.issues.map((i) => i.message) ?? []
 
 describe('реестр', () => {
-	it('семь типов; у каждого пример проходит схему и toPublic убирает секреты', () => {
-		expect(Object.keys(questionTypes).sort()).toEqual(
-			['matching', 'multiple_choice', 'number', 'open_text', 'ordering', 'single_choice', 'text_input'].sort(),
+	it('семь встроенных типов; у каждого пример проходит схему и toPublic убирает секреты', () => {
+		// встроенные — на месте; новые типы добавляет `pnpm gen:question`, и список их не ломает (как у блоков)
+		expect(Object.keys(questionTypes)).toEqual(
+			expect.arrayContaining([
+				'matching',
+				'multiple_choice',
+				'number',
+				'open_text',
+				'ordering',
+				'single_choice',
+				'text_input',
+			]),
 		)
 		for (const def of Object.values(questionTypes)) expect(def.schema.safeParse(def.example()).success).toBe(true)
 	})

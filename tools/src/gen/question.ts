@@ -27,6 +27,7 @@ const changes = [
 		`${dir}/definition.ts`,
 		`import { emptyDoc, Id, RichText } from '@dinastia/contracts/common'
 import { z } from 'zod'
+import { Points, PromptText } from '../common.ts'
 import { defineQuestion } from '../define.ts'
 
 const doc = (text: string) => ({ type: 'doc' as const, content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] })
@@ -40,9 +41,9 @@ export const ${camel} = defineQuestion({
 	type: '${type}',
 	uses: { columns: ['caseSensitive'], items: ['accepted_text'] },
 	schema: z.object({
-		prompt: RichText,
+		prompt: PromptText,
 		explanation: RichText.nullable(),
-		points: z.number().int().min(1).max(100),
+		points: Points,
 		caseSensitive: z.boolean(),
 		answers: z
 			.array(z.object({ id: Id.optional(), text: z.string().trim().min(1).max(200) }))
@@ -154,6 +155,8 @@ export default function ${Pascal}Viewer({ data, response, onChange, review, test
 		description: `Вопрос «${label}»`,
 		answer: 'Ответ',
 	}),
+	// подпись типа в банке вопросов (фильтр и колонка «Тип»)
+	jsonSection('packages/i18n/locales/ru/assessments.json', `questions.values.type.${type}`, label),
 ]
 
 const problems = plan(changes)

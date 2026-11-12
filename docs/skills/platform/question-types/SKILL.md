@@ -45,7 +45,7 @@ packages/i18n/locales/ru/questions.json → "<type>": { "title", "description", 
 
 `pnpm gen:question <type> [--title "Название"] [--dry-run]` — заготовка (ответ текстом по допустимым вариантам:
 `uses: { columns: ['caseSensitive'], items: ['accepted_text'] }`, без миграции), регистрация у маркеров
-`gen:question:*`, раздел `questions.json`. Вывод проходит `pnpm check` (CI проверяет пробным типом).
+`gen:question:*`, раздел `questions.json`, подпись типа в банке вопросов — `assessments.json → questions.values.type`; формулировка — `PromptText` (пустая — `PROMPT_REQUIRED`). Вывод проходит `pnpm check` (CI проверяет пробным типом).
 
 ## definition.ts
 
