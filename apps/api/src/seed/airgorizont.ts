@@ -40,7 +40,7 @@ export const AIRGORIZONT = {
 
 /** Люди центра: ключ, почта, ФИО, роль. Оператор платформы /ops — отдельная учётная запись. */
 export const PEOPLE = {
-	owner: { email: 'korev@airgorizont.local', name: 'Корев Денис Александрович', role: 'owner' },
+	owner: { email: 'kornev@airgorizont.local', name: 'Корнев Денис Александрович', role: 'owner' },
 	admin: { email: 'tikhomirov@airgorizont.local', name: 'Тихомиров Дмитрий Сергеевич', role: 'admin' },
 	curator: { email: 'ivanov@airgorizont.local', name: 'Иванов Иван Иванович', role: 'curator' },
 	student: { email: 'tikhomirova@airgorizont.local', name: 'Тихомирова Анастасия Ильинична', role: 'student' },

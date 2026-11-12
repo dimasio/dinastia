@@ -94,7 +94,7 @@ http://airgorizont.education.localhost:5173. Демо-школ в dev нет. Ц
 
 | Роль | Почта | Кто |
 |---|---|---|
-| владелец | `korev@airgorizont.local` | Корев Денис Александрович |
+| владелец | `kornev@airgorizont.local` | Корнев Денис Александрович |
 | администратор | `tikhomirov@airgorizont.local` | Тихомиров Дмитрий Сергеевич |
 | куратор | `ivanov@airgorizont.local` | Иванов Иван Иванович — куратор учебной группы |
 | слушатель | `tikhomirova@airgorizont.local` | Тихомирова Анастасия Ильинична — зачислена в группу, прогресса нет |

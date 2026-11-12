@@ -55,7 +55,7 @@ pnpm env:check           # всё ли готово, с командами ис�
 
 | Роль | Вход | Кто |
 | --- | --- | --- |
-| владелец | `korev@airgorizont.local` | Корев Денис Александрович |
+| владелец | `kornev@airgorizont.local` | Корнев Денис Александрович |
 | администратор | `tikhomirov@airgorizont.local` | Тихомиров Дмитрий Сергеевич |
 | куратор | `ivanov@airgorizont.local` | Иванов Иван Иванович |
 | слушатель | `tikhomirova@airgorizont.local` | Тихомирова Анастасия Ильинична |

@@ -50,7 +50,12 @@ test('преподаватель создаёт курс с описанием, 
 	await page.keyboard.press('Escape')
 
 	// пустой черновик — удаляется
-	await page.getByTestId('resource-courses-search').fill('')
+	// очистка поиска теряется, если список в этот момент перерисовывается, — повторяем, пока поле не станет пустым
+	const search = page.getByTestId('resource-courses-search')
+	await expect(async () => {
+		await search.fill('')
+		await expect(search).toHaveValue('', { timeout: 1000 })
+	}).toPass({ timeout: 10_000 })
 	const empty = `Пустой ${run}`
 	await page.getByTestId('resource-courses-create').click()
 	await page.getByTestId('resource-courses-create-form').getByLabel('Название').fill(empty)
