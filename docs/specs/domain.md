@@ -21,7 +21,7 @@ status: draft
 | Таблица                                                         | Колонки                                                                                                    |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `schools`                                                       | `slug`, `name`, `status` (`active`, `suspended`, `deleted`), `deletion_requested_at`, `suspended_reason`, `suspended_at` (5.6в), `created_by_operator_id`, `timezone`, `locale` |
-| `school_branding`                                               | `school_id` PK, `logo_file_id`, `favicon_file_id`, `primary_color`, `support_email`                        |
+| `school_branding`                                               | `school_id` PK, `logo_file_id`, `favicon_file_id`, `primary_color`, `accent_color`, `font`, `radius`, `default_scheme`, `version` — оформление (5.9, `branding.md`) |
 | `school_domains`                                                | `school_id`, `host`, `kind` (`old_slug`, `custom`), `redirect_until`                                       |
 | `members`                                                       | `user_id`, `role`, `status` (`active`, `blocked`, `deleted` — данные ученика удалены, 5.5), `invited_by`, `joined_at`, `avatar_file_id` |
 | `users`, `sessions`, `accounts`, `verifications`, `two_factors`, `invitations` | better-auth (ядро); `users.platform_role` (`operator` или null), `users.two_factor_enabled`; `invitations.invited_by` пусто — владельца приглашает оператор (5.6); `users.deleted_at` — заглушка «Удалённый ученик» (5.5) |
