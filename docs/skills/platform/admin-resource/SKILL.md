@@ -1,6 +1,6 @@
 ---
 name: admin-resource
-description: Ресурс-фреймворк Dinastia (low-code экраны) — defineResource в apps/web/src/features/<m>/resources/*.ts описывает экран-реестр (ResourceTable на TanStack Table 9 — колонки, серверные сортировка, поиск, фильтры, страницы; меню действий строки) и формы (ResourceForm — поля из zod-схемы контракта, переопределения, layout, visibleIf) с действиями и правами; ResourcePage с состоянием в адресе (resourceSearch), ResourceProvider в лэйауте, строки <ns>:<key>.*, реестр features/resources.ts и тест строк; серверная сторона pageInput/listQuery/toPage; генератор pnpm gen:resource. Использовать для «экран со списком», «реестр», «таблица», «форма редактирования», «фильтр», «колонка», «справочник» — аналог форм и настроек таблиц GaskarFM.
+description: Ресурс-фреймворк Dinastia (low-code экраны) — defineResource в apps/web/src/features/<m>/resources/*.ts описывает экран-реестр (ResourceTable на TanStack Table 9 — колонки, серверные сортировка, поиск, фильтры, страницы; меню действий строки) и формы (ResourceForm — поля из zod-схемы контракта, переопределения, layout, visibleIf) с действиями и правами; ResourcePage с состоянием в адресе (resourceSearch), ResourceProvider в лэйауте, строки <ns>:<key>.*, реестр features/resources.ts и тест строк; серверная сторона pageInput/listQuery/toPage; генератор pnpm gen:resource. Использовать для «экран со списком», «реестр», «таблица», «форма редактирования», «фильтр», «колонка», «справочник» — аналог форм и настроек таблиц rnd.
 ---
 
 # Админ-ресурс

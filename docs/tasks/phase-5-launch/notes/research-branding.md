@@ -4,7 +4,7 @@
 [Teachable — Modify your school theme](https://support.teachable.com/en/articles/11682494-modify-your-school-theme),
 [GetCourse — блог, оформление аккаунта](https://getcourse.ru/blog/1222168),
 [Edvibe — white label для школ](https://intercom.help/edvibe/ru/articles/8069742-full-white-label-для-школ-для-новых-серверов).
-По Skillspace публичной справки найти не удалось — сверить в кабинете при доступе.
+По space публичной справки найти не удалось — сверить в кабинете при доступе.
 
 | Возможность | Кто как | Берём |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Тесты Dinastia — unit на Vitest рядом с кодом (*.test.ts — чистые функции, grade, evaluate, toPublic, миграции блоков), интеграционные на реальном Postgres (фикстура withTestSchool с ролями, callAs(role, procedure, input), expectPermissionMatrix, изоляция школ, подмена времени), e2e-сценарии Playwright в tests/e2e (фикстуры школы и входа по роли, локаторы getByRole/getByTestId, соглашение data-testid <модуль>-<элемент>, сценарий фичи и демо фазы), запуск pnpm test / pnpm e2e, что тестировать обязательно. Использовать для «напиши тест», «проверь сценарий», «e2e», «тест прав» — аналог сценариев «Ариадны» GaskarFM.
+description: Тесты Dinastia — unit на Vitest рядом с кодом (*.test.ts — чистые функции, grade, evaluate, toPublic, миграции блоков), интеграционные на реальном Postgres (фикстура withTestSchool с ролями, callAs(role, procedure, input), expectPermissionMatrix, изоляция школ, подмена времени), e2e-сценарии Playwright в tests/e2e (фикстуры школы и входа по роли, локаторы getByRole/getByTestId, соглашение data-testid <модуль>-<элемент>, сценарий фичи и демо фазы), запуск pnpm test / pnpm e2e, что тестировать обязательно. Использовать для «напиши тест», «проверь сценарий», «e2e», «тест прав» — аналог сценариев «Ариадны» rnd.
 ---
 
 # Тесты
