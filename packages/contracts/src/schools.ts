@@ -1,5 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
+import { BrandingUpdate, BrandingView } from './branding.ts'
 import { DateTime, Email, Id, page, pageInput } from './common/index.ts'
 
 /** Поддомены, которые не может занять школа (скилл lms-school). */
@@ -147,6 +148,12 @@ export const schoolsContract = {
 			.route({ method: 'POST', path: '/school/support-access' })
 			.input(z.object({ open: z.boolean() }))
 			.output(z.object({ until: DateTime.nullable() })),
+	},
+	/** Оформление школы (5.9): логотип, фавикон, цвета, шрифт, скругления, тема по умолчанию. */
+	branding: {
+		get: oc.route({ method: 'GET', path: '/school/branding' }).output(BrandingView),
+		/** Слабый контраст основного цвета — `BRANDING_LOW_CONTRAST` с подсказкой оттенка (`data.suggestion`). */
+		update: oc.route({ method: 'PUT', path: '/school/branding' }).input(BrandingUpdate).output(BrandingView),
 	},
 	/** Свой аватар в школе: файл назначения schools.avatar (загружен и подтверждён), null — убрать. */
 	updateMyAvatar: oc

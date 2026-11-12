@@ -172,6 +172,7 @@ describe('OpenAPI', () => {
 				'/ops/schools/{id}/flags',
 				'/ops/schools/{id}/resume',
 				'/ops/schools/{id}/suspend',
+				'/school/branding',
 				'/school/deletion',
 				'/school/legal',
 				'/school/settings',

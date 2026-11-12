@@ -28,6 +28,7 @@ export const IMPERSONATION_FORBIDDEN: ReadonlySet<string> = new Set([
 	'members.setStatus',
 	'invitations.create',
 	'settings.update',
+	'schools.branding.update',
 ])
 
 /** Проверить вход от имени; вернёт пользователя-цель и куда его вести. Ошибки — коды для консоли. */

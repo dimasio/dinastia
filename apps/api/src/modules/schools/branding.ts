@@ -1,13 +1,22 @@
 // Оформление школы (5.9, спека branding.md, D-065): чтение строки `school_branding` и публичная раздача темы по адресу
 // школы — CSS `/api/branding.css`, логотип и фавикон (редирект на подписанную ссылку). Без строки — тема Dinastia.
-import { type BrandingTheme, brandingCss, DEFAULT_BRANDING } from '@dinastia/contracts/branding'
-import { eq } from 'drizzle-orm'
+import {
+	type BrandingTheme,
+	type BrandingUpdate,
+	type BrandingView,
+	brandingCss,
+	checkBrandColor,
+	DEFAULT_BRANDING,
+} from '@dinastia/contracts/branding'
+import { eq, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import type { Tx } from '#/kernel/context.ts'
+import type { SchoolCtx, Tx } from '#/kernel/context.ts'
 import { withTenant } from '#/kernel/db/tenant.ts'
+import { fail } from '#/kernel/errors.ts'
 import { resolveHost } from '#/kernel/host.ts'
 import { signFileKey } from '#/kernel/storage/files.ts'
 import { files } from '#/kernel/storage/schema.ts'
+import { faviconPurpose, logoPurpose } from './files.ts'
 import { schoolBranding } from './schema.ts'
 import { findSchoolBySlug } from './service.ts'
 
@@ -80,4 +89,57 @@ export async function brandingReply(
 		status: 302,
 		headers: { location: await signFileKey(key), 'cache-control': 'public, max-age=300' },
 	}
+}
+
+/** Экран «Оформление»: тема и подписанные ссылки на файлы. */
+export async function getBrandingView(ctx: Pick<SchoolCtx, 'db'>): Promise<BrandingView> {
+	const b = await readBranding(ctx.db)
+	return {
+		theme: b.theme,
+		logoUrl: b.logoKey ? await signFileKey(b.logoKey) : null,
+		faviconUrl: b.faviconKey ? await signFileKey(b.faviconKey) : null,
+	}
+}
+
+/**
+ * Изменить оформление: тема — целиком, файлы — по отдельности (загружен, своего назначения); прежний файл удаляется.
+ * Основной цвет с контрастом ниже 4.5:1 на светлом фоне — отказ с подсказкой оттенка. Версия растёт — CSS и логотип
+ * у посетителей обновляются. В журнал — какие поля изменились.
+ */
+export async function updateBranding(ctx: SchoolCtx, input: BrandingUpdate): Promise<BrandingView> {
+	if (input.theme?.primaryColor) {
+		const check = checkBrandColor(input.theme.primaryColor)
+		if (!check.ok) fail.invalid('BRANDING_LOW_CONTRAST', { ratio: check.ratio, suggestion: check.suggestion })
+	}
+	for (const [fileId, purpose] of [
+		[input.logoFileId, logoPurpose.key],
+		[input.faviconFileId, faviconPurpose.key],
+	] as const) {
+		if (!fileId) continue
+		const file = await ctx.files.get(fileId)
+		if (file?.status !== 'ready' || file.purpose !== purpose) fail.invalid('FILE_INVALID')
+	}
+	const [prev] = await ctx.db.select().from(schoolBranding).limit(1)
+	const patch = {
+		...(input.theme ?? {}),
+		...(input.logoFileId !== undefined ? { logoFileId: input.logoFileId } : {}),
+		...(input.faviconFileId !== undefined ? { faviconFileId: input.faviconFileId } : {}),
+	}
+	const fields = Object.keys(patch).filter(
+		(k) => (prev?.[k as keyof typeof patch] ?? null) !== (patch[k as keyof typeof patch] ?? null),
+	)
+	if (fields.length === 0) return getBrandingView(ctx)
+	await ctx.db
+		.insert(schoolBranding)
+		.values({ schoolId: ctx.school.id, ...patch })
+		.onConflictDoUpdate({
+			target: schoolBranding.schoolId,
+			set: { ...patch, version: sql`${schoolBranding.version} + 1` },
+		})
+	for (const k of ['logoFileId', 'faviconFileId'] as const) {
+		const old = prev?.[k]
+		if (old && k in patch && patch[k] !== old) await ctx.files.remove(old)
+	}
+	await ctx.audit('schools.branding.updated', { entity: 'school', id: ctx.school.id, diff: { fields } })
+	return getBrandingView(ctx)
 }

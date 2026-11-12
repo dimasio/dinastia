@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
 import { orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
+import { Branding } from './branding.tsx'
 import { DeleteSchool } from './delete-school.tsx'
 import { SupportAccess } from './support-access.tsx'
 
@@ -46,6 +47,7 @@ export function SettingsPage() {
 				{sections.map((key) => (
 					<Section key={key} fields={fields.filter((f) => `${f.module}:${f.group}` === key)} />
 				))}
+				{me?.permissions.includes('schools.branding.manage') ? <Branding /> : null}
 				<SupportAccess />
 				{me?.permissions.includes('schools.delete') ? <DeleteSchool school={me.school} /> : null}
 			</div>

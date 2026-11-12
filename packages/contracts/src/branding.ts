@@ -47,6 +47,22 @@ export const DEFAULT_BRANDING: BrandingTheme = {
 	defaultScheme: 'system',
 }
 
+/** Экран «Оформление»: тема и файлы (ссылки подписанные, живут час). */
+export const BrandingView = z.object({
+	theme: BrandingTheme,
+	logoUrl: z.url().nullable(),
+	faviconUrl: z.url().nullable(),
+})
+export type BrandingView = z.infer<typeof BrandingView>
+
+/** Изменение: тема — целиком; файл — id загруженного файла своего назначения, null — убрать, нет поля — не трогать. */
+export const BrandingUpdate = z.object({
+	theme: BrandingTheme.optional(),
+	logoFileId: z.uuid().nullable().optional(),
+	faviconFileId: z.uuid().nullable().optional(),
+})
+export type BrandingUpdate = z.infer<typeof BrandingUpdate>
+
 /** Минимальный контраст текста (WCAG AA). */
 export const MIN_CONTRAST = 4.5
 
@@ -205,6 +221,36 @@ export function brandingTokens(theme: BrandingTheme): { light: ThemeTokens; dark
 		}
 	}
 	return { light, dark }
+}
+
+/** Значения темы Dinastia для токенов, которые меняет оформление (`globals.css`) — предпросмотр сбрасывает к ним. */
+const DINASTIA_TOKENS: { light: ThemeTokens; dark: ThemeTokens } = {
+	light: {
+		'--radius': RADIUS_REM.medium,
+		'--primary': 'oklch(0.205 0 0)',
+		'--primary-foreground': 'oklch(0.985 0 0)',
+		'--ring': 'oklch(0.708 0 0)',
+		'--accent': 'oklch(0.97 0 0)',
+		'--accent-foreground': 'oklch(0.205 0 0)',
+		'--sidebar-accent': 'oklch(0.97 0 0)',
+		'--sidebar-accent-foreground': 'oklch(0.205 0 0)',
+	},
+	dark: {
+		'--radius': RADIUS_REM.medium,
+		'--primary': 'oklch(0.922 0 0)',
+		'--primary-foreground': 'oklch(0.205 0 0)',
+		'--ring': 'oklch(0.556 0 0)',
+		'--accent': 'oklch(0.269 0 0)',
+		'--accent-foreground': 'oklch(0.985 0 0)',
+		'--sidebar-accent': 'oklch(0.269 0 0)',
+		'--sidebar-accent-foreground': 'oklch(0.985 0 0)',
+	},
+}
+
+/** Все токены оформления для предпросмотра одной темы — поверх любой текущей темы страницы. */
+export function previewTokens(theme: BrandingTheme, scheme: 'light' | 'dark'): ThemeTokens {
+	const own = brandingTokens(theme)
+	return { ...DINASTIA_TOKENS[scheme], ...own.light, ...own[scheme], '--font-sans': FONT_FAMILY[theme.font] }
 }
 
 const declarations = (tokens: ThemeTokens) =>

@@ -10,7 +10,7 @@ import { type Impersonation, impl, mw, schoolCtx } from '#/kernel/orpc.ts'
 import { rateLimit } from '#/kernel/rate-limit/rate-limit.ts'
 import { cancelSchoolDeletion, requestSchoolDeletion } from '#/kernel/school-deletion/school-deletion.ts'
 import { can, rolePermissions } from '#/permissions.ts'
-import { logoPath, readBranding } from './branding.ts'
+import { getBrandingView, logoPath, readBranding, updateBranding } from './branding.ts'
 import { acceptInvitation, getInvitation, inviteStaff } from './invitations.service.ts'
 import { recordPdConsent, schoolLegal } from './legal.ts'
 import { avatarUrlOf, changeStaffRole, listStaff, setStaffStatus, updateMyAvatar } from './members.service.ts'
@@ -86,6 +86,25 @@ export const schoolsRouter = {
 			.use(mw.member)
 			.use(can('schools.settings.manage'))
 			.handler(({ input, context }) => setSupportAccess(schoolCtx(context), input.open)),
+	},
+
+	branding: {
+		get: impl.schools.branding.get
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('schools.branding.manage'))
+			.handler(({ context }) => getBrandingView(schoolCtx(context))),
+		update: impl.schools.branding.update
+			.use(mw.host)
+			.use(mw.session)
+			.use(mw.school)
+			.use(mw.tenantTx)
+			.use(mw.member)
+			.use(can('schools.branding.manage'))
+			.handler(({ input, context }) => updateBranding(schoolCtx(context), input)),
 	},
 
 	updateMyAvatar: impl.schools.updateMyAvatar
