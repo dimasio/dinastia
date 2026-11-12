@@ -90,7 +90,7 @@ test('преподаватель собирает структуру курса'
 		.first()
 		.click()
 	await page.getByTestId('course-menu-remove').click()
-	await expect(page.getByRole('alertdialog')).toContainText('удалятся 2 урока')
+	await expect(page.getByRole('alertdialog')).toContainText('удалятся 2 темы')
 	await page.getByTestId('course-confirm').click()
 	await expect.poll(() => titles(page, 'course-section-title')).toEqual(['Введение'])
 	await shoot(page, 'course-builder')

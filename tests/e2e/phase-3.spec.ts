@@ -134,7 +134,7 @@ test('демо фазы 3: тест и задание → проверка ку�
 
 	await test.step('куратор: в очереди тест и задание; оценивает развёрнутый ответ — тест сдан', async () => {
 		await curator.goto(schoolUrl('demo', '/admin/review'))
-		await curator.getByTestId('resource-review-search').fill('Ученик Первый')
+		await curator.getByTestId('resource-review-search').fill('Слушатель Первый')
 		const rows = curator.getByTestId('resource-review-row').filter({ hasText: COURSE })
 		await expect(rows).toHaveCount(2)
 		await expect(rows.filter({ hasText: 'Тест' })).toContainText('На проверке')
@@ -154,7 +154,7 @@ test('демо фазы 3: тест и задание → проверка ку�
 
 	await test.step('куратор: задание — на доработку', async () => {
 		await curator.goto(schoolUrl('demo', '/admin/review'))
-		await curator.getByTestId('resource-review-search').fill('Ученик Первый')
+		await curator.getByTestId('resource-review-search').fill('Слушатель Первый')
 		await curator
 			.getByTestId('resource-review-row')
 			.filter({ hasText: COURSE })
@@ -199,7 +199,7 @@ test('демо фазы 3: тест и задание → проверка ку�
 		await student.goto(schoolUrl('demo', '/learn'))
 		await student.getByTestId('my-tab-completed').click()
 		await expect(student.getByTestId('my-course').filter({ hasText: COURSE }).getByTestId('progress-label')).toHaveText(
-			'Пройдено 1 из 1 урока',
+			'Пройдено 1 из 1 темы',
 		)
 		await shoot(student, 'phase-3-done')
 	})

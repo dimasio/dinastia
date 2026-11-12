@@ -85,11 +85,11 @@ test('кабинет: продолжить, ближайший срок, раб�
 	await student.goto(schoolUrl('demo', '/learn'))
 	const next = student.getByTestId('home-continue')
 	await expect(next).toContainText(COURSE)
-	await expect(next).toContainText('Следующий урок: Практика')
+	await expect(next).toContainText('Следующая тема: Практика')
 	await expect(student.getByTestId('home-deadline').filter({ hasText: COURSE })).toContainText(/Сдать до/)
 	await expect(student.getByTestId('home-revision').filter({ hasText: COURSE })).toContainText('Практика')
 	const card = student.getByTestId('my-course').filter({ hasText: COURSE })
-	await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 1 из 2 уроков')
+	await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 1 из 2 тем')
 	await expect(card.getByTestId('my-course-action')).toHaveText('Продолжить')
 	await shoot(student, '4.5-learner-home')
 

@@ -39,7 +39,7 @@ test('демо фазы 0', async ({ page, browser }) => {
 	const teacher = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
 	const inviteUrl = await waitForLink(teacherEmail, /http:\/\/\S+\/invite\/\S+/)
 	await teacher.goto(inviteUrl)
-	await expect(teacher.getByTestId('invite-card')).toContainText('Приглашение в школу «Школа рисования»')
+	await expect(teacher.getByTestId('invite-card')).toContainText('Приглашение в учебный центр «Школа рисования»')
 	await expect(teacher.getByTestId('invite-card')).toContainText('Роль — Преподаватель')
 	await teacher.screenshot(shots('03-invite-guest'))
 
@@ -64,7 +64,7 @@ test('демо фазы 0', async ({ page, browser }) => {
 test('ученик попадает в /learn, гость школы — на вход', async ({ page }) => {
 	await page.goto('http://demo.dinastia.localhost:5173/')
 	await expect(page).toHaveURL(/\/login$/)
-	await expect(page.getByTestId('login-title')).toHaveText('Вход в школу «Демо-школа»')
+	await expect(page.getByTestId('login-title')).toHaveText('Вход в учебный центр «Демо»')
 	await page.screenshot(shots('06-login'))
 	await page.getByTestId('auth-signin-email').fill('student1@demo.local')
 	await page.getByTestId('auth-signin-password').fill('demo12345')

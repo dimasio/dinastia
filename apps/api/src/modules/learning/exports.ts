@@ -33,7 +33,7 @@ export const courseStudentsExport = defineExport({
 	},
 	fileName: async (ctx, p: Params) => {
 		const [course] = await courseCards(ctx, [p.courseId])
-		return `${course?.title ?? 'Курс'} — ученики`
+		return `${course?.title ?? 'Курс'} — слушатели`
 	},
 	columns: [
 		{ key: 'name', title: 'learning:export.columns.name', width: 30 },

@@ -47,7 +47,7 @@ async function setup(n: number) {
 const notify = (t: TestSchool, at: Date) =>
 	withTenant(t.school.id, (tx) => sendLessonOpenedNotices(tenantCtx(tx, t.school, { now: () => at, log })))
 const later = (days: number) => new Date(Date.now() + days * DAY)
-const mailsTo = (to: string) => memoryOutbox.filter((m) => m.to === to && m.subject.includes('открылись новые уроки'))
+const mailsTo = (to: string) => memoryOutbox.filter((m) => m.to === to && m.subject.includes('открылись новые темы'))
 
 describe('письмо «открылись новые уроки»', () => {
 	it('одно письмо на курс со всеми открывшимися; повтор — без писем; ещё не открытые и давно открытые — без писем', async () => {
@@ -60,7 +60,7 @@ describe('письмо «открылись новые уроки»', () => {
 		expect(await notify(s.t, later(1))).toBe(0)
 		expect(await notify(s.t, later(2.5))).toBe(1)
 		const mail = await lastMailTo(s.t.people.student.email)
-		expect(mail.subject).toContain('открылись новые уроки курса «Расписание»')
+		expect(mail.subject).toContain('открылись новые темы курса «Расписание»')
 		expect(mail.text).toContain('Урок 2')
 		expect(mail.text).toContain('Урок 3')
 		expect(mail.text).not.toContain('Урок 4')

@@ -201,7 +201,7 @@ describe('приостановка школы (5.6в)', () => {
 		expect(await t.as('owner').schools.me()).toMatchObject({ suspension: { reason: 'Не оплачен тариф' } })
 
 		const mail = await lastMailTo(t.people.owner.email)
-		expect(mail.subject).toBe('Школа «Школа на паузе» приостановлена')
+		expect(mail.subject).toBe('Учебный центр «Школа на паузе» приостановлен')
 		expect(mail.text).toContain('Причина: Не оплачен тариф')
 
 		// «Мои школы»: владелец видит приостановленную, сотрудник — нет
@@ -220,7 +220,7 @@ describe('приостановка школы (5.6в)', () => {
 			suspendedReason: null,
 		})
 		expect(await t.as('student').schools.me()).toMatchObject({ suspension: null })
-		expect((await lastMailTo(t.people.owner.email)).subject).toBe('Школа «Школа на паузе» снова работает')
+		expect((await lastMailTo(t.people.owner.email)).subject).toBe('Учебный центр «Школа на паузе» снова работает')
 	})
 })
 

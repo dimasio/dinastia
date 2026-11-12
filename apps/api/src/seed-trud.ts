@@ -116,7 +116,7 @@ if (await findSchoolBySlug(SLUG)) {
 }
 
 const ownerId = await ensureUser('owner@trud.local', 'Марина Соколова')
-const { school } = await createSchool({ slug: SLUG, name: 'Учебный центр «Безопасный труд»' }, { userId: ownerId })
+const { school } = await createSchool({ slug: SLUG, name: 'АИР «Горизонт»' }, { userId: ownerId })
 const people = new Map<string, { userId: string; email: string; name: string; role: MemberRole }>()
 for (const [key, email, name, role] of STAFF)
 	people.set(key, { userId: await ensureUser(email, name), email, name, role })
@@ -1332,7 +1332,7 @@ await withTenant(school.id, async (tx: Tx) => {
 				'противопожарного режима, первичные средства тушения, действия при пожаре и эвакуация.',
 			),
 			ul(
-				'17 уроков в 5 разделах, около 4 часов',
+				'17 тем в 5 разделах, около 4 часов',
 				'проверочный тест после каждого раздела и практическое задание',
 				'итоговая аттестация: 12 случайных вопросов, проходной балл 80%, три попытки',
 			),
@@ -1945,13 +1945,13 @@ await withTenant(school.id, async (tx: Tx) => {
 		for (const key of input.students) groupOf.set(`${courseId}:${key}`, group.id)
 	}
 	await groupUp(fire.courseId, {
-		title: 'Поток — октябрь',
+		title: 'Группа — октябрь',
 		startsAgo: 31,
 		curators: ['curator'],
 		students: ['petrov', 'zakharova', 'smirnova', 'popova', 'kozlov', 'lebedev'],
 	})
 	await groupUp(fire.courseId, {
-		title: 'Поток — ноябрь',
+		title: 'Группа — ноябрь',
 		startsAgo: 16,
 		curators: ['curator', 'teacher'],
 		students: ['novikova', 'morozov', 'vasilieva', 'fedorov'],
@@ -2036,7 +2036,7 @@ await withTenant(school.id, async (tx: Tx) => {
 				decision: 'needs_revision',
 				comment: doc(
 					p(
-						'Перечень слишком общий. Назовите конкретные опасности, оцените риск каждой и предложите меру — по образцу из урока.',
+						'Перечень слишком общий. Назовите конкретные опасности, оцените риск каждой и предложите меру — по образцу из темы.',
 					),
 				),
 			})

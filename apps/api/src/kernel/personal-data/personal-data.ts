@@ -14,7 +14,7 @@ import { allPersonalData } from '../registry.ts'
 import { files } from '../storage/schema.ts'
 
 /** Имя заглушки обезличенного ученика — видно во всех списках школы вместо имени. */
-export const DELETED_NAME = 'Удалённый ученик'
+export const DELETED_NAME = 'Удалённый слушатель'
 /** Текст вместо удалённого текста ученика (ответы, работы, комментарии) — для частей модулей. */
 export const DELETED_TEXT = 'Удалено'
 export const deletedDoc = (): RichTextDoc => ({

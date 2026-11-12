@@ -136,7 +136,7 @@ test('демо фазы 4: приглашение → поток с курато
 		await expect(button).toBeVisible({ timeout: 30_000 })
 		const download = student.waitForEvent('download')
 		await button.click()
-		expect((await download).suggestedFilename()).toMatch(/^Сертификат DEMO-\d{4}-\d{6}\.pdf$/)
+		expect((await download).suggestedFilename()).toMatch(/^Удостоверение DEMO-\d{4}-\d{6}\.pdf$/)
 		await shoot(student, 'phase-4-certificate')
 	})
 
@@ -154,7 +154,7 @@ test('демо фазы 4: приглашение → поток с курато
 	await test.step('проверка сертификата по номеру без входа', async () => {
 		const guest = await (await browser.newContext({ locale: 'ru-RU' })).newPage()
 		await guest.goto(schoolUrl('demo', `/certificates/verify?number=${number}`))
-		await expect(guest.getByTestId('verify-status')).toHaveText('Сертификат действителен')
+		await expect(guest.getByTestId('verify-status')).toHaveText('Удостоверение действительно')
 		await expect(guest.getByTestId('verify-result')).toContainText(COURSE)
 		await guest.close()
 	})

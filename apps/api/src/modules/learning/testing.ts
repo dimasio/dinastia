@@ -8,7 +8,7 @@ export async function intoCuratorGroup(t: TestSchool, courseId: string) {
 	if (!curator) throw new Error('нет куратора школы')
 	const group = await teacher.learning.groups.create({
 		courseId,
-		title: 'Поток куратора',
+		title: 'Группа куратора',
 		curatorIds: [curator.memberId],
 	})
 	const { items } = await teacher.learning.enrollments.list({ courseId, pageSize: 100 })

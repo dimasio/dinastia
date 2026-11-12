@@ -280,7 +280,7 @@ describe('письмо о результате', () => {
 		expect(mail.text).toMatch(
 			new RegExp(`/learn/courses/${s.course.id}/lessons/${(s.refs[0] as { lessonId: string }).lessonId}`),
 		)
-		expect(mail.html).toContain('Открыть урок')
+		expect(mail.html).toContain('Открыть тему')
 
 		await s.student.assignment.submit({
 			...(s.refs[0] as { lessonId: string; blockKey: string }),

@@ -94,14 +94,14 @@ describe('сертификаты', () => {
 		const pdf = new Uint8Array(await (await fetch(url)).arrayBuffer())
 		expect(new TextDecoder().decode(pdf.slice(0, 5))).toBe('%PDF-')
 		const { text } = await extractText(await getDocumentProxy(pdf), { mergePages: true })
-		expect(text).toContain('Сертификат')
+		expect(text).toContain('Удостоверение')
 		expect(text).toContain(STUDENT)
 		expect(text).toContain('«Пожарная безопасность»')
 		expect(text).toContain('Анна Смирнова')
 		expect(text).toContain(certificateNumber(s.t.school.slug, year, 1))
 		// письмо «сертификат готов» (4.8): номер и ссылка на страницу курса
 		const mail = await lastMailTo(s.t.people.student.email)
-		expect(mail.subject).toContain('сертификат по курсу «Пожарная безопасность» готов')
+		expect(mail.subject).toContain('удостоверение по курсу «Пожарная безопасность» готово')
 		expect(mail.text).toContain(certificateNumber(s.t.school.slug, year, 1))
 		expect(mail.text).toContain(`/learn/courses/${s.course.id}`)
 

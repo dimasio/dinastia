@@ -390,7 +390,7 @@ export const joinContract = {
 
 // --- Ученики школы (5.5, ресурс): данные по запросу ученика — выгрузить и удалить ---
 
-/** `deleted` — обезличенный ученик: имя «Удалённый ученик», данных нет. */
+/** `deleted` — обезличенный ученик: имя «Удалённый слушатель», данных нет. */
 export const STUDENT_STATUSES = ['active', 'blocked', 'deleted'] as const
 export const StudentStatus = z.enum(STUDENT_STATUSES)
 

@@ -16,7 +16,7 @@ test('урок и курс: статусы, незаполненные блок�
 	await expect(video.getByTestId('lesson-block-issues')).toHaveText('Не заполнено: нет ссылки на видео')
 	await expect(page.getByTestId('lesson-save-state')).toHaveAttribute('data-state', 'saved')
 	await page.getByTestId('lesson-publish').click()
-	await expect(page.getByText('В уроке есть незаполненные блоки')).toBeVisible()
+	await expect(page.getByText('В теме есть незаполненные блоки')).toBeVisible()
 	await expect(status).toHaveAttribute('data-status', 'draft')
 	await shoot(page, 'publishing-lesson-issues')
 
@@ -44,7 +44,7 @@ test('урок и курс: статусы, незаполненные блок�
 
 	// во втором уроке нет блоков — изменения не публикуются, ничего не меняется
 	await page.getByTestId('course-publish-changes').click()
-	await expect(page.getByText('В уроке нет блоков')).toBeVisible()
+	await expect(page.getByText('В теме нет блоков')).toBeVisible()
 	await expect(page.getByTestId('course-publish-changes')).toHaveText('Опубликовать изменения (2)')
 
 	// удалить пустой урок — и опубликовать изменения, затем курс
@@ -53,10 +53,10 @@ test('урок и курс: статусы, незаполненные блок�
 		.filter({ hasText: 'Пустой урок' })
 		.getByRole('button', { name: 'Действия' })
 		.click()
-	await page.getByRole('menuitem', { name: 'Удалить урок' }).click()
+	await page.getByRole('menuitem', { name: 'Удалить тему' }).click()
 	await page.getByTestId('course-confirm').click()
 	await page.getByTestId('course-publish-changes').click()
-	await expect(page.getByText('Опубликован 1 урок')).toBeVisible()
+	await expect(page.getByText('Опубликована 1 тема')).toBeVisible()
 	await expect(page.getByTestId('course-publish-changes')).toHaveCount(0)
 	await expect(page.getByTestId('course-lesson-status')).toHaveCount(0)
 

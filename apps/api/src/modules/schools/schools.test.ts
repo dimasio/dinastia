@@ -111,9 +111,9 @@ describe('приглашения сотрудников', () => {
 
 		await inSchool(s, owner, (ctx) => inviteStaff(ctx, { email: teacher.email, role: 'teacher' }))
 		const mail = await lastMailTo(teacher.email)
-		expect(mail.subject).toBe('Приглашение в школу «Школа»')
+		expect(mail.subject).toBe('Приглашение в учебный центр «Школа»')
 		expect(mail.fromName).toBe('Школа')
-		expect(mail.text).toContain('Анна приглашает вас в школу «Школа». Ваша роль — Преподаватель.')
+		expect(mail.text).toContain('Анна приглашает вас в учебный центр «Школа». Ваша роль — Преподаватель.')
 		expect(mail.text).toContain(`http://${s.school.slug}.`)
 		const token = await inviteToken(teacher.email)
 

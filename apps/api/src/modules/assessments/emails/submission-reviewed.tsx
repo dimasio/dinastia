@@ -27,7 +27,7 @@ export const submissionReviewedEmail = defineEmail({
 	},
 	examples: [
 		{
-			lessonTitle: 'Домашняя работа',
+			lessonTitle: 'Практическая работа',
 			status: 'needs_revision',
 			comment: 'Добавьте тени и перспективу',
 			url: 'http://demo.dinastia.localhost:5173/learn/courses/пример/lessons/пример',

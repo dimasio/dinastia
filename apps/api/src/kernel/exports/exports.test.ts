@@ -65,15 +65,15 @@ describe('выгрузки', () => {
 		expect(state).toMatchObject({ status: 'ready', rows: 1 })
 		const sheet = await readSheet(await download(state.url as string))
 		expect(sheet[0]).toEqual([
-			'Ученик',
+			'Слушатель',
 			'Email',
-			'Поток',
+			'Учебная группа',
 			'Статус',
 			'Зачислен',
 			'Доступ до',
 			'Прогресс',
-			'Пройдено уроков',
-			'Всего уроков',
+			'Пройдено тем',
+			'Всего тем',
 			'Просрочено',
 			'Последняя активность',
 		])

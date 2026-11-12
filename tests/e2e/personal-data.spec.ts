@@ -104,10 +104,10 @@ test('ученик с согласием присоединяется и ска�
 	await form.getByLabel('Введите «удалить»').fill('удалить')
 	await page.screenshot(shots('5.5-anonymize'))
 	await form.getByTestId('resource-students-action-anonymize-form-submit').click()
-	await expect(page.getByText('Данные ученика удалены')).toBeVisible()
+	await expect(page.getByText('Данные слушателя удалены')).toBeVisible()
 
 	await page.goto(schoolUrl('demo', `/admin/courses/${courseId}/learners`))
-	await expect(page.getByTestId('resource-enrollments-row').first()).toContainText('Удалённый ученик')
+	await expect(page.getByTestId('resource-enrollments-row').first()).toContainText('Удалённый слушатель')
 	await expect(page.getByText(email)).toHaveCount(0)
 })
 
@@ -132,7 +132,7 @@ test('владелец удаляет школу: школа закрыта, в 
 	// школа закрыта
 	const closed = await page.context().newPage()
 	await closed.goto(schoolUrl(slug, '/login'))
-	await expect(closed.getByText('Школа закрыта и будет удалена')).toBeVisible()
+	await expect(closed.getByText('Учебный центр закрыт и будет удалён')).toBeVisible()
 
 	await page.getByTestId(`schools-cancel-deletion-${slug}`).click()
 	await expect(page.getByTestId(`schools-open-${slug}`)).toBeVisible()

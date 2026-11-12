@@ -24,7 +24,7 @@ test('преподаватель собирает урок из блоков', a
 	test.setTimeout(90_000)
 	await loginAs('teacher')
 	await openNewLesson(page, 'Бумага')
-	await expect(page.getByText('Урок пустой')).toBeVisible()
+	await expect(page.getByText('Тема пустая')).toBeVisible()
 
 	await addCallout(page, 'Первый')
 	await addCallout(page, 'Второй')

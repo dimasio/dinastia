@@ -72,11 +72,11 @@ test('демо фазы 5: оператор создаёт школу → кур
 
 		await ops.getByTestId('resource-schools-create').click()
 		const form = ops.getByTestId('resource-schools-create-form')
-		await form.getByLabel('Школа').fill(SCHOOL)
+		await form.getByLabel('Учебный центр').fill(SCHOOL)
 		await form.getByLabel('Адрес').fill(SLUG)
 		await form.getByLabel('Владелец').fill(OWNER)
 		await form.getByTestId('resource-schools-create-form-submit').click()
-		await expect(ops.getByText('Школа создана, приглашение отправлено владельцу')).toBeVisible()
+		await expect(ops.getByText('Учебный центр создан, приглашение отправлено владельцу')).toBeVisible()
 	})
 
 	const owner = await newPage(browser)
@@ -124,7 +124,7 @@ test('демо фазы 5: оператор создаёт школу → кур
 		await expect(button).toBeVisible({ timeout: 30_000 })
 		const download = student.waitForEvent('download')
 		await button.click()
-		expect((await download).suggestedFilename()).toMatch(/^Сертификат .+\.pdf$/)
+		expect((await download).suggestedFilename()).toMatch(/^Удостоверение .+\.pdf$/)
 		await shoot(student, 'phase-5-certificate')
 		await student.close()
 	})

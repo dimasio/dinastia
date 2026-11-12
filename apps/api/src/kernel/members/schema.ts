@@ -6,7 +6,7 @@ import { users } from '../auth/schema.ts'
 import { files } from '../storage/schema.ts'
 
 export const memberRole = pgEnum('member_role', ['owner', 'admin', 'teacher', 'curator', 'student'])
-/** `deleted` — обезличенный ученик (5.5): пользователь заменён заглушкой «Удалённый ученик», входа нет. */
+/** `deleted` — обезличенный ученик (5.5): пользователь заменён заглушкой «Удалённый слушатель», входа нет. */
 export const memberStatus = pgEnum('member_status', ['active', 'blocked', 'deleted'])
 
 /** Текущий пользователь транзакции (`withTenant`/`withUser`). */

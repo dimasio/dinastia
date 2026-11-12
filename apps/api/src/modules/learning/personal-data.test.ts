@@ -221,7 +221,13 @@ describe('данные ученика', () => {
 		)
 
 		const res = await s.t.as('admin').students.anonymize({ id: s.memberId })
-		expect(res).toMatchObject({ id: s.memberId, name: 'Удалённый ученик', email: null, status: 'deleted', courses: 1 })
+		expect(res).toMatchObject({
+			id: s.memberId,
+			name: 'Удалённый слушатель',
+			email: null,
+			status: 'deleted',
+			courses: 1,
+		})
 		expect(await fails(s.t.as('admin').students.anonymize({ id: s.memberId }))).toBe('MEMBER_ALREADY_DELETED')
 		await drainJobs(30_000)
 
@@ -257,16 +263,16 @@ describe('данные ученика', () => {
 		expect(after.answers[0]?.score).not.toBeNull()
 		expect(after.enrollment?.progressPct).toBeGreaterThan(0)
 		expect(after.progress.length).toBeGreaterThan(0)
-		expect(after.cert).toMatchObject({ studentName: 'Удалённый ученик', fileId: null })
+		expect(after.cert).toMatchObject({ studentName: 'Удалённый слушатель', fileId: null })
 		expect(after.cert?.revokedAt).not.toBeNull()
 		expect(after.invites).toEqual([])
 		expect(after.ips).toEqual([])
 		const verify = await s.t.as('guest').certificates.verify({ number: before.cert?.number as string })
 		expect(verify).toMatchObject({ status: 'revoked' })
 
-		// имя на экранах школы — «Удалённый ученик»
+		// имя на экранах школы — «Удалённый слушатель»
 		const list = await s.c.learning.enrollments.list({ courseId: s.course.id })
-		expect(list.items.map((r) => r.studentName)).toContain('Удалённый ученик')
+		expect(list.items.map((r) => r.studentName)).toContain('Удалённый слушатель')
 		expect(JSON.stringify(list)).not.toContain(STUDENT)
 
 		// человек учится во второй школе — его пользователь и вход на месте, согласия этой школы удалены

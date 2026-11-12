@@ -1,5 +1,5 @@
 // Сертификаты ученика (5.5, скилл personal-data): номер, курс, дата и PDF — в архив. Обезличивание аннулирует
-// сертификат (решение владельца 2026-11-11): имя → «Удалённый ученик», PDF удаляется, проверка по номеру — «аннулирован».
+// сертификат (решение владельца 2026-11-11): имя → «Удалённый слушатель», PDF удаляется, проверка по номеру — «аннулирован».
 import { eq } from 'drizzle-orm'
 import { definePersonalData } from '#/kernel/personal-data/define.ts'
 import { DELETED_NAME } from '#/kernel/personal-data/personal-data.ts'

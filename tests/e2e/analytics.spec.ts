@@ -73,6 +73,6 @@ test('аналитика курса: сводка, воронка, выгруз�
 	const download = page.waitForEvent('download')
 	await page.getByTestId('resource-enrollments-page-export').click()
 	const file = await download
-	expect(file.suggestedFilename()).toBe(`${COURSE} — ученики.xlsx`)
+	expect(file.suggestedFilename()).toBe(`${COURSE} — слушатели.xlsx`)
 	await shoot(page, '4.6-learners', { mobile: false })
 })

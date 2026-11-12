@@ -7,7 +7,7 @@ import './modules/index.ts'
 
 const out = fileURLToPath(new URL('../.emails/', import.meta.url))
 mkdirSync(out, { recursive: true })
-const school = { name: 'Демо-школа', slug: 'demo' }
+const school = { name: 'Демо', slug: 'demo' }
 
 for (const email of allEmails()) {
 	for (const [i, data] of email.examples.entries()) {

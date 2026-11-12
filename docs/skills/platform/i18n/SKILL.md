@@ -14,8 +14,8 @@ description: Строки интерфейса и локализация Dinasti
 ```
 packages/i18n/
   locales/ru/common.json   общие: save, cancel, roles.*, theme.*, notFound, error
-  locales/ru/errors.json   коды ошибок API: { "ALREADY_MEMBER": "Этот человек уже в школе." }
-  locales/ru/auth.json     вход (и код второго фактора), «ваши школы», приглашение
+  locales/ru/errors.json   коды ошибок API: { "ALREADY_MEMBER": "Этот человек уже в учебном центре." }
+  locales/ru/auth.json     вход (и код второго фактора), «ваши учебные центры», приглашение
   locales/ru/ops.json      консоль оператора /ops (5.6)
   locales/ru/nav.json      меню областей
   locales/ru/home.json     главные экраны admin/learn
@@ -40,7 +40,7 @@ t('lessonsCount', { count: n })                        // плюрализаци
 - Код ошибки сервера (`data.code`) → строка в `errors.json`; нет строки — пользователь увидит общий текст
   («Не удалось выполнить действие»), а `errorKey` подскажет, что строку надо добавить.
 - Даты — `formatDate(date, school.timezone)` из `@dinastia/i18n`, не `toLocaleString` руками.
-- Контент школы (названия курсов, тексты уроков) через i18n не переводится — это данные.
+- Контент учебного центра (названия курсов, тексты тем) через i18n не переводится — это данные. Термины строк — глоссарий (D-067).
 
 ## Готово, когда
 

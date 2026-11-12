@@ -161,8 +161,9 @@ export const certificateDocument = defineDocument({
 	example: {
 		orientation: 'landscape',
 		schoolName: 'Учебный центр «Пример»',
-		heading: 'Сертификат',
-		bodyHtml: '<p>Настоящий сертификат подтверждает, что</p><p><strong>Иван Петров</strong></p><p>прошёл обучение</p>',
+		heading: 'Удостоверение',
+		bodyHtml:
+			'<p>Настоящее удостоверение подтверждает, что</p><p><strong>Иван Петров</strong></p><p>прошёл обучение</p>',
 		signerName: 'Анна Смирнова',
 		signerTitle: 'Директор',
 		signatureSrc: null,

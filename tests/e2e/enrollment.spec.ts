@@ -50,7 +50,7 @@ test('преподаватель зачисляет, продлевает, от�
 	await page.goto(schoolUrl('demo', `/admin/courses/${courseId}`))
 	await page.getByTestId('course-tab-learners').click()
 	await expect(page).toHaveURL(/\/learners$/)
-	await expect(page.getByText('На курсе пока нет учеников')).toBeVisible()
+	await expect(page.getByText('На курсе пока нет слушателей')).toBeVisible()
 
 	// срок по умолчанию
 	await page.getByTestId('default-days').fill('60')
@@ -63,7 +63,7 @@ test('преподаватель зачисляет, продлевает, от�
 	await form.getByLabel('Email').fill('student1@demo.local')
 	await page.screenshot(shots('4.1-enroll-form'))
 	await form.getByTestId('resource-enrollments-create-form-submit').click()
-	await expect(page.getByText('Готово: ученик зачислен или приглашён по почте')).toBeVisible()
+	await expect(page.getByText('Готово: слушатель зачислен или приглашён по почте')).toBeVisible()
 	const rows = page.getByTestId('resource-enrollments-row')
 	await expect(rows).toHaveCount(1)
 	await expect(rows.first()).toContainText('student1@demo.local')
@@ -217,7 +217,7 @@ test('куратор видит учеников, но не зачисляет',
 	}, `Куратор ${run}`)
 	await loginAs('curator')
 	await page.goto(schoolUrl('demo', `/admin/courses/${id}/learners`))
-	await expect(page.getByText('На курсе пока нет учеников')).toBeVisible()
+	await expect(page.getByText('На курсе пока нет слушателей')).toBeVisible()
 	await expect(page.getByTestId('resource-enrollments-create')).toHaveCount(0)
 	await expect(page.getByTestId('default-days')).toHaveCount(0)
 })

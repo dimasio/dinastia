@@ -51,7 +51,7 @@ test('демо фазы 2: курс из 5 уроков собран и опуб
 			}
 		}
 		await page.getByTestId('course-publish-changes').click()
-		await expect(page.getByText('Опубликовано 5 уроков')).toBeVisible()
+		await expect(page.getByText('Опубликовано 5 тем')).toBeVisible()
 		await page.getByTestId('course-publish').click()
 		await expect(page.getByTestId('course-status')).toHaveText('Опубликован')
 	})
@@ -81,13 +81,13 @@ test('демо фазы 2: курс из 5 уроков собран и опуб
 		await student.goto(schoolUrl('demo', '/learn'))
 		const card = student.getByTestId('my-course').filter({ hasText: COURSE })
 		await expect(card).toBeVisible()
-		await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 0 из 5 уроков')
+		await expect(card.getByTestId('progress-label')).toHaveText('Пройдено 0 из 5 тем')
 		await card.click()
 		const items = student.getByTestId('lesson-item')
 		await expect(items).toHaveCount(5)
 		await expect(items.first()).toHaveAttribute('data-status', 'available')
 		await expect(student.locator('[data-testid=lesson-item][data-status=locked]')).toHaveCount(4)
-		await expect(items.nth(1)).toContainText('Откроется после урока «Знакомство»')
+		await expect(items.nth(1)).toContainText('Откроется после темы «Знакомство»')
 		await shoot(student, 'phase-2-course')
 	})
 
@@ -103,7 +103,7 @@ test('демо фазы 2: курс из 5 уроков собран и опуб
 		await student.goto(schoolUrl('demo', '/learn'))
 		await student.getByTestId('my-tab-completed').click()
 		await expect(student.getByTestId('my-course').filter({ hasText: COURSE }).getByTestId('progress-label')).toHaveText(
-			'Пройдено 5 из 5 уроков',
+			'Пройдено 5 из 5 тем',
 		)
 	})
 })

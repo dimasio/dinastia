@@ -54,7 +54,7 @@ test('урок по расписанию, режим курса, пересда�
 	// конструктор курса: режим курса
 	await page.goto(schoolUrl('demo', `/admin/courses/${course.id}`))
 	await page.getByTestId('course-access-mode').selectOption('sequential')
-	await expect(page.getByText('Доступ к урокам сохранён')).toBeVisible()
+	await expect(page.getByText('Доступ к темам сохранён')).toBeVisible()
 	await page.getByTestId('course-access-mode').selectOption('open')
 
 	// ученик: урок «Через день» закрыт до даты; сдаёт задание

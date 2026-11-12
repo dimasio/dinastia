@@ -96,21 +96,21 @@ test('проверка: очередь, работа, комментарий с 
 	await curator.goto(schoolUrl('demo', '/admin'))
 	await curator.getByRole('link', { name: 'Проверка' }).click()
 	await expect(curator).toHaveURL(/\/admin\/review/)
-	await curator.getByTestId('resource-review-search').fill('Ученик Первый')
+	await curator.getByTestId('resource-review-search').fill('Слушатель Первый')
 	const row = curator.getByTestId('resource-review-row').filter({ hasText: COURSE })
 	await expect(row).toContainText('Работа на проверку')
 	await expect(row).toContainText('На проверке')
 	await shoot(curator, 'review-queue')
 	await row.getByTestId('review-open').click()
 	await expect(curator.getByTestId('review-screen')).toBeVisible()
-	await expect(curator.getByTestId('review-student')).toHaveText('Ученик Первый')
+	await expect(curator.getByTestId('review-student')).toHaveText('Слушатель Первый')
 	await expect(curator.getByTestId('review-answer')).toContainText('Это натюрморт с яблоками')
 	await expect(curator.getByTestId('review-status')).toHaveAttribute('data-status', 'submitted')
 
 	await test.step('«на доработку» без комментария нельзя; с комментарием и файлом — можно', async () => {
 		await curator.getByTestId('review-composer-needs-revision').click()
 		await expect(curator.getByTestId('review-composer-error')).toHaveText(
-			'Напишите комментарий: ученик должен понять, что доработать.',
+			'Напишите комментарий: слушатель должен понять, что доработать.',
 		)
 		await curator.getByTestId('review-composer-body').click()
 		await curator.keyboard.type('Добавьте тени, образец приложен')

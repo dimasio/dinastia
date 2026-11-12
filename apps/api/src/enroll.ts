@@ -43,7 +43,7 @@ await withTenant(school.id, async (tx) => {
 		.innerJoin(users, eq(users.id, members.userId))
 		.where(eq(users.email, curatorEmail))
 	if (!curator) throw new Error(`куратор ${curatorEmail} не найден`)
-	const name = 'Поток куратора'
+	const name = 'Группа куратора'
 	const [found] = await tx
 		.select()
 		.from(groups)

@@ -54,7 +54,7 @@ describe('удаление школы', () => {
 		expect(await fails(t.as('owner').schools.me())).toBe('SCHOOL_DELETING')
 
 		const mail = await lastMailTo(t.people.owner.email)
-		expect(mail.subject).toMatch(/^Школа «Школа на удаление» будет удалена \d+ \S+ \d{4}/)
+		expect(mail.subject).toMatch(/^Учебный центр «Школа на удаление» будет удалён \d+ \S+ \d{4}/)
 		expect(mail.fromName).toBe('Dinastia')
 
 		// корневой домен: владелец видит школу с датой удаления, сотрудник — нет

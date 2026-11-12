@@ -23,7 +23,7 @@ export const users = pgTable('users', {
 	platformRole: platformRole('platform_role'),
 	/** Второй фактор (TOTP) включён — обязателен оператору (5.6); плагин better-auth `twoFactor`. */
 	twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
-	/** Заглушка обезличенного участника (5.5): без входа, имя «Удалённый ученик»; не попадает в поиск оператора. */
+	/** Заглушка обезличенного участника (5.5): без входа, имя «Удалённый слушатель»; не попадает в поиск оператора. */
 	deletedAt: timestamp('deleted_at', { withTimezone: true }),
 	createdAt: createdAt(),
 	updatedAt: updatedAt(),

@@ -45,18 +45,18 @@ async function ensureMember(schoolId: string, userId: string, role: MemberRole) 
 	)
 }
 
-const demo = await ensureSchool('demo', 'Демо-школа', 'owner@demo.local', 'Ольга Владелец')
+const demo = await ensureSchool('demo', 'Демо', 'owner@demo.local', 'Ольга Владелец')
 const staff: [string, string, MemberRole][] = [
 	['admin@demo.local', 'Алексей Админ', 'admin'],
 	['teacher@demo.local', 'Татьяна Преподаватель', 'teacher'],
 	['curator@demo.local', 'Кирилл Куратор', 'curator'],
 	// для e2e «Сотрудники»: роль и блокировку меняют ему, а не общему куратору (иначе параллельные сценарии теряют доступ)
 	['curator2@demo.local', 'Лев Куратор', 'curator'],
-	['student1@demo.local', 'Ученик Первый', 'student'],
-	['student2@demo.local', 'Ученица Вторая', 'student'],
-	['student3@demo.local', 'Ученик Третий', 'student'],
-	['student4@demo.local', 'Ученица Четвёртая', 'student'],
-	['student5@demo.local', 'Ученик Пятый', 'student'],
+	['student1@demo.local', 'Слушатель Первый', 'student'],
+	['student2@demo.local', 'Слушательница Вторая', 'student'],
+	['student3@demo.local', 'Слушатель Третий', 'student'],
+	['student4@demo.local', 'Слушательница Четвёртая', 'student'],
+	['student5@demo.local', 'Слушатель Пятый', 'student'],
 ]
 for (const [email, name, role] of staff) await ensureMember(demo.id, await ensureUser(email, name), role)
 
@@ -110,7 +110,7 @@ await withTenant(demo.id, async (tx) => {
 		for (const lesson of list) {
 			if ((await listLessonBlocks(ctx, lesson.id)).every((b) => b.type !== 'text')) {
 				const body = await addLessonBlock(ctx, { lessonId: lesson.id, type: 'text' })
-				const line = `Конспект урока «${lesson.title}».`
+				const line = `Конспект темы «${lesson.title}».`
 				const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: line }] }] }
 				await updateLessonBlock(ctx, { id: body.id, data: { body: doc } })
 			}
@@ -118,14 +118,14 @@ await withTenant(demo.id, async (tx) => {
 		}
 		await tx.update(courses).set({ defaultAccessMode: 'sequential' }).where(eq(courses.id, course.id))
 		if (course.status === 'draft') await publishCourse(ctx, course.id)
-		const studentUser = await ensureUser('student1@demo.local', 'Ученик Первый')
+		const studentUser = await ensureUser('student1@demo.local', 'Слушатель Первый')
 		const [student] = await tx.select().from(members).where(eq(members.userId, studentUser))
 		if (student) await enrollMember(ctx, { memberId: student.id, courseId: course.id })
 	}
 })
 
 // Вторая школа — для проверки изоляции; teacher@demo.local здесь ученик (один человек — разные роли).
-const other = await ensureSchool('other', 'Другая школа', 'owner@other.local', 'Олег Другой')
+const other = await ensureSchool('other', 'Другой центр', 'owner@other.local', 'Олег Другой')
 await ensureMember(other.id, await ensureUser('teacher@demo.local', 'Татьяна Преподаватель'), 'student')
 
 // оператор консоли /ops (5.6): второй фактор включает сам при первом входе
