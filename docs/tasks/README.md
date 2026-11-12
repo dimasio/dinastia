@@ -10,7 +10,7 @@
 | [phase-2-courses](phase-2-courses/task.md)       | 2    | done  |
 | [phase-3-assessments](phase-3-assessments/task.md) | 3    | done |
 | [phase-4-learners](phase-4-learners/task.md) | 4    | done |
-| [phase-5-launch](phase-5-launch/task.md) | 5    | active |
+| [phase-5-launch](phase-5-launch/task.md) | 5    | done (5.3, 5.7 и юридические тексты — ждут владельца) |
 | `phase-6-packaging` (не создана)                 | 6    | backlog |
 
 ## Запросы к ядру
