@@ -28,8 +28,13 @@ export function SupportAccess() {
 				<CardDescription>{t('supportAccess.description')}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-wrap items-center justify-between gap-3">
-				<span className="text-sm" data-testid="support-access-state">
-					{until ? t('supportAccess.openUntil', { date: date.format(until) }) : t('supportAccess.closed')}
+				{/* до ответа сервера состояние неизвестно — не показываем «закрыт» раньше времени */}
+				<span className="text-sm" data-testid={data ? 'support-access-state' : undefined}>
+					{!data
+						? null
+						: until
+							? t('supportAccess.openUntil', { date: date.format(until) })
+							: t('supportAccess.closed')}
 				</span>
 				<Button
 					variant={until ? 'outline' : 'default'}
