@@ -12,13 +12,13 @@ const shots = (name: string) => ({ path: `test-results/screens/${name}.png`, ful
 test('демо фазы 0', async ({ page, browser }) => {
 	// 1. У владельца есть школа; он входит паролем на её поддомене
 	createSchool({ slug, name: 'Школа рисования', email: owner.email, password: owner.password, ownerName: owner.name })
-	await page.goto(`http://${slug}.dinastia.localhost:5173/login`)
+	await page.goto(`http://${slug}.dinastia.localhost:5174/login`)
 	await page.getByTestId('auth-signin-email').fill(owner.email)
 	await page.getByTestId('auth-signin-password').fill(owner.password)
 	await page.getByTestId('auth-signin-submit').click()
 
 	// …и попадает в кабинет своей школы
-	await expect(page).toHaveURL(`http://${slug}.dinastia.localhost:5173/admin`)
+	await expect(page).toHaveURL(`http://${slug}.dinastia.localhost:5174/admin`)
 	await expect(page.getByTestId('admin-school-name')).toHaveText('Школа рисования')
 	await expect(page.getByRole('heading', { name: 'Добро пожаловать, Ольга' })).toBeVisible()
 	await page.screenshot(shots('02-admin-owner'))
@@ -56,31 +56,31 @@ test('демо фазы 0', async ({ page, browser }) => {
 	await teacher.getByTestId('invite-accept').click()
 
 	// 4. Видит пустой кабинет школы
-	await expect(teacher).toHaveURL(`http://${slug}.dinastia.localhost:5173/admin`)
+	await expect(teacher).toHaveURL(`http://${slug}.dinastia.localhost:5174/admin`)
 	await expect(teacher.getByRole('heading', { name: /Добро пожаловать/ })).toBeVisible()
 	await teacher.screenshot(shots('05-admin-teacher'))
 })
 
 test('ученик попадает в /learn, гость школы — на вход', async ({ page }) => {
-	await page.goto('http://demo.dinastia.localhost:5173/')
+	await page.goto('http://demo.dinastia.localhost:5174/')
 	await expect(page).toHaveURL(/\/login$/)
 	await expect(page.getByTestId('login-title')).toHaveText('Вход в учебный центр «Демо»')
 	await page.screenshot(shots('06-login'))
 	await page.getByTestId('auth-signin-email').fill('student1@demo.local')
 	await page.getByTestId('auth-signin-password').fill('demo12345')
 	await page.getByTestId('auth-signin-submit').click()
-	await expect(page).toHaveURL('http://demo.dinastia.localhost:5173/learn')
+	await expect(page).toHaveURL('http://demo.dinastia.localhost:5174/learn')
 	await expect(page.getByRole('heading', { name: 'Мои курсы' })).toBeVisible()
 	await page.screenshot(shots('07-learn'))
 
 	// ученику нельзя в кабинет школы — уводит в /learn
-	await page.goto('http://demo.dinastia.localhost:5173/admin')
-	await expect(page).toHaveURL('http://demo.dinastia.localhost:5173/learn')
+	await page.goto('http://demo.dinastia.localhost:5174/admin')
+	await expect(page).toHaveURL('http://demo.dinastia.localhost:5174/learn')
 })
 
 test('неверный пароль — понятная ошибка; мобильная ширина', async ({ page }) => {
 	await page.setViewportSize({ width: 360, height: 740 })
-	await page.goto('http://demo.dinastia.localhost:5173/login')
+	await page.goto('http://demo.dinastia.localhost:5174/login')
 	await page.getByTestId('auth-signin-email').fill('teacher@demo.local')
 	await page.getByTestId('auth-signin-password').fill('wrong-password')
 	await page.getByTestId('auth-signin-submit').click()

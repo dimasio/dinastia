@@ -34,13 +34,13 @@ export const deletionEmail = defineEmail({
 			kind: 'requested',
 			schoolName: 'Учебный центр «Охрана труда»',
 			deleteAt: '2026-12-11T09:00:00.000Z',
-			url: 'http://dinastia.localhost:5173/',
+			url: 'http://education.localhost:5173/',
 		},
 		{
 			kind: 'soon',
 			schoolName: 'Учебный центр «Охрана труда»',
 			deleteAt: '2026-12-11T09:00:00.000Z',
-			url: 'http://dinastia.localhost:5173/',
+			url: 'http://education.localhost:5173/',
 		},
 	],
 })

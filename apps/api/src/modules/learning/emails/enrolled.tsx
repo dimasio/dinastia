@@ -16,5 +16,10 @@ export const enrolledEmail = defineEmail({
 			</EmailLayout>
 		)
 	},
-	examples: [{ courseTitle: 'Основы акварели', url: 'http://demo.dinastia.localhost:5173/learn/courses/пример' }],
+	examples: [
+		{
+			courseTitle: 'Оказание первой помощи пострадавшим',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример',
+		},
+	],
 })

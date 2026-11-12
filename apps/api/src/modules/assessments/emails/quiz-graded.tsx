@@ -36,14 +36,14 @@ export const quizGradedEmail = defineEmail({
 			passed: true,
 			score: 9.5,
 			maxScore: 12,
-			url: 'http://demo.dinastia.localhost:5173/learn',
+			url: 'http://airgorizont.education.localhost:5173/learn',
 		},
 		{
 			lessonTitle: 'Итоговая аттестация',
 			passed: false,
 			score: 4,
 			maxScore: 12,
-			url: 'http://demo.dinastia.localhost:5173/learn',
+			url: 'http://airgorizont.education.localhost:5173/learn',
 		},
 	],
 })

@@ -21,7 +21,7 @@ export const certificateIssuedEmail = defineEmail({
 		{
 			courseTitle: 'Пожарная безопасность',
 			number: 'DEMO-2026-000001',
-			url: 'http://demo.dinastia.localhost:5173/learn/courses/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример',
 		},
 	],
 })

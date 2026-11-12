@@ -35,7 +35,7 @@ describe('рендер', () => {
 		const out = await renderEmail(invitationEmail, { ...example(), inviterName: '<script>alert(1)</script>' }, school)
 		expect(out.html).not.toContain('<script>alert(1)</script>')
 		expect(out.html).toContain('&lt;script&gt;')
-		expect(out.html).toContain('href="http://demo.dinastia.localhost:5173/invite/')
+		expect(out.html).toContain('href="http://airgorizont.education.localhost:5173/invite/')
 		expect(out.text).toContain('Ваша роль — Преподаватель')
 	})
 

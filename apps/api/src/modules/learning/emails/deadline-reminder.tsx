@@ -35,14 +35,14 @@ export const deadlineReminderEmail = defineEmail({
 			courseTitle: 'Пожарная безопасность для работников организации',
 			lessonTitle: 'Практика: средства тушения на вашем этаже',
 			dueAt: '2026-11-12T20:59:59.999Z',
-			url: 'http://trud.dinastia.localhost:5173/learn/courses/пример/lessons/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример/lessons/пример',
 		},
 		{
 			kind: 'overdue',
 			courseTitle: 'Пожарная безопасность для работников организации',
 			lessonTitle: 'Итоговый тест',
 			dueAt: '2026-11-09T20:59:59.999Z',
-			url: 'http://trud.dinastia.localhost:5173/learn/courses/пример/lessons/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример/lessons/пример',
 		},
 	],
 })

@@ -26,7 +26,7 @@ export const magicLinkEmail = defineEmail({
 		</EmailLayout>
 	),
 	examples: [
-		{ url: 'http://demo.dinastia.localhost:5173/api/auth/magic-link/verify?token=пример&callbackURL=%2Flearn' },
+		{ url: 'http://airgorizont.education.localhost:5173/api/auth/magic-link/verify?token=пример&callbackURL=%2Flearn' },
 	],
 })
 

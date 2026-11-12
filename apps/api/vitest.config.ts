@@ -16,6 +16,9 @@ export default defineConfig({
 			DATABASE_URL: process.env.DATABASE_URL_TEST ?? '',
 			DATABASE_URL_OWNER: process.env.DATABASE_URL_TEST_OWNER ?? '',
 			MAIL_TRANSPORT: 'memory',
+			// адреса в тестах — dinastia.localhost:5173, независимо от домена dev в .env
+			APP_DOMAIN: 'dinastia.localhost',
+			APP_PUBLIC_PORT: '5173',
 			TRUST_PROXY_HOPS: '1', // тесты различают клиентов через X-Forwarded-For
 		},
 	},

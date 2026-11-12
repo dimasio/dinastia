@@ -8,7 +8,7 @@ import { shoot } from './shots.ts'
 
 const run = Date.now().toString(36)
 const slug = `e2e1-${run}`
-const school = `http://${slug}.dinastia.localhost:5173`
+const school = `http://${slug}.dinastia.localhost:5174`
 // PNG 16×16 — настоящий файл для загрузки
 const png = Buffer.from(
 	'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGNQTX5NEmIY1TCqYfhqAAB2SXMQ7mVTQgAAAABJRU5ErkJggg==',

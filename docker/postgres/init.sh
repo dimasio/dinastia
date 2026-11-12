@@ -1,13 +1,15 @@
 #!/bin/sh
 # Роли и базы (D-006, скилл db-schema): app_owner — владелец схемы и миграций, app_user — приложение, без BYPASSRLS.
+# dinastia — dev, dinastia_test — тесты API, dinastia_e2e — e2e (в уже созданном томе её создаёт `e2e:prepare`).
 set -e
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres <<SQL
 CREATE ROLE app_owner LOGIN PASSWORD '$APP_OWNER_PASSWORD';
 CREATE ROLE app_user LOGIN PASSWORD '$APP_USER_PASSWORD' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 CREATE DATABASE dinastia OWNER app_owner;
 CREATE DATABASE dinastia_test OWNER app_owner;
+CREATE DATABASE dinastia_e2e OWNER app_owner;
 SQL
-for db in dinastia dinastia_test; do
+for db in dinastia dinastia_test dinastia_e2e; do
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$db" <<SQL
 REVOKE ALL ON DATABASE $db FROM PUBLIC;
 GRANT CONNECT ON DATABASE $db TO app_user;

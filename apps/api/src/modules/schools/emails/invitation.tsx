@@ -34,7 +34,7 @@ export const invitationEmail = defineEmail({
 		{
 			inviterName: 'Ольга Владелец',
 			role: 'teacher',
-			url: 'http://demo.dinastia.localhost:5173/invite/пример-токена',
+			url: 'http://airgorizont.education.localhost:5173/invite/пример-токена',
 			expiresAt: new Date('2026-11-01'),
 		},
 	],

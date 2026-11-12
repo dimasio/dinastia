@@ -64,6 +64,18 @@ services:
       timeout: 3s
       retries: 30
 
+  # почта e2e (tests/e2e/env.ts): письма сценариев не смешиваются с письмами pnpm dev
+  mailpit-e2e:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "1026:1025"
+      - "8026:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
 volumes:
   postgres:
   seaweedfs:

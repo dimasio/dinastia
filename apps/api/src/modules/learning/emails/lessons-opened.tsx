@@ -26,12 +26,12 @@ export const lessonsOpenedEmail = defineEmail({
 		{
 			courseTitle: 'Пожарная безопасность',
 			lessons: ['Первичные средства пожаротушения', 'Действия при пожаре'],
-			url: 'http://demo.dinastia.localhost:5173/learn/courses/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример',
 		},
 		{
-			courseTitle: 'Основы акварели',
+			courseTitle: 'Оказание первой помощи пострадавшим',
 			lessons: ['Свет и тень'],
-			url: 'http://demo.dinastia.localhost:5173/learn/courses/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример',
 		},
 	],
 })

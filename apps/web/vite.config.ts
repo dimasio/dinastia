@@ -6,7 +6,7 @@ import { defineConfig, type Plugin } from 'vite'
 import { contentSecurityPolicy } from './csp.ts'
 
 if (existsSync('../../.env')) process.loadEnvFile('../../.env')
-const appDomain = process.env.APP_DOMAIN ?? 'dinastia.localhost'
+const appDomain = process.env.APP_DOMAIN ?? 'education.localhost'
 const s3Origin = new URL(process.env.S3_ENDPOINT ?? 'http://localhost:8333').origin
 const sentryDsn = process.env.SENTRY_DSN_WEB ?? ''
 
@@ -23,6 +23,8 @@ const delivery = (): Plugin => ({
 })
 
 export default defineConfig({
+	// e2e поднимает второй dev-сервер рядом с pnpm dev — со своим кэшем зависимостей (tests/e2e/env.ts)
+	cacheDir: process.env.VITE_CACHE_DIR ?? 'node_modules/.vite',
 	plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react(), tailwindcss(), delivery()],
 	define: {
 		'import.meta.env.VITE_APP_DOMAIN': JSON.stringify(appDomain),

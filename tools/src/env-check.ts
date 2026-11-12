@@ -1,5 +1,5 @@
 // pnpm env:check — готово ли окружение к работе (скилл local-env): Node и pnpm нужных версий, .env полон, Docker и
-// сервисы живы, миграции применены, демо-данные есть, порты свободны. На каждую проблему — команда исправления.
+// сервисы живы, миграции применены, учебный центр засеян, порты свободны. На каждую проблему — команда исправления.
 // Запускать в начале сессии и когда «что-то не стартует». Код возврата 1 — есть блокирующие проблемы.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -90,13 +90,13 @@ else {
 			.filter(Boolean)
 			.map((l) => [l.split(' ')[0], l] as const),
 	)
-	for (const s of ['postgres', 'seaweedfs', 'mailpit']) {
+	for (const s of ['postgres', 'seaweedfs', 'mailpit', 'mailpit-e2e']) {
 		const line = services.get(s)
 		if (line?.includes('healthy') && !line.includes('unhealthy')) report('ok', `${s} — healthy`)
 		else report('fail', `${s} — ${line ? line.split(' ').slice(1).join(' ') : 'не запущен'}`, 'pnpm env:up')
 	}
 
-	// 4. Миграции и демо-данные (dev-база)
+	// 4. Миграции и данные учебного центра (dev-база)
 	const psql = (sql: string) =>
 		run('docker', [...compose, 'exec', '-T', 'postgres', 'psql', '-U', 'postgres', '-d', 'dinastia', '-tAc', sql])
 	if (services.get('postgres')?.includes('healthy')) {
@@ -110,9 +110,14 @@ else {
 				'скилл db-schema, «Переделать миграцию до мержа»',
 			)
 		else report('fail', `миграции: применено ${applied < 0 ? '?' : applied} из ${files}`, 'pnpm db:migrate')
-		const demo = psql("select count(*) from schools where slug = 'demo'")
-		if (demo === '1') report('ok', 'демо-данные (школа demo)')
-		else report('warn', 'нет демо-данных — e2e и ручная проверка без них не пойдут', 'pnpm db:seed')
+		const seeded = psql("select count(*) from schools where slug = 'airgorizont'")
+		if (seeded === '1') report('ok', 'учебный центр airgorizont засеян')
+		else
+			report(
+				'warn',
+				'нет данных учебного центра — ручная проверка без них не пойдёт (e2e засевают свою базу сами)',
+				'pnpm db:seed',
+			)
 	}
 }
 

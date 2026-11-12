@@ -27,13 +27,13 @@ export const suspensionEmail = defineEmail({
 			kind: 'suspended',
 			schoolName: 'Учебный центр «Охрана труда»',
 			reason: 'Не оплачен тариф за ноябрь',
-			url: 'http://trud.dinastia.localhost:5173/admin',
+			url: 'http://airgorizont.education.localhost:5173/admin',
 		},
 		{
 			kind: 'resumed',
 			schoolName: 'Учебный центр «Охрана труда»',
 			reason: null,
-			url: 'http://trud.dinastia.localhost:5173/admin',
+			url: 'http://airgorizont.education.localhost:5173/admin',
 		},
 	],
 })

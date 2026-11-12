@@ -1,138 +1,23 @@
-// pnpm db:seed — демо-данные для локальной разработки (скилл local-env). Идёт через сервисы, а не прямыми вставками.
-// Идемпотентен: существующих пользователей и школы не трогает.
-import type { MemberRole } from '@dinastia/contracts/schools'
-import { eq } from 'drizzle-orm'
-import { auth } from './kernel/auth/auth.ts'
-import { users } from './kernel/auth/schema.ts'
-import { config } from './kernel/config.ts'
-import type { SchoolCtx } from './kernel/context.ts'
-import { db, pool } from './kernel/db/client.ts'
-import { withTenant } from './kernel/db/tenant.ts'
-import { log } from './kernel/log.ts'
-import { members } from './kernel/members/schema.ts'
-import { tenantCtx } from './kernel/tenant-ctx.ts'
-import { addLessonBlock, listLessonBlocks, updateLessonBlock } from './modules/courses/blocks.service.ts'
-import { publishCourse, publishLesson } from './modules/courses/publish.service.ts'
-import { courses, lessons } from './modules/courses/schema.ts'
-import { createCourse, createLesson, createSection } from './modules/courses/service.ts'
-import { enrollMember } from './modules/learning/service.ts'
-import { schoolBranding } from './modules/schools/schema.ts'
-import { createSchool, findSchoolBySlug } from './modules/schools/service.ts'
-
-const PASSWORD = 'demo12345'
+// pnpm db:seed — учебный центр АИР «Горизонт» для локальной работы (скилл local-env, seed/airgorizont.ts). Центр уже есть —
+// ничего не делает; пересоздать: pnpm db:reset && pnpm db:seed.
+import { appOrigin, config } from './kernel/config.ts'
+import { pool } from './kernel/db/client.ts'
+import { AIRGORIZONT, OPERATOR, PEOPLE, seedAirgorizont } from './seed/airgorizont.ts'
 
 if (config.NODE_ENV === 'production') throw new Error('db:seed запрещён в production')
 
-async function ensureUser(email: string, name: string) {
-	const [found] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-	if (found) return found.id
-	const res = await auth.api.signUpEmail({ body: { email, password: PASSWORD, name } })
-	await db.update(users).set({ emailVerified: true }).where(eq(users.id, res.user.id))
-	return res.user.id
-}
-
-async function ensureSchool(slug: string, name: string, ownerEmail: string, ownerName: string) {
-	const ownerId = await ensureUser(ownerEmail, ownerName)
-	return (await findSchoolBySlug(slug)) ?? (await createSchool({ slug, name }, { userId: ownerId })).school
-}
-
-async function ensureMember(schoolId: string, userId: string, role: MemberRole) {
-	await withTenant(schoolId, (tx) =>
-		tx
-			.insert(members)
-			.values({ userId, role })
-			.onConflictDoNothing({ target: [members.schoolId, members.userId] }),
-	)
-}
-
-const demo = await ensureSchool('demo', 'Демо', 'owner@demo.local', 'Ольга Владелец')
-const staff: [string, string, MemberRole][] = [
-	['admin@demo.local', 'Алексей Админ', 'admin'],
-	['teacher@demo.local', 'Татьяна Преподаватель', 'teacher'],
-	['curator@demo.local', 'Кирилл Куратор', 'curator'],
-	// для e2e «Сотрудники»: роль и блокировку меняют ему, а не общему куратору (иначе параллельные сценарии теряют доступ)
-	['curator2@demo.local', 'Лев Куратор', 'curator'],
-	['student1@demo.local', 'Слушатель Первый', 'student'],
-	['student2@demo.local', 'Слушательница Вторая', 'student'],
-	['student3@demo.local', 'Слушатель Третий', 'student'],
-	['student4@demo.local', 'Слушательница Четвёртая', 'student'],
-	['student5@demo.local', 'Слушатель Пятый', 'student'],
-]
-for (const [email, name, role] of staff) await ensureMember(demo.id, await ensureUser(email, name), role)
-
-// Оформление демо-школы (5.9): цвет и шрифт — видно, что школа в своём стиле; логотип загружают на экране «Оформление».
-await withTenant(demo.id, (tx) =>
-	tx
-		.insert(schoolBranding)
-		.values({ schoolId: demo.id, primaryColor: '#4f46e5', font: 'inter' })
-		.onConflictDoNothing({ target: schoolBranding.schoolId }),
-)
-
-// Демо-курс преподавателя: 2 раздела, 3 урока, в первом — выноска.
-const teacherId = await ensureUser('teacher@demo.local', 'Татьяна Преподаватель')
-await withTenant(demo.id, async (tx) => {
-	const [teacher] = await tx.select().from(members).where(eq(members.userId, teacherId))
-	if (!teacher) throw new Error('нет преподавателя демо-школы')
-	// сервисы курса — от участника-преподавателя, как из его запроса
-	const ctx: SchoolCtx = {
-		...tenantCtx(tx, demo, { now: () => new Date(), log }),
-		user: { id: teacherId, email: 'teacher@demo.local', name: 'Татьяна Преподаватель' },
-		member: { id: teacher.id, role: 'teacher' },
-		can: () => true,
-	}
-	const [exists] = await tx.select({ id: courses.id }).from(courses).where(eq(courses.slug, 'osnovy-akvareli'))
-	if (!exists) {
-		const course = await createCourse(ctx, { title: 'Основы акварели' })
-		const basics = await createSection(ctx, { courseId: course.id, title: 'Материалы и инструменты' })
-		await createLesson(ctx, { sectionId: basics.id, title: 'Бумага, кисти, краски' })
-		await createLesson(ctx, { sectionId: basics.id, title: 'Палитра и смешивание цветов' })
-		const practice = await createSection(ctx, { courseId: course.id, title: 'Первые работы' })
-		await createLesson(ctx, { sectionId: practice.id, title: 'Заливка и растяжка' })
-	}
-	// первый урок — с выноской (2.3); отдельным шагом, чтобы дополнить и ранее засеянную базу
-	const [paper] = await tx.select({ id: lessons.id }).from(lessons).where(eq(lessons.title, 'Бумага, кисти, краски'))
-	if (paper && (await listLessonBlocks(ctx, paper.id)).length === 0) {
-		const tip = await addLessonBlock(ctx, { lessonId: paper.id, type: 'callout' })
-		const text = 'Возьмите бумагу плотностью от 200 г/м² — она не коробится от воды.'
-		await updateLessonBlock(ctx, {
-			id: tip.id,
-			data: {
-				tone: 'success',
-				body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] },
-			},
-		})
-	}
-
-	// 2.6: уроки с текстом опубликованы, курс — последовательный, student1 зачислен (демо плеера ученика)
-	const [course] = await tx.select().from(courses).where(eq(courses.slug, 'osnovy-akvareli'))
-	if (course) {
-		const list = await tx.select().from(lessons).where(eq(lessons.courseId, course.id))
-		for (const lesson of list) {
-			if ((await listLessonBlocks(ctx, lesson.id)).every((b) => b.type !== 'text')) {
-				const body = await addLessonBlock(ctx, { lessonId: lesson.id, type: 'text' })
-				const line = `Конспект темы «${lesson.title}».`
-				const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: line }] }] }
-				await updateLessonBlock(ctx, { id: body.id, data: { body: doc } })
-			}
-			if (!lesson.publishedAt) await publishLesson(ctx, lesson.id)
-		}
-		await tx.update(courses).set({ defaultAccessMode: 'sequential' }).where(eq(courses.id, course.id))
-		if (course.status === 'draft') await publishCourse(ctx, course.id)
-		const studentUser = await ensureUser('student1@demo.local', 'Слушатель Первый')
-		const [student] = await tx.select().from(members).where(eq(members.userId, studentUser))
-		if (student) await enrollMember(ctx, { memberId: student.id, courseId: course.id })
-	}
-})
-
-// Вторая школа — для проверки изоляции; teacher@demo.local здесь ученик (один человек — разные роли).
-const other = await ensureSchool('other', 'Другой центр', 'owner@other.local', 'Олег Другой')
-await ensureMember(other.id, await ensureUser('teacher@demo.local', 'Татьяна Преподаватель'), 'student')
-
-// оператор консоли /ops (5.6): второй фактор включает сам при первом входе
-const operatorId = await ensureUser('ops@demo.local', 'Оператор Dinastia')
-await db.update(users).set({ platformRole: 'operator' }).where(eq(users.id, operatorId))
-
+const { created } = await seedAirgorizont()
+const roles = { owner: 'владелец', admin: 'администратор', curator: 'куратор', student: 'слушатель' } as const
 console.log(
-	`db:seed — ok: школы demo, other; демо-курс «Основы акварели»; оператор ops@demo.local (/ops); пароль у всех — ${PASSWORD}`,
+	[
+		created
+			? `db:seed — ok: учебный центр ${AIRGORIZONT.name} — ${appOrigin(AIRGORIZONT.slug)}`
+			: `db:seed — центр ${AIRGORIZONT.slug} уже есть; пересоздать: pnpm db:reset && pnpm db:seed`,
+		`пароль у всех — ${AIRGORIZONT.password}`,
+		...Object.entries(PEOPLE).map(
+			([k, p]) => `  ${roles[k as keyof typeof roles].padEnd(14)} ${p.email.padEnd(32)} ${p.name}`,
+		),
+		`  ${'оператор /ops'.padEnd(14)} ${OPERATOR.email.padEnd(32)} ${appOrigin()}/ops`,
+	].join('\n'),
 )
 await pool.end()

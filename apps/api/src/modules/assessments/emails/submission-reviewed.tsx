@@ -30,7 +30,7 @@ export const submissionReviewedEmail = defineEmail({
 			lessonTitle: 'Практическая работа',
 			status: 'needs_revision',
 			comment: 'Добавьте тени и перспективу',
-			url: 'http://demo.dinastia.localhost:5173/learn/courses/пример/lessons/пример',
+			url: 'http://airgorizont.education.localhost:5173/learn/courses/пример/lessons/пример',
 		},
 	],
 })

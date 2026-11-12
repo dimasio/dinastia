@@ -28,7 +28,7 @@ jobs:
       - name: Зависимости
         run: pnpm install --frozen-lockfile
 
-      - name: Окружение (Postgres, SeaweedFS, Mailpit)
+      - name: Окружение (Postgres, SeaweedFS, Mailpit, Mailpit e2e)
         run: |
           cp .env.example .env
           pnpm env:up
@@ -47,7 +47,7 @@ jobs:
       - name: Поставка
         run: pnpm delivery:check
 
-      - name: Миграции на чистой БД и демо-данные
+      - name: Миграции на чистой БД и данные учебного центра
         run: |
           pnpm db:reset
           pnpm db:seed

@@ -11,8 +11,8 @@ export const DEMO = {
 	student: 'student1@demo.local',
 } as const
 
-export const schoolUrl = (slug: string, path = '/') => `http://${slug}.dinastia.localhost:5173${path}`
-export const rootUrl = (path = '/') => `http://dinastia.localhost:5173${path}`
+export const schoolUrl = (slug: string, path = '/') => `http://${slug}.dinastia.localhost:5174${path}`
+export const rootUrl = (path = '/') => `http://dinastia.localhost:5174${path}`
 
 /**
  * Школа сразу с владельцем (CLI `src/create-school.ts`): публичной регистрации нет, школы создаёт оператор в /ops (5.6) —
@@ -88,8 +88,13 @@ export const test = base.extend<{
 export async function openDemoCourse(page: Page) {
 	await page.goto(schoolUrl('demo', '/admin/courses'))
 	await page.getByTestId('resource-courses-search').fill('Основы акварели')
-	await page.getByRole('link', { name: 'Основы акварели', exact: true }).click()
-	await expect(page.getByTestId('course-builder')).toBeVisible()
+	// список перерисовывается по ответу поиска — клик по строке до него теряется; повторяем, пока не откроется конструктор
+	const builder = page.getByTestId('course-builder')
+	await expect(async () => {
+		if (!(await builder.isVisible()))
+			await page.getByRole('link', { name: 'Основы акварели', exact: true }).click({ timeout: 2_000 })
+		await expect(builder).toBeVisible({ timeout: 2_000 })
+	}).toPass({ timeout: 20_000 })
 }
 
 /** Новый курс с одним уроком — и сразу в конструктор урока (клик по уроку в конструкторе курса). */

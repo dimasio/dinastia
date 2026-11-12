@@ -27,9 +27,9 @@ test('администратор указывает оператора ПДн �
 })
 
 test('документы Dinastia на корневом домене; ссылки из регистрации школы', async ({ page }) => {
-	await page.goto('http://dinastia.localhost:5173/legal/offer')
+	await page.goto('http://dinastia.localhost:5174/legal/offer')
 	await expect(page.getByTestId('legal-doc')).toContainText('Оферта на использование платформы Dinastia')
-	await page.goto('http://dinastia.localhost:5173/legal/privacy')
+	await page.goto('http://dinastia.localhost:5174/legal/privacy')
 	await expect(page.getByTestId('legal-doc')).toContainText('Политика обработки персональных данных Dinastia')
 })
 
@@ -125,7 +125,7 @@ test('владелец удаляет школу: школа закрыта, в 
 	await page.getByTestId('delete-school-submit').click()
 
 	// корневой домен: дата удаления и отмена
-	await expect(page).toHaveURL('http://dinastia.localhost:5173/')
+	await expect(page).toHaveURL('http://dinastia.localhost:5174/')
 	await expect(page.getByTestId(`schools-deleting-${slug}`)).toContainText('Удаляется')
 	await page.screenshot(shots('5.5-my-schools-deleting'))
 
