@@ -75,5 +75,12 @@ catalog:
   vitest: 5.0.5
   zod: 4.6.7
 
+# Исключения pnpm audit — только с причиной и решением D-NNN; пересматривать раз в месяц и при выходе исправления.
+auditConfig:
+  ignoreGhsas:
+    # D-071: picomatch ReDoS — путь better-auth > vitest (необязательный peer, только тесты) > picomatch; в поставку
+    # не входит, шаблоны glob пользователи не задают; исправленной версии нет
+    - GHSA-fc5q-39xc-vjpf
+
 onlyBuiltDependencies:
   - esbuild
