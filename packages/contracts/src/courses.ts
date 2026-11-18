@@ -27,7 +27,12 @@ export const COURSE_COVER = {
 	maxSize: 5 * 1024 * 1024,
 }
 /** Медиа урока по виду (лимиты — `BLOCK_MEDIA` в @dinastia/blocks). */
-export const LESSON_MEDIA_PURPOSE = { image: 'courses.lesson-image', file: 'courses.lesson-file' } as const
+export const LESSON_MEDIA_PURPOSE = {
+	image: 'courses.lesson-image',
+	file: 'courses.lesson-file',
+	// видео в хранилище школы (VIDEO_PROVIDER=storage, D-070)
+	video: 'courses.lesson-video',
+} as const
 
 export const CourseTitle = z.string().trim().min(1).max(200)
 const ItemTitle = z.string().trim().min(1).max(200)
@@ -231,7 +236,10 @@ export const coursesContract = {
 			.route({ method: 'POST', path: '/blocks/{id}/move' })
 			.input(z.object({ id: Id, index: z.number().int().min(0) }))
 			.output(z.array(LessonBlock)),
-		/** Блок «Видео»: начать загрузку у провайдера (2.4b). Файл клиент шлёт на `uploadUrl` сам (tus); блок — `processing`. */
+		/**
+		 * Блок «Видео»: начать загрузку у провайдера (2.4b). Файл клиент шлёт на `uploadUrl` сам (tus); блок — `processing`.
+		 * Видео в хранилище школы (D-070) — `file`: один PUT на presigned `uploadUrl` с `headers`, затем `files.complete`.
+		 */
 		startVideoUpload: oc
 			.route({ method: 'POST', path: '/blocks/{id}/video-upload' })
 			.input(
@@ -242,7 +250,13 @@ export const coursesContract = {
 					size: z.number().int().min(1),
 				}),
 			)
-			.output(z.object({ uploadUrl: z.string(), block: LessonBlock })),
+			.output(
+				z.object({
+					uploadUrl: z.string(),
+					file: z.object({ id: Id, headers: z.record(z.string(), z.string()) }).optional(),
+					block: LessonBlock,
+				}),
+			),
 		/** Узнать статус обработки видео у провайдера и вернуть актуальный блок. */
 		videoStatus: oc.route({ method: 'POST', path: '/blocks/{id}/video-status' }).input(ById).output(LessonBlock),
 		remove: oc

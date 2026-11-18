@@ -1,5 +1,5 @@
 // Медиа (карточка 2.7): обложка курса; блок «Картинка» без файла — «Не заполнено», загрузка → «Как увидит ученик»;
-// блок «Файл» → «Скачать»; картинка внутри текста. Файлы уходят в S3 напрямую (SeaweedFS локально).
+// блок «Файл» (архив) → «Скачать» (PDF, Word, PowerPoint — просмотр в теме, documents.spec); картинка внутри текста. Файлы уходят в S3 напрямую (SeaweedFS локально).
 import { expect, openNewLesson, type Page, test } from './fixtures.ts'
 import { shoot } from './shots.ts'
 
@@ -8,7 +8,7 @@ const png = Buffer.from(
 	'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGNQTX5NEmIY1TCqYfhqAAB2SXMQ7mVTQgAAAABJRU5ErkJggg==',
 	'base64',
 )
-const pdf = Buffer.from('%PDF-1.4\n%конспект\n')
+const zip = Buffer.from('PK\x05\x06' + '\0'.repeat(18), 'binary') // пустой ZIP
 
 const saved = (page: Page) => page.waitForResponse((r) => r.url().endsWith('/courses/blocks/update') && r.ok())
 
@@ -33,14 +33,14 @@ test('обложка курса, картинка, файл и картинка 
 	await page.getByTestId('block-palette-file').click()
 	await expect(page.getByTestId('lesson-block')).toHaveCount(2)
 	const file = page.getByTestId('lesson-block').last()
-	await file.locator('input[type=file]').setInputFiles({ name: 'вирус.html', mimeType: 'text/html', buffer: pdf })
+	await file.locator('input[type=file]').setInputFiles({ name: 'вирус.html', mimeType: 'text/html', buffer: zip })
 	await expect(file.getByRole('alert')).toHaveText('Такой тип файла здесь не подходит.')
 	const fileSaved = saved(page)
 	await file
 		.locator('input[type=file]')
-		.setInputFiles({ name: 'Конспект.pdf', mimeType: 'application/pdf', buffer: pdf })
+		.setInputFiles({ name: 'Материалы.zip', mimeType: 'application/zip', buffer: zip })
 	await fileSaved
-	await expect(file).toContainText('Конспект.pdf')
+	await expect(file).toContainText('Материалы.zip')
 
 	// картинка в тексте
 	await page.getByTestId('block-palette-text').click()
@@ -63,7 +63,7 @@ test('обложка курса, картинка, файл и картинка 
 	await expect(preview.locator('img')).toHaveCount(2)
 	const download = preview.getByRole('link', { name: 'Скачать' })
 	await expect(download).toHaveAttribute('href', /X-Amz-Signature/)
-	await expect(preview).toContainText('PDF')
+	await expect(preview).toContainText('ZIP')
 	await shoot(page, 'media-preview')
 
 	// обложка курса

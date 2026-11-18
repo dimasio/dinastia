@@ -344,7 +344,7 @@ class Services:
         env = {k: v for k, v in os.environ.items() if not k.startswith(("DATABASE_", "S3_", "SMTP_", "APP_"))}
         env.update(
             {
-                # демо-режим как локальная разработка (D-069): видео — заглушка, письма — в Mailpit; не production
+                # демо-режим как локальная разработка (D-069): видео — в хранилище (D-070), письма — в Mailpit; не production
                 "NODE_ENV": "development",
                 "LOG_FORMAT": "json",
                 "API_HOST": "127.0.0.1",
@@ -364,6 +364,8 @@ class Services:
                 "S3_ACCESS_KEY": s["s3Access"],
                 "S3_SECRET_KEY": s["s3Secret"],
                 "S3_FORCE_PATH_STYLE": "true",
+                # видео — файлом в хранилище (D-070): сервиса видео у демо-стенда нет
+                "VIDEO_PROVIDER": "storage",
                 "MAIL_TRANSPORT": "smtp",
                 "SMTP_HOST": "127.0.0.1",
                 "SMTP_PORT": str(p["smtp"]),

@@ -24,3 +24,11 @@ export const lessonFilePurpose = defineFilePurpose({
 	mime: BLOCK_MEDIA.file.mime,
 	perm: 'courses.manage',
 })
+
+// видео в хранилище школы (VIDEO_PROVIDER=storage, D-070); загрузку выдаёт courses.blocks.startVideoUpload
+export const lessonVideoPurpose = defineFilePurpose({
+	key: LESSON_MEDIA_PURPOSE.video,
+	maxSize: BLOCK_MEDIA.video.maxSize,
+	mime: BLOCK_MEDIA.video.mime,
+	perm: 'courses.manage',
+})

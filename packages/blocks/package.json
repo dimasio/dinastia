@@ -19,8 +19,11 @@
 		"@dinastia/contracts": "workspace:*",
 		"@dinastia/db": "workspace:*",
 		"@dinastia/ui": "workspace:*",
+		"docx-preview": "0.4.1",
 		"highlight.js": "11.12.0",
 		"lucide-react": "catalog:",
+		"pdfjs-dist": "6.5.438",
+		"pptx-preview": "1.0.7",
 		"zod": "catalog:"
 	},
 	"peerDependencies": {

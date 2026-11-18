@@ -92,6 +92,12 @@ export const coverPurpose = defineFilePurpose({
 - Видео (2.4b, D-056): блок `video` — `source: 'link'` (белый список) или `'upload'` (`provider`, `videoId`, `status`).
   Загрузка не через `files`: `courses.blocks.startVideoUpload` → `ctx.video.createUpload` → клиент шлёт файл провайдеру по
   tus (`apps/web/src/app/video-upload.ts`); статус — опросом (`courses.blocks.videoStatus`, задача `courses.video-sync`).
+  `VIDEO_PROVIDER=storage` (D-070): `startVideoUpload` отдаёт presigned PUT файла `courses.lesson-video` (`file`), клиент —
+  `putFile` и `files.complete`; `ready` — файл подтверждён, `file_id` блока — только у готового (pending убирает очистка).
+- Тип файла в проверках и `createUpload` — `fileMime(file)` из `@dinastia/contracts/common`: Windows без Office отдаёт
+  пустой `File.type` у .docx/.pptx — тогда по расширению. Не `file.type` напрямую.
+- Просмотр документов (D-070): блок «Файл» — PDF, docx, pptx в теме (`packages/blocks/src/file/document-viewer.tsx`,
+  рендеры в `file/render/*` — отдельные чанки), без «Скачать».
 - Квоты школы.
 
 ## Готово, когда

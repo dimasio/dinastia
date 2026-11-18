@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | `api` | HTTP: oRPC `/api/*`, вход (better-auth), вебхуки, `/health/*` | Postgres, S3, SMTP |
 | `worker` | pg-boss: фоновые задачи, подписчики событий, расписания, печать PDF (Chromium) | Postgres, S3, SMTP |
-| `web` | статические файлы сайта (Vite-сборка) за nginx/Caddy/CDN | — |
+| `web` | статические файлы сайта (Vite-сборка) за nginx/Caddy/CDN; `.mjs` (воркер просмотра PDF, D-070) — с типом `text/javascript` | — |
 | `migrate` | одноразовый шаг: миграции до выката нового кода | Postgres (владелец) |
 | PostgreSQL 18 | данные школ (RLS), очередь pg-boss, лимиты частоты | — |
 | S3 | файлы школ, PDF сертификатов, выгрузки | — |

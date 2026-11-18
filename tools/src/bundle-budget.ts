@@ -9,6 +9,15 @@ import { gzipSync } from 'node:zlib'
 const INITIAL_BUDGET_KB = 200
 /** Самый большой ленивый чанк (редактор rich text) — чтобы не разрастался незаметно. */
 const LAZY_BUDGET_KB = 200
+/**
+ * Ленивые чанки со своим потолком — грузятся только по требованию и не уменьшаются без потери функции. Чанк — по началу
+ * имени файла (`assets/<имя>-<хеш>.js`).
+ */
+const LAZY_EXCEPTIONS_KB: Record<string, number> = {
+	// просмотр презентации в теме (D-070): pptx-preview с echarts для диаграмм — только когда открыта презентация
+	pptx: 400,
+}
+const chunkName = (f: string) => f.replace(/^assets\//, '').replace(/-[\w-]{8}\.js$/, '')
 
 const dist = join(import.meta.dirname, '../../apps/web/dist')
 const html = readFileSync(join(dist, 'index.html'), 'utf8')
@@ -20,14 +29,19 @@ const lazy = readdirSync(join(dist, 'assets'))
 	.filter((f) => f.endsWith('.js'))
 	.map((f) => `assets/${f}`)
 	.filter((f) => !initial.includes(f))
-const largest = lazy.map((f) => ({ f, kb: gz(f) })).sort((a, b) => b.kb - a.kb)[0]
+const sized = lazy.map((f) => ({ f, kb: gz(f), limit: LAZY_EXCEPTIONS_KB[chunkName(f)] }))
+const largest = sized.filter((c) => c.limit === undefined).sort((a, b) => b.kb - a.kb)[0]
+const exceptions = sized.filter((c) => c.limit !== undefined)
 
 console.log(`начальный JS: ${initialKb.toFixed(1)} КБ gzip (бюджет ${INITIAL_BUDGET_KB}), файлов: ${initial.length}`)
 if (largest)
 	console.log(`самый большой ленивый чанк: ${largest.f} — ${largest.kb.toFixed(1)} КБ gzip (бюджет ${LAZY_BUDGET_KB})`)
+for (const c of exceptions)
+	console.log(`ленивый чанк-исключение: ${c.f} — ${c.kb.toFixed(1)} КБ gzip (потолок ${c.limit})`)
 const over = [
 	...(initialKb > INITIAL_BUDGET_KB ? [`начальный JS ${initialKb.toFixed(1)} > ${INITIAL_BUDGET_KB} КБ`] : []),
 	...(largest && largest.kb > LAZY_BUDGET_KB ? [`${largest.f} ${largest.kb.toFixed(1)} > ${LAZY_BUDGET_KB} КБ`] : []),
+	...exceptions.filter((c) => c.kb > (c.limit as number)).map((c) => `${c.f} ${c.kb.toFixed(1)} > ${c.limit} КБ`),
 ]
 if (over.length) {
 	console.error(`бюджет превышен: ${over.join('; ')}`)

@@ -62,7 +62,8 @@ const Env = z
 		WEBHOOK_FAKE_SECRET: z.string().min(16).default('fake-webhook-secret-local'),
 
 		/** Провайдер видео (D-011): fake — без сети (только вне production); kinescope — токен и проект платформы. */
-		VIDEO_PROVIDER: z.enum(['fake', 'kinescope']).default('fake'),
+		// storage — видео файлом в S3 школы, без сервиса видео (демо-стенд, пакет для Windows; D-070)
+		VIDEO_PROVIDER: z.enum(['fake', 'kinescope', 'storage']).default('fake'),
 		KINESCOPE_TOKEN: z.string().min(1).optional(),
 		KINESCOPE_PROJECT_ID: z.string().min(1).optional(),
 	})

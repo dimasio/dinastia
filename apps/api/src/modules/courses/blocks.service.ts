@@ -82,7 +82,8 @@ export async function addLessonBlock(
 async function checkNewFiles(ctx: SchoolCtx, blockId: string, data: unknown) {
 	const prev = await blockData(ctx, blockId)
 	const def = blockDef(prev.type)
-	if (!def?.files) return
+	// файл видео пишет только сервер (lockVideoFields)
+	if (!def?.files || prev.type === 'video') return
 	const before = new Set(blockFileIds(def, prev.data))
 	const purpose = prev.type === 'file' ? LESSON_MEDIA_PURPOSE.file : LESSON_MEDIA_PURPOSE.image
 	const parsed = def.schema.safeParse(data)
@@ -105,6 +106,7 @@ function lockVideoFields(prev: Record<string, unknown>, data: Record<string, unk
 		provider: keep ? (prev.provider ?? null) : null,
 		videoId: keep ? (prev.videoId ?? null) : null,
 		status: keep ? (prev.status ?? null) : null,
+		fileId: keep ? (prev.fileId ?? null) : null,
 	}
 }
 

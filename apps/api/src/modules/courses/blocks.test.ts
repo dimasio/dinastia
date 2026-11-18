@@ -85,6 +85,7 @@ describe('блоки урока', () => {
 			provider: null,
 			videoId: null,
 			status: null,
+			fileId: null,
 			caption: null,
 		})
 		const d = await c.courses.blocks.create({ lessonId: lesson.id, type: 'divider' })

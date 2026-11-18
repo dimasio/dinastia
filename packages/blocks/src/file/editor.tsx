@@ -1,3 +1,4 @@
+import { fileMime } from '@dinastia/contracts/common'
 import { Field, Input } from '@dinastia/ui'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -5,6 +6,7 @@ import { UploadButton } from '../media/upload-button.tsx'
 import type { BlockEditorProps } from '../types.ts'
 import { FileCard } from './card.tsx'
 import type { file } from './definition.ts'
+import { previewKind } from './preview.ts'
 
 export default function FileEditor({
 	value,
@@ -16,19 +18,24 @@ export default function FileEditor({
 }: BlockEditorProps<typeof file>) {
 	const { t } = useTranslation('blocks')
 	// только что загруженный — до ответа сервера с подписанной ссылкой
-	const [local, setLocal] = useState<{ id: string; name: string; size: number }>()
+	const [local, setLocal] = useState<{ id: string; name: string; mime: string; size: number }>()
 	const saved = value.fileId ? files[value.fileId] : undefined
 	const current = saved ?? (local && local.id === value.fileId ? local : undefined)
 	return (
 		<div className="grid gap-3">
 			{current && <FileCard title={value.title || current.name} file={current} testId={`${testId}-card`} />}
+			{current && previewKind(current.mime) && (
+				<p className="text-muted-foreground text-sm" data-testid={`${testId}-preview-hint`}>
+					{previewKind(current.mime) === 'pptx' ? t('file.pptxHint') : t('file.previewHint')}
+				</p>
+			)}
 			{!readOnly && upload && (
 				<UploadButton
 					kind="file"
 					upload={upload}
 					label={value.fileId ? t('file.replace') : t('file.upload')}
 					onUploaded={(fileId, f) => {
-						setLocal({ id: fileId, name: f.name, size: f.size })
+						setLocal({ id: fileId, name: f.name, mime: fileMime(f), size: f.size })
 						onChange({ ...value, fileId })
 					}}
 					testId={`${testId}-upload`}

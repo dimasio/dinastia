@@ -2,8 +2,10 @@
 // холсте — карточка с редактором типа (BlockEditorHost): правка уходит на сервер через 0,5 с после последнего
 // изменения, добавление, порядок и удаление — сразу. «Как увидит ученик» — черновик через toPublic типа, как на сервере.
 // «Опубликовать» (2.5) — черновик блоков ученикам; незаполненные блоки помечены на холсте и не дают опубликовать.
+
 import { type BlockType, type BlockUpload, blockDataIssues, blockDef } from '@dinastia/blocks'
 import { BlockEditorHost, BlockPalette, BlockViewerHost } from '@dinastia/blocks/client'
+import { fileMime } from '@dinastia/contracts/common'
 import { LESSON_MEDIA_PURPOSE, type LessonBlock } from '@dinastia/contracts/courses'
 import {
 	AlertDialog,
@@ -61,7 +63,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '#/app/errors.ts'
-import { uploadFile } from '#/app/files.ts'
+import { putFile, uploadFile } from '#/app/files.ts'
 import { client, orpc } from '#/app/orpc.ts'
 import { meQuery } from '#/app/queries.ts'
 import { uploadVideo } from '#/app/video-upload.ts'
@@ -87,7 +89,10 @@ const publicData = (block: LessonBlock) => {
 	return def && parsed?.success ? def.toPublic(parsed.data) : null
 }
 
-/** Картинка и файл — в назначение файлов курса по виду; видео — провайдеру напрямую (tus), блок обновляется ответом. */
+/**
+ * Картинка и файл — в назначение файлов курса по виду; видео — провайдеру напрямую (tus), блок обновляется ответом.
+ * Видео в хранилище школы (D-070) — один PUT и подтверждение файла, затем статус блока.
+ */
 const uploadFor =
 	(blockId: string, onBlock: (b: LessonBlock) => void): BlockUpload =>
 	async (file, { kind, onProgress }) => {
@@ -95,11 +100,15 @@ const uploadFor =
 		const started = await client.courses.blocks.startVideoUpload({
 			id: blockId,
 			filename: file.name,
-			mime: file.type,
+			mime: fileMime(file),
 			size: file.size,
 		})
 		onBlock(started.block)
-		await uploadVideo(started.uploadUrl, file, onProgress)
+		if (started.file) {
+			await putFile(started.uploadUrl, started.file.headers, file, onProgress)
+			await client.files.complete({ id: started.file.id })
+			onBlock(await client.courses.blocks.videoStatus({ id: blockId }))
+		} else await uploadVideo(started.uploadUrl, file, onProgress)
 		return blockId
 	}
 

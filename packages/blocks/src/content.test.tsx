@@ -19,10 +19,14 @@ import { video } from './video/definition.ts'
 describe('видео и встраивание', () => {
 	it('видео — только видеосервисы; ученику — адрес плеера, а не исходная ссылка', () => {
 		const ok = video.schema.parse({ url: ' https://youtu.be/dQw4w9WgXcQ ', caption: 'Урок 1' })
-		expect(video.toPublic(ok)).toEqual({ src: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ', caption: 'Урок 1' })
+		expect(video.toPublic(ok)).toEqual({
+			src: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+			fileId: null, // видео из хранилища (D-070) — только готовое
+			caption: 'Урок 1',
+		})
 		expect(video.schema.safeParse({ url: 'https://forms.yandex.ru/u/abc/', caption: null }).success).toBe(false)
 		expect(video.schema.safeParse({ url: 'https://evil.ru/video.mp4', caption: null }).success).toBe(false)
-		expect(video.toPublic(video.defaults())).toEqual({ src: null, caption: null }) // пустой черновик
+		expect(video.toPublic(video.defaults())).toEqual({ src: null, fileId: null, caption: null }) // пустой черновик
 	})
 
 	it('встраивание — формы и видео из списка; высота в пределах', () => {
@@ -87,8 +91,17 @@ describe('картинка и файл (2.7)', () => {
 		expect(img).toContain('src="https://s3.local/signed"')
 		expect(img).toContain('alt="Схема"')
 		expect(renderToStaticMarkup(<ImageViewer data={{ fileId: id }} files={{}} testId="i" />)).toBe('')
-		const card = renderToStaticMarkup(<FileViewer data={{ fileId: id, title: null }} files={{ [id]: f }} testId="f" />)
-		expect(card).toContain('Конспект.pdf')
-		expect(card).toContain('PDF · media.size.mb') // строки в тестах пакета — ключами
+		// архив — карточка «Скачать»
+		const zip = { ...f, name: 'Материалы.zip', mime: 'application/zip' }
+		const card = renderToStaticMarkup(
+			<FileViewer data={{ fileId: id, title: null }} files={{ [id]: zip }} testId="f" />,
+		)
+		expect(card).toContain('Материалы.zip')
+		expect(card).toContain('ZIP · media.size.mb') // строки в тестах пакета — ключами
+		expect(card).toContain('file.download')
+		// PDF, Word, PowerPoint — просмотр в теме, без «Скачать» (D-070)
+		const doc = renderToStaticMarkup(<FileViewer data={{ fileId: id, title: null }} files={{ [id]: f }} testId="f" />)
+		expect(doc).toContain('data-kind="pdf"')
+		expect(doc).not.toContain('file.download')
 	})
 })

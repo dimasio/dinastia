@@ -22,18 +22,31 @@ export const video = defineBlock({
 		provider: z.enum(VIDEO_PROVIDERS).nullable().default(null),
 		videoId: z.string().max(200).nullable().default(null),
 		status: z.enum(VIDEO_STATUSES).nullable().default(null),
+		// видео в хранилище школы (provider `storage`) — файл; пишет только сервер, как videoId
+		fileId: z.uuid().nullable().default(null),
 		caption: z.string().trim().max(300).nullish(),
 	}),
-	defaults: () => ({ source: 'link' as const, url: '', provider: null, videoId: null, status: null, caption: null }),
+	defaults: () => ({
+		source: 'link' as const,
+		url: '',
+		provider: null,
+		videoId: null,
+		status: null,
+		fileId: null,
+		caption: null,
+	}),
 	completion: 'none',
+	// подписанная ссылка на файл — только готового видео из хранилища (в обработке — не показываем)
+	files: (d) => (d.provider === 'storage' && d.status === 'ready' && d.fileId ? [d.fileId] : []),
 	issues: {
 		noUrl: (d) => d.source === 'link' && d.url === '',
 		noVideo: (d) => d.source === 'upload' && !d.videoId,
 		processing: (d) => d.source === 'upload' && !!d.videoId && d.status === 'processing',
 		failed: (d) => d.source === 'upload' && !!d.videoId && d.status === 'failed',
 	},
-	// ученику — адрес плеера, а не исходная ссылка
+	// ученику — адрес плеера, а не исходная ссылка; видео из хранилища — fileId (ссылку даёт files)
 	toPublic: (d) => ({
+		fileId: d.source === 'upload' && d.provider === 'storage' && d.status === 'ready' ? d.fileId : null,
 		src:
 			d.source === 'upload'
 				? d.status === 'ready' && d.provider && d.videoId

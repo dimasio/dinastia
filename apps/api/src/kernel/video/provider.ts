@@ -17,7 +17,7 @@ export class ProviderError extends Error {
 }
 
 export interface VideoProvider {
-	readonly key: 'kinescope' | 'fake'
+	readonly key: 'kinescope' | 'fake' | 'storage'
 	/** Создать загрузку: id видео у провайдера и адрес tus, куда клиент шлёт файл. */
 	createUpload(
 		http: Http,

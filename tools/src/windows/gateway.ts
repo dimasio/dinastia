@@ -30,6 +30,8 @@ const headers = {
 const MIME: Record<string, string> = {
 	'.html': 'text/html; charset=utf-8',
 	'.js': 'text/javascript; charset=utf-8',
+	// воркер pdf.js (просмотр PDF в теме, D-070) — модуль; с nosniff браузер требует JS-тип
+	'.mjs': 'text/javascript; charset=utf-8',
 	'.css': 'text/css; charset=utf-8',
 	'.json': 'application/json; charset=utf-8',
 	'.svg': 'image/svg+xml',

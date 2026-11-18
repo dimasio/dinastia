@@ -19,7 +19,8 @@ export interface VideoProvider {
 	getStatus(http, videoId, now): Promise<'processing' | 'ready' | 'failed'>
 }
 // модулям — ctx.video (то же, с привязанным http); реализации: kernel/video/kinescope.ts, kernel/video/fake.ts
-// выбор: config.VIDEO_PROVIDER = 'kinescope' | 'fake' (KINESCOPE_TOKEN, KINESCOPE_PROJECT_ID); fake в production запрещён
+// выбор: config.VIDEO_PROVIDER = 'kinescope' | 'fake' | 'storage' (KINESCOPE_TOKEN, KINESCOPE_PROJECT_ID); fake в production
+// запрещён; storage — видео файлом в S3 школы без сервиса (D-070), загрузку ведёт courses/video.service.ts
 // фейк: `fake://<id>` вместо tus-адреса, «обработка» 3 с по времени ctx.now, имя файла с «broken» — ошибка
 // подписи вебхука Kinescope в документации нет → статус опросом (задача courses.video-sync), вебхука нет
 ```

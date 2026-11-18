@@ -1,12 +1,14 @@
 // Загруженное видео блока «Видео» (карточка 2.4b): создать загрузку у провайдера и опросить статус обработки.
 // Файл клиент шлёт провайдеру сам (tus); сервис пишет в блок provider/videoId/status — клиентские значения не берутся.
+// VIDEO_PROVIDER=storage (D-070): видео — файл школы `courses.lesson-video` (presigned PUT), готово — когда файл подтверждён.
 import { BLOCK_MEDIA } from '@dinastia/blocks'
 import { blockStorage } from '@dinastia/blocks/server'
-import type { LessonBlock } from '@dinastia/contracts/courses'
+import { LESSON_MEDIA_PURPOSE, type LessonBlock } from '@dinastia/contracts/courses'
 import { and, eq } from 'drizzle-orm'
 import { blockData, listBlocks, updateBlock } from '#/kernel/blocks/blocks.ts'
 import type { BaseCtx, SchoolCtx } from '#/kernel/context.ts'
 import { fail } from '#/kernel/errors.ts'
+import { createUpload } from '#/kernel/storage/files.ts'
 import { ProviderError } from '#/kernel/video/index.ts'
 import { lessonOfBlock, touched } from './blocks.service.ts'
 
@@ -28,6 +30,29 @@ export async function startVideoUpload(
 	const data = await videoBlock(ctx, input.id)
 	if (!(BLOCK_MEDIA.video.mime as readonly string[]).includes(input.mime)) return fail.invalid('FILE_TYPE_NOT_ALLOWED')
 	if (input.size > BLOCK_MEDIA.video.maxSize) return fail.invalid('FILE_TOO_LARGE')
+	if (ctx.video.key === 'storage') {
+		const file = await createUpload(ctx, {
+			purpose: LESSON_MEDIA_PURPOSE.video,
+			name: input.filename,
+			mime: input.mime,
+			size: input.size,
+		})
+		await updateBlock(ctx, input.id, {
+			...data,
+			source: 'upload',
+			provider: 'storage',
+			// id файла — в videoId; в file_id (внешний ключ) — когда файл подтверждён: незавершённую загрузку убирает очистка
+			videoId: file.fileId,
+			fileId: null,
+			status: 'processing',
+		})
+		await touched(ctx, lessonId)
+		return {
+			uploadUrl: file.uploadUrl,
+			file: { id: file.fileId, headers: file.headers },
+			block: await blockOf(ctx, lessonId, input.id),
+		}
+	}
 	let upload: { videoId: string; uploadUrl: string }
 	try {
 		upload = await ctx.video.createUpload({ filename: input.filename, size: input.size })
@@ -41,6 +66,7 @@ export async function startVideoUpload(
 		source: 'upload',
 		provider: ctx.video.key,
 		videoId: upload.videoId,
+		fileId: null,
 		status: 'processing',
 	})
 	await touched(ctx, lessonId)
@@ -51,10 +77,22 @@ export async function startVideoUpload(
 export async function syncVideoBlock(ctx: BaseCtx, id: string) {
 	const data = await videoBlock(ctx, id)
 	if (data.source !== 'upload' || data.status !== 'processing' || typeof data.videoId !== 'string') return false
-	const status = await ctx.video.getStatus(data.videoId)
+	const status =
+		data.provider === 'storage' ? await storedVideoStatus(ctx, data.videoId) : await ctx.video.getStatus(data.videoId)
 	if (status === 'processing') return false
-	await updateBlock(ctx, id, { ...data, status })
+	const fileId = data.provider === 'storage' && status === 'ready' ? data.videoId : null
+	await updateBlock(ctx, id, { ...data, status, fileId })
 	return true
+}
+
+/**
+ * Видео в хранилище: файл подтверждён — готово; ещё ждёт загрузки — в обработке; файла нет (незавершённую загрузку убрала
+ * очистка) — ошибка.
+ */
+async function storedVideoStatus(ctx: BaseCtx, fileId: string) {
+	const file = await ctx.files.get(fileId)
+	if (!file || file.purpose !== LESSON_MEDIA_PURPOSE.video) return 'failed'
+	return file.status === 'ready' ? 'ready' : 'processing'
 }
 
 /** Проверка статуса по просьбе редактора (опрос, пока `processing`); возвращает актуальный блок. */
