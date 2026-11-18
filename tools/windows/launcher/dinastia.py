@@ -5,10 +5,15 @@
 установки (по умолчанию C:\\Dinastia\\data): база, файлы, письма, логи, конфигурация с паролями и портами. Путь — только
 латиницей: PostgreSQL на Windows не дружит с кириллицей в путях (поэтому не профиль пользователя).
 
+Сетевой режим (меню «Доступ из сети Wi‑Fi…»): шлюз слушает все интерфейсы, адрес — `<центр>.<IP-через-дефис>.sslip.io`
+(публичный DNS отвечает IP этого компьютера в локальной сети — нужен интернет), брандмауэр открывает порты веба и
+хранилища для частных сетей; API, база, SeaweedFS и почта остаются на 127.0.0.1.
+
 Режимы:
   Dinastia.exe              окно учебного центра
   Dinastia.exe --setup      первая установка или обновление: база, роли, бакет, миграции, демо-данные (вызывает инсталлятор)
   Dinastia.exe --selftest   установка, запуск, проверки (вход слушателя, PDF через Chromium), остановка — для CI
+  Dinastia.exe --selftest --network   то же в сетевом режиме, по IP компьютера (без брандмауэра)
   Dinastia.exe --stop       остановить службы этой установки (инсталлятор — перед обновлением и удалением)
 """
 
@@ -16,6 +21,8 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import html as html_lib
+import ipaddress
 import json
 import logging
 import os
@@ -139,10 +146,24 @@ def version() -> str:
         return "dev"
 
 
-def web_origin(cfg: dict, slug: str | None = None) -> str:
-    port = cfg["ports"]["web"]
-    host = f"{slug}.{DOMAIN}" if slug else DOMAIN
-    return f"http://{host}" + ("" if port == 80 else f":{port}")
+def lan_ip() -> str | None:
+    """IP этого компьютера в локальной сети (адрес маршрута по умолчанию; пакеты при этом не отправляются)."""
+    candidates: list[str] = []
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 9))
+            candidates.append(s.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        candidates += socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        pass
+    for c in candidates:
+        a = ipaddress.ip_address(c)
+        if a.is_private and not a.is_loopback and not a.is_link_local:
+            return c
+    return None
 
 
 # ---------------------------------------------------------------- процессы
@@ -258,12 +279,68 @@ class Services:
         self.s = cfg["secrets"]
         self.job = Job()
         self.procs: dict[str, subprocess.Popen] = {}
+        # сетевой режим на этот запуск: IP в сети, если включён и адрес открывается; иначе — почему нет
+        self.net_ip: str | None = None
+        self.net_problem: str | None = None
         LOGS.mkdir(parents=True, exist_ok=True)
+
+    # --- адреса
+
+    def domain(self) -> str:
+        return f"{self.net_ip.replace('.', '-')}.sslip.io" if self.net_ip else DOMAIN
+
+    def host(self, slug: str | None = None) -> str:
+        port = self.p["web"]
+        return (f"{slug}.{self.domain()}" if slug else self.domain()) + ("" if port == 80 else f":{port}")
+
+    def origin(self, slug: str | None = None) -> str:
+        return f"http://{self.host(slug)}"
+
+    def network_enabled(self) -> bool:
+        return bool((self.cfg.get("network") or {}).get("enabled"))
+
+    def resolve_network(self) -> None:
+        """Сетевой режим включён — текущий IP и проверка, что адрес sslip.io ведёт на него; нет — только этот компьютер."""
+        self.net_ip = None
+        self.net_problem = None
+        if not self.network_enabled():
+            return
+        ip = lan_ip()
+        if not ip:
+            self.net_problem = "компьютер не подключён к локальной сети (Wi‑Fi)"
+            return
+        name = f"{CENTER}.{ip.replace('.', '-')}.sslip.io"
+        try:
+            resolved = socket.gethostbyname(name)
+        except OSError:
+            resolved = None
+        if resolved != ip:
+            self.net_problem = (
+                f"адрес {name} не открывается: нет интернета или роутер блокирует адреса, ведущие в локальную сеть. "
+                "Попробуйте раздать Wi‑Fi с телефона"
+            )
+            return
+        self.net_ip = ip
+        net = self.cfg.setdefault("network", {})
+        if net.get("ip") != ip:
+            net["ip"] = ip
+            save_config(self.cfg)
+
+    def set_network(self, enabled: bool) -> None:
+        """Включить или выключить сетевой режим и перезапустить платформу с новыми адресами."""
+        net = self.cfg.setdefault("network", {})
+        net["enabled"] = enabled
+        if enabled and "s3Public" not in self.p:
+            self.p["s3Public"] = pick_port([18334], set(self.p.values()))
+        save_config(self.cfg)
+        self.stop_app()
+        self.start_app()
 
     # --- окружение node
 
     def node_env(self) -> dict:
         p, s = self.p, self.s
+        net = self.net_ip is not None
         env = {k: v for k, v in os.environ.items() if not k.startswith(("DATABASE_", "S3_", "SMTP_", "APP_"))}
         env.update(
             {
@@ -274,13 +351,14 @@ class Services:
                 "API_PORT": str(p["api"]),
                 "DATABASE_URL": f"postgres://app_user:{s['appUser']}@127.0.0.1:{p['pg']}/dinastia",
                 "DATABASE_URL_OWNER": f"postgres://app_owner:{s['appOwner']}@127.0.0.1:{p['pg']}/dinastia",
-                "APP_DOMAIN": DOMAIN,
+                "APP_DOMAIN": self.domain(),
                 "APP_PROTOCOL": "http",
                 "APP_PUBLIC_PORT": "" if p["web"] == 80 else str(p["web"]),
                 "APP_RELEASE": version(),
                 "AUTH_SECRET": s["auth"],
                 "TRUST_PROXY_HOPS": "1",
-                "S3_ENDPOINT": f"http://127.0.0.1:{p['s3']}",
+                # сетевой режим: подписанные ссылки — на IP компьютера, через шлюз (SeaweedFS остаётся на loopback)
+                "S3_ENDPOINT": f"http://{self.net_ip}:{p['s3Public']}" if net else f"http://127.0.0.1:{p['s3']}",
                 "S3_REGION": "ru-central1",
                 "S3_BUCKET": "dinastia",
                 "S3_ACCESS_KEY": s["s3Access"],
@@ -289,13 +367,16 @@ class Services:
                 "MAIL_TRANSPORT": "smtp",
                 "SMTP_HOST": "127.0.0.1",
                 "SMTP_PORT": str(p["smtp"]),
-                "SMTP_FROM": f"{CENTER_NAME} <noreply@{DOMAIN}>",
+                "SMTP_FROM": f"{CENTER_NAME} <noreply@{self.domain()}>",
                 "VIDEO_PROVIDER": "fake",
                 "PLAYWRIGHT_BROWSERS_PATH": str(BROWSERS),
                 "GATEWAY_PORT": str(p["web"]),
+                "GATEWAY_HOST": "0.0.0.0" if net else "127.0.0.1",
                 "WEB_ROOT": str(APP / "web"),
             }
         )
+        if net:
+            env.update({"S3_PROXY_PORT": str(p["s3Public"]), "S3_UPSTREAM_PORT": str(p["s3"])})
         return env
 
     def pg_env(self) -> dict:
@@ -441,17 +522,21 @@ class Services:
         wait_until(lambda: http_ok(f"http://127.0.0.1:{self.p['mail']}/readyz"), "Mailpit", 60, proc, LOGS / "mail.log")
 
     def start_app(self) -> None:
+        self.resolve_network()
         env = self.node_env()
         self.ensure_port("API", self.p["api"])
         self.ensure_port("веб", self.p["web"])
+        if self.net_ip:
+            self.ensure_port("хранилище для сети", self.p["s3Public"])
+        # шлюз — первым: в сетевом режиме API проверяет хранилище через него
+        gw = self.spawn("gateway", [NODE, APP / "gateway.js"], env, APP)
         api = self.spawn("api", [NODE, APP / "api" / "dist" / "main.js"], env, APP / "api")
         self.spawn("worker", [NODE, APP / "api" / "dist" / "worker.js"], env, APP / "api")
         wait_until(
             lambda: http_ok(f"http://127.0.0.1:{self.p['api']}/health/ready"), "API", 120, api, LOGS / "api.log"
         )
-        gw = self.spawn("gateway", [NODE, APP / "gateway.js"], env, APP)
         wait_until(
-            lambda: http_ok(f"http://127.0.0.1:{self.p['web']}/", host=f"{CENTER}.{DOMAIN}"),
+            lambda: http_ok(f"http://127.0.0.1:{self.p['web']}/", host=self.host(CENTER)),
             "веб",
             60,
             gw,
@@ -668,7 +753,109 @@ def stop_installation() -> None:
         Services(cfg).stop_postgres()
 
 
+# ---------------------------------------------------------------- сеть: брандмауэр
+
+
+def public_network() -> bool:
+    """Подключение Windows считает «общедоступной» сетью — входящие подключения в ней закрыты."""
+    if not IS_WIN:
+        return False
+    res = run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "(Get-NetConnectionProfile | Where-Object NetworkCategory -eq 'Public' | Measure-Object).Count",
+        ],
+        check=False,
+    )
+    return (res.stdout or "").strip() not in ("", "0")
+
+
+def open_firewall(ports: list[int], make_private: bool) -> bool:
+    """Разрешить входящие к node.exe этой установки на портах веба и хранилища (частные сети); запрос прав — UAC."""
+    if not IS_WIN:
+        return True
+    from ctypes import wintypes
+
+    node = NODE.resolve()
+    script = DATA / "network.ps1"
+    lines = [
+        "$ErrorActionPreference = 'Stop'",
+        "Get-NetFirewallRule -DisplayName 'Dinastia' -ErrorAction SilentlyContinue | Remove-NetFirewallRule",
+        f"New-NetFirewallRule -DisplayName 'Dinastia' -Direction Inbound -Action Allow -Protocol TCP "
+        f"-LocalPort {','.join(str(p) for p in ports)} -Program '{node}' -Profile Private,Domain | Out-Null",
+    ]
+    if make_private:
+        lines.append(
+            "Get-NetConnectionProfile | Where-Object NetworkCategory -eq 'Public' | "
+            "Set-NetConnectionProfile -NetworkCategory Private"
+        )
+    script.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8-sig")
+
+    class ShellExecuteInfo(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("fMask", ctypes.c_ulong),
+            ("hwnd", wintypes.HWND),
+            ("lpVerb", wintypes.LPCWSTR),
+            ("lpFile", wintypes.LPCWSTR),
+            ("lpParameters", wintypes.LPCWSTR),
+            ("lpDirectory", wintypes.LPCWSTR),
+            ("nShow", ctypes.c_int),
+            ("hInstApp", wintypes.HINSTANCE),
+            ("lpIDList", ctypes.c_void_p),
+            ("lpClass", wintypes.LPCWSTR),
+            ("hkeyClass", wintypes.HKEY),
+            ("dwHotKey", wintypes.DWORD),
+            ("hIconOrMonitor", wintypes.HANDLE),
+            ("hProcess", wintypes.HANDLE),
+        ]
+
+    info = ShellExecuteInfo()
+    info.cbSize = ctypes.sizeof(info)
+    info.fMask = 0x00000040  # SEE_MASK_NOCLOSEPROCESS
+    info.lpVerb = "runas"
+    info.lpFile = "powershell.exe"
+    info.lpParameters = f'-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{script}"'
+    info.nShow = 0
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+    k32 = ctypes.WinDLL("kernel32")
+    shell32.ShellExecuteExW.argtypes = [ctypes.POINTER(ShellExecuteInfo)]
+    k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    k32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    if not shell32.ShellExecuteExW(ctypes.byref(info)):
+        log.info("брандмауэр: запрос прав отклонён")
+        return False
+    k32.WaitForSingleObject(info.hProcess, 120_000)
+    code = wintypes.DWORD()
+    k32.GetExitCodeProcess(info.hProcess, ctypes.byref(code))
+    k32.CloseHandle(info.hProcess)
+    log.info("брандмауэр: код %s", code.value)
+    return code.value == 0
+
+
+def qr_svg(text: str) -> str:
+    import qrcode
+    import qrcode.image.svg
+
+    img = qrcode.make(text, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
+    return img.to_string(encoding="unicode")
+
+
 # ---------------------------------------------------------------- проверка (CI)
+
+
+def s3_answers(url: str) -> bool:
+    """Хранилище ответило (без подписи — 403 AccessDenied, это и нужно: дошли до SeaweedFS через шлюз)."""
+    try:
+        urllib.request.urlopen(url, timeout=5)
+        return True
+    except urllib.error.HTTPError as e:
+        return e.code in (400, 403)
+    except (urllib.error.URLError, OSError):
+        return False
 
 
 SIGN_IN = {"email": "tikhomirova@airgorizont.local", "password": "gorizont2026"}
@@ -685,21 +872,31 @@ console.log('pdf ok', pdf.length)
 """
 
 
-def selftest(svc: Services) -> None:
+def selftest(svc: Services, network: bool = False) -> None:
     p = svc.p
-    origin = web_origin(svc.cfg, CENTER)
-    host = f"{CENTER}.{DOMAIN}" + ("" if p["web"] == 80 else f":{p['web']}")
+    svc.cfg.setdefault("network", {})["enabled"] = network
+    if network and "s3Public" not in p:
+        p["s3Public"] = pick_port([18334], set(p.values()))
+    save_config(svc.cfg)
     svc.start(lambda t: log.info("шаг: %s", t))
-    for url, h in (
-        (f"http://127.0.0.1:{p['web']}/health/ready", None),
-        (f"http://127.0.0.1:{p['web']}/", host),
-        (f"http://127.0.0.1:{p['web']}/api/branding.css", host),
+    if network and not svc.net_ip:
+        raise RuntimeError(f"проверка: сетевой режим не включился — {svc.net_problem}")
+    origin, host = svc.origin(CENTER), svc.host(CENTER)
+    # сетевой режим — как с другого устройства: по IP компьютера и по настоящему адресу sslip.io
+    base = f"http://{svc.net_ip or '127.0.0.1'}:{p['web']}"
+    checks = [
+        (f"{base}/health/ready", None),
+        (f"{base}/", host),
+        (f"{base}/api/branding.css", host),
         (f"http://127.0.0.1:{p['mail']}/readyz", None),
-    ):
-        if not http_ok(url, h):
+    ]
+    if network:
+        checks += [(f"{origin}/", None), (f"http://{svc.net_ip}:{p['s3Public']}/dinastia", None)]
+    for url, h in checks:
+        if not http_ok(url, h) and not (url.endswith("/dinastia") and s3_answers(url)):
             raise RuntimeError(f"проверка: {url} (Host: {h}) не отвечает")
     req = urllib.request.Request(
-        f"http://127.0.0.1:{p['web']}/api/auth/sign-in/email",
+        f"{base}/api/auth/sign-in/email",
         data=json.dumps(SIGN_IN).encode(),
         headers={"Host": host, "Origin": origin, "Content-Type": "application/json"},
         method="POST",
@@ -777,10 +974,11 @@ def gui(svc: Services) -> None:
     import webview
     from webview.menu import Menu, MenuAction, MenuSeparator
 
-    center = web_origin(svc.cfg, CENTER) + "/"
-    ops = web_origin(svc.cfg) + "/ops"
     mail = f"http://127.0.0.1:{svc.p['mail']}/"
     state = {"ready": False}
+
+    def center() -> str:
+        return svc.origin(CENTER) + "/"
 
     window = webview.create_window(
         TITLE, html=SPLASH.replace("VERSION", version()), width=1360, height=880, min_size=(900, 600), confirm_close=False
@@ -794,15 +992,86 @@ def gui(svc: Services) -> None:
         try:
             svc.start(step)
             state["ready"] = True
-            window.load_url(center)
+            window.load_url(center())
+            if svc.net_problem:
+                message(f"Доступ из сети на этот запуск выключен: {svc.net_problem}.\n\nНа этом компьютере всё работает.")
         except Exception as e:  # noqa: BLE001 — показать человеку и записать
             log.exception("запуск не удался")
             window.evaluate_js(
                 f"fail({json.dumps(f'Не удалось запустить: {e}{chr(10)}{chr(10)}Логи: {LOGS}')})"
             )
 
-    def go(url: str):
-        return lambda: state["ready"] and window.load_url(url)
+    def go(path_fn):
+        return lambda: state["ready"] and window.load_url(path_fn())
+
+    def show_address() -> None:
+        if not svc.net_ip:
+            message(
+                "Доступ из сети выключен — включите его: Dinastia → «Доступ из сети Wi‑Fi…»."
+                if not svc.network_enabled()
+                else f"Доступ из сети сейчас не работает: {svc.net_problem}."
+            )
+            return
+        url = svc.origin(CENTER) + "/"
+        page = f"""<!doctype html><meta charset=utf-8><style>
+:root{{color-scheme:light dark}}body{{font:15px/1.5 "Segoe UI",system-ui,sans-serif;margin:0;padding:24px;
+display:grid;grid-template-columns:240px 1fr;gap:24px;align-items:center}}svg{{width:240px;height:240px;background:#fff;
+border-radius:8px}}code{{font:16px Consolas,monospace;word-break:break-all}}p{{margin:0 0 12px}}small{{color:#888}}
+</style>{qr_svg(url)}<div><p>На телефоне или другом компьютере <b>в той же сети Wi‑Fi</b> откройте:</p>
+<p><code>{html_lib.escape(url)}</code></p><p>или наведите камеру на код.</p>
+<p><small>Консоль оператора: {html_lib.escape(svc.origin())}/ops<br>Логины — меню «Пользователи демо-данных».
+Платформу видят все в этой сети; почта — только на этом компьютере.</small></p></div>"""
+        webview.create_window("Адрес для других устройств", html=page, width=760, height=330)
+
+    def restart_with(action, done) -> None:
+        state["ready"] = False
+        window.load_html(SPLASH.replace("VERSION", version()))
+
+        def work() -> None:
+            try:
+                action()
+                state["ready"] = True
+                window.load_url(center())
+                done()
+            except Exception as e:  # noqa: BLE001
+                log.exception("перезапуск не удался")
+                window.evaluate_js(f"fail({json.dumps(f'Не удалось: {e}{chr(10)}{chr(10)}Логи: {LOGS}')})")
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def toggle_network() -> None:
+        if not state["ready"]:
+            return
+        if svc.network_enabled():
+            if window.create_confirmation_dialog(
+                "Выключить доступ из сети?",
+                "Платформа будет открываться только на этом компьютере. Войти придётся заново.",
+            ):
+                restart_with(lambda: (step("Платформа"), svc.set_network(False)), lambda: None)
+            return
+        public = public_network()
+        text = (
+            "Платформу смогут открыть телефоны и компьютеры в этой же сети Wi‑Fi — по адресу вида "
+            "airgorizont.192-168-1-50.sslip.io (нужен интернет). Пароли демо-данных известны — включайте только в своей сети.\n\n"
+            "Windows попросит разрешение: открыть в брандмауэре порты платформы для частных сетей"
+            + (" и сделать текущую сеть «Частной» (сейчас она «Общедоступная» — в ней входящие закрыты)." if public else ".")
+            + "\n\nВойти придётся заново."
+        )
+        if not window.create_confirmation_dialog("Открыть доступ из сети Wi‑Fi?", text):
+            return
+        ports = [svc.p["web"], svc.p.get("s3Public") or pick_port([18334], set(svc.p.values()))]
+        svc.p["s3Public"] = ports[1]
+        if not open_firewall(ports, public):
+            message("Брандмауэр не настроен (разрешение не дано) — другие устройства не подключатся.", error=True)
+            return
+
+        def done() -> None:
+            if svc.net_ip:
+                show_address()
+            else:
+                message(f"Доступ из сети не включился: {svc.net_problem}.", error=True)
+
+        restart_with(lambda: (step("Платформа"), svc.set_network(True)), done)
 
     def show_mail() -> None:
         if state["ready"]:
@@ -832,7 +1101,7 @@ def gui(svc: Services) -> None:
             try:
                 svc.reset_demo(step)
                 state["ready"] = True
-                window.load_url(center)
+                window.load_url(center())
             except Exception as e:  # noqa: BLE001
                 log.exception("сброс не удался")
                 window.evaluate_js(f"fail({json.dumps(f'Не удалось сбросить: {e}')})")
@@ -844,8 +1113,11 @@ def gui(svc: Services) -> None:
             "Dinastia",
             [
                 MenuAction("Учебный центр", go(center)),
-                MenuAction("Консоль оператора", go(ops)),
+                MenuAction("Консоль оператора", go(lambda: svc.origin() + "/ops")),
                 MenuAction("Почта (письма платформы)", show_mail),
+                MenuSeparator(),
+                MenuAction("Доступ из сети Wi‑Fi: включить / выключить…", toggle_network),
+                MenuAction("Адрес для других устройств", show_address),
                 MenuSeparator(),
                 MenuAction("Пользователи демо-данных", show_accounts),
                 MenuAction("Сбросить демо-данные…", reset),
@@ -880,7 +1152,7 @@ def edge_fallback(svc: Services) -> None:
             break
     try:
         svc.start(lambda t: log.info("шаг: %s", t))
-        url = web_origin(svc.cfg, CENTER) + "/"
+        url = svc.origin(CENTER) + "/"
         if edge:
             subprocess.run([str(edge), f"--app={url}", f"--user-data-dir={DATA / 'edge'}", "--no-first-run"])
         else:
@@ -900,6 +1172,7 @@ def main() -> int:
     parser.add_argument("--setup", action="store_true")
     parser.add_argument("--selftest", action="store_true")
     parser.add_argument("--stop", action="store_true")
+    parser.add_argument("--network", action="store_true")
     args = parser.parse_args()
 
     LOGS.mkdir(parents=True, exist_ok=True)
@@ -934,7 +1207,7 @@ def main() -> int:
             return 0
         if args.selftest:
             try:
-                selftest(svc)
+                selftest(svc, network=args.network)
             finally:
                 svc.stop_all()
             return 0

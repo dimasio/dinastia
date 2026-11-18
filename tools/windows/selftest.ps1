@@ -52,4 +52,6 @@ Run $setup @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$out\instal
 Run "$app\Dinastia.exe" @('--selftest') 'проверка после обновления'
 Write-Host '--- launcher.log'
 Get-Content "$logs\launcher.log" -Tail 30
+# сетевой режим — как с другого устройства: по IP раннера и по адресу sslip.io (брандмауэр не нужен — тот же компьютер)
+Run "$app\Dinastia.exe" @('--selftest', '--network') 'проверка сетевого режима'
 Run "$app\unins000.exe" @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') 'удаление'
