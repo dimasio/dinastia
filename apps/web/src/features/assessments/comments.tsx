@@ -1,7 +1,8 @@
 // Переписка по работе (карточка 3.5): лента комментариев и поле нового комментария — общие для экрана проверки и панели
 // задания ученика. Комментарий — текст (профиль `comment`) и/или до 3 файлов (`assessments.comment-file`).
+
 import { COMMENT_FILE, COMMENT_FILES_MAX, type Submission } from '@dinastia/contracts/assessments'
-import { emptyDoc, isEmptyDoc } from '@dinastia/contracts/common'
+import { emptyDoc, fileMime, isEmptyDoc } from '@dinastia/contracts/common'
 import { Badge, Button } from '@dinastia/ui'
 import { RichTextEditor, RichTextView } from '@dinastia/ui/rich-text'
 import { Paperclip, Trash2 } from 'lucide-react'
@@ -126,7 +127,7 @@ export function CommentComposer(props: {
 		const file = list?.[0]
 		if (!file) return
 		setError(undefined)
-		if (!(COMMENT_FILE.mime as readonly string[]).includes(file.type))
+		if (!(COMMENT_FILE.mime as readonly string[]).includes(fileMime(file)))
 			return setError(t('FILE_TYPE_NOT_ALLOWED', { ns: 'errors' }))
 		if (file.size > COMMENT_FILE.maxSize) return setError(t('FILE_TOO_LARGE', { ns: 'errors' }))
 		setProgress(0)

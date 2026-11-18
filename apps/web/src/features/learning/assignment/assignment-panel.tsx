@@ -1,7 +1,8 @@
 // Панель домашнего задания в плеере ученика (карточка 3.4): формулировка, статус, форма ответа (текст и файлы по настройкам
 // блока), «Сохранить черновик» / «Отправить», в режиме чтения — отправленный ответ и комментарии проверяющего.
+
 import { type AssignmentState, SUBMISSION_FILE, type Submission } from '@dinastia/contracts/assessments'
-import { emptyDoc, isEmptyDoc } from '@dinastia/contracts/common'
+import { emptyDoc, fileMime, isEmptyDoc } from '@dinastia/contracts/common'
 import { Alert, AlertDescription, Badge, Button, Skeleton, toast } from '@dinastia/ui'
 import { RichTextEditor, RichTextView } from '@dinastia/ui/rich-text'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -102,7 +103,7 @@ function Assignment(props: {
 		const file = list?.[0]
 		if (!file) return
 		setError(undefined)
-		if (!(SUBMISSION_FILE.mime as readonly string[]).includes(file.type))
+		if (!(SUBMISSION_FILE.mime as readonly string[]).includes(fileMime(file)))
 			return setError(t('FILE_TYPE_NOT_ALLOWED', { ns: 'errors' }))
 		if (file.size > SUBMISSION_FILE.maxSize) return setError(t('FILE_TOO_LARGE', { ns: 'errors' }))
 		setProgress(0)

@@ -1,8 +1,9 @@
 // Загрузка файла (скилл files-media): createUpload → PUT в S3 напрямую (с прогрессом) → complete. Вернёт fileId.
+import { fileMime } from '@dinastia/contracts/common'
 import { client } from './orpc.ts'
 
 export async function uploadFile(purpose: string, file: File, onProgress: (percent: number) => void) {
-	const u = await client.files.createUpload({ purpose, name: file.name, mime: file.type, size: file.size })
+	const u = await client.files.createUpload({ purpose, name: file.name, mime: fileMime(file), size: file.size })
 	await new Promise<void>((resolve, reject) => {
 		const xhr = new XMLHttpRequest()
 		xhr.open('PUT', u.uploadUrl)

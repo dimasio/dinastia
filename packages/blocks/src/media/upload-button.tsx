@@ -1,5 +1,6 @@
 // Загрузка файла в редакторе блока (карточка 2.7): выбор, проверка типа и размера до загрузки (лимиты BLOCK_MEDIA —
 // те же у назначения на сервере), прогресс, ошибка. Саму загрузку делает страница-хост (`upload` в пропсах редактора).
+import { fileMime } from '@dinastia/contracts/common'
 import { Button } from '@dinastia/ui'
 import { Upload } from 'lucide-react'
 import { type ReactNode, useId, useRef, useState } from 'react'
@@ -38,7 +39,7 @@ export function UploadButton(props: {
 	async function pick(file: File | undefined) {
 		if (!file) return
 		setError(undefined)
-		if (!(limits.mime as readonly string[]).includes(file.type))
+		if (!(limits.mime as readonly string[]).includes(fileMime(file)))
 			return setError(t('FILE_TYPE_NOT_ALLOWED', { ns: 'errors' }))
 		if (file.size > limits.maxSize)
 			return setError(t('file.tooLarge', { ns: 'common', size: Math.round(limits.maxSize / 1024 / 1024) }))
