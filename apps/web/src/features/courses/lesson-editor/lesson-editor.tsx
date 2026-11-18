@@ -244,10 +244,7 @@ export function LessonEditor({ courseId, lessonId }: { courseId: string; lessonI
 					{lesson.data.course.title}
 				</Link>
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-					<h1
-						className="min-w-0 basis-full break-words font-semibold text-2xl sm:flex-1 sm:basis-0"
-						data-testid="lesson-title"
-					>
+					<h1 className="min-w-0 basis-full break-words font-semibold text-2xl" data-testid="lesson-title">
 						{lesson.data.title}
 					</h1>
 					<LessonStatusBadge lesson={lesson.data} testId="lesson-status" />

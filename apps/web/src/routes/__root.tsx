@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { reportError } from '#/app/error-report.ts'
 import { errorText } from '#/app/errors.ts'
 import { Centered } from '#/app/layout/centered.tsx'
+import { SignOutButton } from '#/app/layout/sign-out.tsx'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 	component: Outlet,
@@ -23,9 +24,12 @@ function NotFound() {
 				title={t('notFound.title')}
 				description={t('notFound.description')}
 				action={
-					<Button asChild>
-						<Link to="/">{t('notFound.home')}</Link>
-					</Button>
+					<div className="flex flex-wrap justify-center gap-2">
+						<Button asChild>
+							<Link to="/">{t('notFound.home')}</Link>
+						</Button>
+						<SignOutButton />
+					</div>
 				}
 			/>
 		</Centered>
@@ -45,7 +49,12 @@ function ErrorScreen({ error }: { error: unknown }) {
 				icon={CircleAlert}
 				title={code === 'UNKNOWN' ? t('error.title') : t(code, { ns: 'errors' })}
 				description={code === 'UNKNOWN' ? t('error.description') : undefined}
-				action={<Button onClick={() => window.location.reload()}>{t('error.retry')}</Button>}
+				action={
+					<div className="flex flex-wrap justify-center gap-2">
+						<Button onClick={() => window.location.reload()}>{t('error.retry')}</Button>
+						<SignOutButton />
+					</div>
+				}
 			/>
 		</Centered>
 	)

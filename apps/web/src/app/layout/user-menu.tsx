@@ -12,11 +12,10 @@ import {
 	UserAvatar,
 	useTheme,
 } from '@dinastia/ui'
-import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { authClient } from '#/app/auth.ts'
 import { hostUrl } from '#/app/host.ts'
+import { useSignOut } from './sign-out.tsx'
 
 export function UserMenu({
 	name,
@@ -34,12 +33,7 @@ export function UserMenu({
 }) {
 	const { t } = useTranslation(['common', 'nav'])
 	const { theme, setTheme } = useTheme()
-	const qc = useQueryClient()
-	async function signOut() {
-		await authClient.signOut()
-		qc.clear()
-		window.location.assign('/')
-	}
+	const signOut = useSignOut()
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -68,9 +62,14 @@ export function UserMenu({
 					<DropdownMenuRadioItem value="system">{t('theme.system')}</DropdownMenuRadioItem>
 				</DropdownMenuRadioGroup>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem asChild>
-					<a href={hostUrl()}>{t('switchSchool', { ns: 'nav' })}</a>
-				</DropdownMenuItem>
+				{/* слушателю другие учебные центры не показываем — только сотрудникам */}
+				{role !== 'student' ? (
+					<DropdownMenuItem asChild>
+						<a href={hostUrl()} data-testid="user-menu-switch-school">
+							{t('switchSchool', { ns: 'nav' })}
+						</a>
+					</DropdownMenuItem>
+				) : null}
 				<DropdownMenuItem onSelect={signOut} data-testid="user-menu-sign-out">
 					{t('signOut')}
 				</DropdownMenuItem>

@@ -4,8 +4,8 @@ import { ResourceProvider } from '@dinastia/ui/resource'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Outlet } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { authClient } from '#/app/auth.ts'
 import { errorText } from '#/app/errors.ts'
+import { useSignOut } from '#/app/layout/sign-out.tsx'
 import { orpc } from '#/app/orpc.ts'
 import { TwoFactorSetup } from './two-factor-setup.tsx'
 
@@ -18,6 +18,7 @@ const SECTIONS = [
 export function OpsLayout({ notFound }: { notFound: React.ReactNode }) {
 	const { t } = useTranslation(['ops', 'errors'])
 	const me = useQuery(orpc.ops.me.queryOptions({ retry: false }))
+	const signOut = useSignOut()
 	if (me.isPending) return <Skeleton className="m-6 h-64" />
 	if (me.error) return errorText(me.error) === 'UNAUTHENTICATED' ? null : notFound
 	return (
@@ -45,14 +46,7 @@ export function OpsLayout({ notFound }: { notFound: React.ReactNode }) {
 				</div>
 				<div className="flex items-center gap-3 text-sm">
 					<span className="hidden text-muted-foreground sm:inline">{me.data.email}</span>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={async () => {
-							await authClient.signOut()
-							window.location.assign('/')
-						}}
-					>
+					<Button variant="ghost" size="sm" onClick={signOut}>
 						{t('signOut')}
 					</Button>
 				</div>
