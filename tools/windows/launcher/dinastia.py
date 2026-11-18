@@ -895,6 +895,11 @@ def selftest(svc: Services, network: bool = False) -> None:
     for url, h in checks:
         if not http_ok(url, h) and not (url.endswith("/dinastia") and s3_answers(url)):
             raise RuntimeError(f"проверка: {url} (Host: {h}) не отвечает")
+    # веб узнаёт учебный центр по корневому адресу из метки шлюза — иначе в сетевом режиме только «Ваши учебные центры»
+    meta = f'<meta name="app-domain" content="{svc.domain()}"'
+    with urllib.request.urlopen(urllib.request.Request(f"{base}/", headers={"Host": host}), timeout=15) as r:
+        if meta not in r.read().decode("utf-8"):
+            raise RuntimeError(f"проверка: в index.html нет {meta}>")
     req = urllib.request.Request(
         f"{base}/api/auth/sign-in/email",
         data=json.dumps(SIGN_IN).encode(),

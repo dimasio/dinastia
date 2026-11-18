@@ -3,8 +3,10 @@
 // и `/health` в API с исходным Host — по нему сервер определяет учебный центр (D-041). Слушает только loopback; в сетевом
 // режиме лаунчера — все интерфейсы (`GATEWAY_HOST=0.0.0.0`) и ещё порт хранилища (`S3_PROXY_PORT` → SeaweedFS на loopback):
 // подписанные ссылки S3 открываются с других устройств, а сам SeaweedFS (мастер, filer) в сеть не выходит.
+// Корневой адрес лаунчер меняет без пересборки веба (сетевой режим — `*.sslip.io`): шлюз вписывает `APP_DOMAIN` в `index.html`
+// меткой `<meta name="app-domain">`, веб берёт его оттуда (apps/web/src/app/host.ts).
 // Без зависимостей: собирается `pnpm windows:app` в один файл `app/gateway.js`, запускается `node gateway.js`.
-import { createReadStream, statSync } from 'node:fs'
+import { createReadStream, readFileSync, statSync } from 'node:fs'
 import { createServer, type IncomingMessage, request, type ServerResponse } from 'node:http'
 import { extname, join, normalize, sep } from 'node:path'
 import { contentSecurityPolicy } from '../../../apps/web/csp.ts'
@@ -16,6 +18,8 @@ const s3UpstreamPort = Number(process.env.S3_UPSTREAM_PORT ?? 0)
 const apiPort = Number(process.env.API_PORT ?? 3000)
 const webRoot = normalize(process.env.WEB_ROOT ?? join(import.meta.dirname, 'web'))
 const s3Origin = new URL(process.env.S3_ENDPOINT ?? 'http://127.0.0.1:8333').origin
+const appDomain = process.env.APP_DOMAIN ?? ''
+const indexHtml = join(webRoot, 'index.html')
 
 const headers = {
 	'Content-Security-Policy': contentSecurityPolicy({ s3Origin, dev: false }),
@@ -82,7 +86,7 @@ function serveStatic(req: IncomingMessage, res: ServerResponse) {
 		res.writeHead(404, { ...headers, 'content-type': 'text/plain; charset=utf-8' }).end('Не найдено')
 		return
 	}
-	const target = found ?? join(webRoot, 'index.html')
+	const target = found ?? indexHtml
 	const immutable = path.startsWith('/assets/')
 	res.writeHead(200, {
 		...headers,
@@ -90,7 +94,14 @@ function serveStatic(req: IncomingMessage, res: ServerResponse) {
 		'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
 	})
 	if (req.method === 'HEAD') res.end()
+	else if (target === indexHtml) res.end(withAppDomain(readFileSync(indexHtml, 'utf8')))
 	else createReadStream(target).pipe(res)
+}
+
+function withAppDomain(html: string) {
+	if (!appDomain) return html
+	const content = appDomain.replace(/[&"<>]/g, (c) => `&#${c.charCodeAt(0)};`)
+	return html.replace('</head>', `<meta name="app-domain" content="${content}" /></head>`)
 }
 
 const handler = (req: IncomingMessage, res: ServerResponse) => {
