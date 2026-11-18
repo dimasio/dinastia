@@ -656,7 +656,9 @@ def stop_installation() -> None:
                 size = wintypes.DWORD(1024)
                 if k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size)):
                     path = buf.value.lower()
-                    if path.startswith(base) and Path(path).name not in skip:
+                    name = Path(path).name
+                    # деинсталлятор (unins000.exe) сам вызывает --stop — его не трогаем
+                    if path.startswith(base) and name not in skip and not name.startswith("unins"):
                         log.info("завершение %s (%s)", path, pid)
                         k32.TerminateProcess(h, 1)
             finally:

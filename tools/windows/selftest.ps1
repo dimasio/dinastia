@@ -14,6 +14,9 @@ function Annotate([string]$title, [string[]]$lines) {
 	Write-Host "::error title=$title::$text"
 }
 function DumpLogs {
+	# копия — в out\windows\logs: артефакт берёт файлы только из рабочей папки
+	New-Item -ItemType Directory -Force "$out\logs" | Out-Null
+	Copy-Item "$logs\*" "$out\logs\" -ErrorAction SilentlyContinue
 	if (Test-Path "$out\install.log") {
 		$t = Get-Content "$out\install.log" -Tail 25
 		Write-Host '--- install.log'; $t | Write-Host

@@ -64,5 +64,5 @@ jobs:
           name: logs
           path: |
             out/windows/install.log
-            C:/Dinastia/data/logs/
+            out/windows/logs/
           retention-days: 14
