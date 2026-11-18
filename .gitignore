@@ -1,6 +1,8 @@
 node_modules/
 dist/
 build/
+# пакет для Windows (pnpm windows:app, tools/windows/build.ps1)
+/out/
 .turbo/
 coverage/
 playwright-report/

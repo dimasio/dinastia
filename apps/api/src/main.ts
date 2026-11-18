@@ -14,6 +14,6 @@ if (config.METRICS_PORT) {
 	serveMetrics(config.METRICS_PORT)
 }
 
-serve({ fetch: createApp().fetch, port }, (info) => {
+serve({ fetch: createApp().fetch, port, ...(config.API_HOST ? { hostname: config.API_HOST } : {}) }, (info) => {
 	console.log(`api: http://localhost:${info.port}`)
 })

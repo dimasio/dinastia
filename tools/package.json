@@ -14,7 +14,8 @@
 		"gen:probe": "tsx src/gen-probe.ts",
 		"test:repeat": "tsx src/test-repeat.ts",
 		"bundle:budget": "tsx src/bundle-budget.ts",
-		"delivery:check": "tsx src/delivery-check.ts"
+		"delivery:check": "tsx src/delivery-check.ts",
+		"windows:app": "tsx src/windows/app.ts"
 	},
 	"dependencies": {
 		"gray-matter": "catalog:"
@@ -22,6 +23,7 @@
 	"devDependencies": {
 		"@dinastia/config": "workspace:*",
 		"@types/node": "catalog:",
+		"esbuild": "catalog:",
 		"tsx": "catalog:",
 		"typescript": "catalog:"
 	}

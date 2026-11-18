@@ -11,6 +11,10 @@ const Env = z
 	.object({
 		NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 		API_PORT: z.coerce.number().int().default(3000),
+		/** Адрес, на котором слушает API; пусто — все интерфейсы. Пакет для Windows — 127.0.0.1 (без запроса брандмауэра, D-069). */
+		API_HOST: z.string().min(1).optional(),
+		/** Формат логов: по умолчанию в development — pino-pretty (dev-зависимость), иначе JSON; json — JSON и в development. */
+		LOG_FORMAT: z.enum(['pretty', 'json']).optional(),
 		DATABASE_URL: z.url(),
 		DATABASE_URL_OWNER: z.url(),
 

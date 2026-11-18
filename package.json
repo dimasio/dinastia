@@ -19,6 +19,7 @@
 		"bundle:budget": "pnpm --filter @dinastia/web build && pnpm --filter @dinastia/tools run bundle:budget",
 		"delivery:check": "pnpm --filter @dinastia/api build && pnpm --filter @dinastia/web build && pnpm --filter @dinastia/tools run delivery:check",
 		"env:check": "pnpm --filter @dinastia/tools run env:check",
+		"windows:app": "pnpm --filter @dinastia/tools run windows:app",
 		"skills:link": "pnpm --filter @dinastia/tools run skills:link",
 		"env:up": "docker compose -f docker/compose.yml --env-file .env up -d --wait && docker compose -f docker/compose.yml --env-file .env run --rm seaweedfs-init",
 		"env:down": "docker compose -f docker/compose.yml --env-file .env down",

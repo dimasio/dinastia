@@ -1,0 +1,59 @@
+# Пакет для Windows (D-069, docs/guide/windows.md): инсталлятор DinastiaSetup-<версия>.exe — сборка на Windows,
+# тихая установка на чистом раннере, проверка лаунчером (--selftest), обновление поверх, удаление. Инсталлятор — в
+# артефакте запуска (Actions → Windows → запуск → Artifacts). Запуск — вручную (Run workflow) или push в main, когда
+# менялся сам пакет; после продуктовых изменений — вручную, чтобы забрать свежую версию.
+name: Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tools/windows/**
+      - tools/src/windows/**
+      - .github/workflows/windows.yml
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Node, PostgreSQL, SeaweedFS, Mailpit — скачиваются один раз на версии из build.ps1
+      - uses: actions/cache@v4
+        with:
+          path: out/windows/cache
+          key: windows-runtime-${{ hashFiles('tools/windows/build.ps1') }}
+
+      - name: Сборка инсталлятора
+        shell: pwsh
+        run: |
+          $release = "$(Get-Date -Format yyyy.MM.dd)-$('${{ github.sha }}'.Substring(0, 7))"
+          ./tools/windows/build.ps1 -Release $release
+
+      - name: Установка, проверка, обновление, удаление
+        shell: pwsh
+        run: ./tools/windows/selftest.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DinastiaSetup
+          path: out/windows/DinastiaSetup-*.exe
+          compression-level: 0
+          retention-days: 30

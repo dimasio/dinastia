@@ -34,7 +34,7 @@ export function createLogger(destination?: pino.DestinationStream): Logger {
 		timestamp: pino.stdTimeFunctions.isoTime,
 	}
 	if (destination) return pino({ ...options, level: 'debug' }, destination)
-	if (config.NODE_ENV === 'development') {
+	if ((config.LOG_FORMAT ?? (config.NODE_ENV === 'development' ? 'pretty' : 'json')) === 'pretty') {
 		return pino({
 			...options,
 			transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss', ignore: 'pid,hostname,service' } },
