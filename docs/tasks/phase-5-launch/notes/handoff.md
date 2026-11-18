@@ -2,21 +2,20 @@
 
 Новая сессия начинает с: `AGENTS.md` → `task.md` → `plan.md` → этот файл. «династия» — продолжать отсюда.
 
-## 2026-11-18: пакет для Windows (D-069) — ждёт коммита и push владельцем
+## 2026-11-18: пакет для Windows (D-069) — готов, в main
 
-Владелец переносит демо на компьютер с Windows с флешки; разработка продолжается здесь. Сделано (не закоммичено — коммит и
-push в `main` автоматическая проверка прав не пропустила, решение за владельцем):
+Владелец переносит демо на компьютер с Windows с флешки; разработка продолжается здесь.
 
-- `docs/guide/windows.md` — всё: состав, установка, лаунчер, обновление, удаление, сборка. Решение D-069.
-- `tools/src/windows/app.ts` (`pnpm windows:app`), `gateway.ts`; `tools/windows/{build.ps1,selftest.ps1,launcher/,installer/}`;
-  `.github/workflows/windows.yml` (сборка + установка + `--selftest` + обновление + удаление на windows-2022, артефакт).
-- Ядро: `API_HOST`, `LOG_FORMAT` (config.ts, log.ts, main.ts). `pnpm check` и `delivery:check` — зелёные.
-- Проверено на маке: собранный пакет приложения (сид, API на 127.0.0.1, шлюз, вход слушателя). **Лаунчер и инсталлятор не
-  запускались ни разу** — первая проверка будет в CI на Windows; запуск скачанных бинарников на маке заблокирован.
-
-Дальше: коммит → push → дождаться workflow «Windows» → чинить по логам (вероятные места: `pg_ctl`/`initdb` на Windows,
-`weed shell` для бакета, PyInstaller + pywebview) → артефакт `DinastiaSetup-*.exe` владельцу. После продуктовых изменений —
-перезапустить workflow вручную.
+- Руководства: `docs/guide/windows.md` (инсталлятор, лаунчер, сетевой режим, обновление, сборка) и
+  `docs/guide/windows-manual.md` (вручную через Docker — не проверялся на Windows).
+- Код: `tools/src/windows/{app,gateway}.ts` (`pnpm windows:app`), `tools/windows/{build.ps1,selftest.ps1,launcher/,installer/}`,
+  `.github/workflows/windows.yml`. Ядро: `API_HOST`, `LOG_FORMAT`.
+- CI Windows `db3dfeb` — **зелёный** (установка → selftest ×3 → обновление → удаление), инсталлятор 221 МБ — артефакт
+  `DinastiaSetup` запуска. Сетевой режим (`1d17122`: sslip.io, шлюз 0.0.0.0 + прокси S3, брандмауэр через UAC, QR) — проверка
+  `--selftest --network` в CI; окно, меню, UAC и брандмауэр руками не проверены — ждём отзыва владельца.
+- Логи упавшего запуска без входа в GitHub: аннотации check-run (`/repos/dimasio/dinastia/check-runs/<job>/annotations`).
+- Открыто: CI `check` красный на `pnpm audit` — high в `picomatch` (better-auth > vitest > picomatch), исправления нет; решение
+  владельца (исключить с причиной или ждать).
 
 ## 2026-11-12, вечер: АИР «Горизонт» и курс по первой помощи — остановлено владельцем
 
